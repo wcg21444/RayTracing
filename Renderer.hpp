@@ -5,6 +5,7 @@
 #include "Utils.hpp"
 #include "Trace.hpp"
 #include "Camera.hpp"
+#include "Random.hpp"
 
 #include <thread>
 #include <future>
@@ -21,8 +22,11 @@ private:
     Texture imageTexture;
     std::vector<vec4> imageData;
     std::vector<std::future<void>> shadingFutures; // 存储多个future对象
+    float perturbStrength = 1e-3f;
 
     Camera camera = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
+
+    int sampleCount = 1;
 
 private:
     void setPixel(int x, int y, vec4 &value)
@@ -47,6 +51,7 @@ private:
             {
                 future.get();
             }
+            sampleCount++;
             imageTexture.SetData(imageData.data());
         }
     }
@@ -77,11 +82,14 @@ private:
             // 启动一个异步任务，处理指定的行范围
             shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
                                                 {
-            for (int y = startY; y < endY; ++y) {
-                for (int x = 0; x < width; ++x) {
-                    this->shade(x, y);
-                }
-            } }));
+                for (int y = startY; y < endY; ++y) 
+                {
+
+                    for (int x = 0; x < width; ++x) 
+                    {
+                        this->shade(x, y);
+                    }
+                } }));
         }
     }
 
@@ -101,16 +109,24 @@ public:
 
     void resize(int newWidth, int newHeight)
     {
-        syncAndUploadShadingResult(); // 先同步着色结果,再进行缩放
+        syncResetSamples();
+
         width = newWidth;
         height = newHeight;
 
         camera.resize(newWidth, newHeight); // 适应image比例
         imageTexture.Resize(newWidth, newHeight);
+        imageData.resize(newWidth * newHeight, color4(0.0f));
+    }
 
-        // 拉伸imageData
-        imageData.clear();
-        imageData.resize(newWidth * newHeight);
+    void syncResetSamples()
+    {
+        syncAndUploadShadingResult();
+        sampleCount = 1;
+        for (auto &pixel : imageData)
+        {
+            pixel = color4(0.0f);
+        }
     }
 
     void draw()
@@ -119,9 +135,15 @@ public:
 
         ImGui::Begin("RenderUI", 0);
         {
-            ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f);
-            ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f);
+            if (
+                ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f) ||
+                ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f) ||
+                ImGui::DragFloat("PerturbStrength", &perturbStrength, 1e-4f))
+            {
+                syncResetSamples();
+            }
             ImGui::Text(std::format("HFov: {}", camera.getHorizontalFOV()).c_str());
+            ImGui::Text(std::format("Count of Samples: {}", sampleCount).c_str());
             ImGui::End();
         }
     }
@@ -132,8 +154,12 @@ private:
         vec2 uv = uvAt(x, y);
         vec4 &pixelColor = pixelAt(x, y);
 
-        Ray ray(camera.position, camera.getRayDirction(uv)); // 每一个像素,打出一根光线进行追踪,然后着色
-        pixelColor = castRay(ray);
+        Ray ray(
+            camera.position,
+            camera.getRayDirction(uv) + Random::randomVector(perturbStrength)); // 每一个像素,打出一根光线进行追踪,然后着色
+        auto newColor = castRay(ray);
+
+        pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount); // 线性平均累积
     }
 };
 
