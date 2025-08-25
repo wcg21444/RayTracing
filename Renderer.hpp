@@ -6,6 +6,9 @@
 #include "Trace.hpp"
 #include "Camera.hpp"
 
+#include <thread>
+#include <future>
+
 using namespace glm;
 
 class Image
@@ -17,6 +20,70 @@ public:
 private:
     Texture imageTexture;
     std::vector<vec4> imageData;
+    std::vector<std::future<void>> shadingFutures; // 存储多个future对象
+
+    Camera camera = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
+
+private:
+    void setPixel(int x, int y, vec4 &value)
+    {
+        imageData[y * width + x] = value;
+    }
+    vec4 &pixelAt(int x, int y)
+    {
+        return imageData[y * width + x];
+    }
+    vec2 uvAt(int x, int y)
+    {
+        return vec2(x / float(width), y / float(height));
+    }
+    void syncAndUploadShadingResult()
+    {
+        // 检查是否有任何有效的 future 对象
+        if (!shadingFutures.empty() && shadingFutures[0].valid())
+        {
+            // 等待所有异步任务完成
+            for (auto &future : shadingFutures)
+            {
+                future.get();
+            }
+            imageTexture.SetData(imageData.data());
+        }
+    }
+
+    void launchAsyncShadingTasks(int numThreads)
+    {
+
+        if (
+            !shadingFutures.empty() &&
+            shadingFutures[0].valid() &&
+            shadingFutures[0].wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+        {
+            return;
+        }
+
+        syncAndUploadShadingResult();
+
+        shadingFutures.clear();
+
+        int rowsPerThread = height / numThreads;
+
+        // 启动异步任务
+        for (int i = 0; i < numThreads; ++i)
+        {
+            int startY = i * rowsPerThread;
+            int endY = (i == numThreads - 1) ? height : startY + rowsPerThread;
+
+            // 启动一个异步任务，处理指定的行范围
+            shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
+                                                {
+            for (int y = startY; y < endY; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    this->shade(x, y);
+                }
+            } }));
+        }
+    }
 
 public:
     Image(int _width,
@@ -32,52 +99,38 @@ public:
         return imageTexture.ID;
     }
 
-    void setPixel(int x, int y, vec4 &value)
-    {
-        imageData[y * width + x] = value;
-    }
-    vec4 &pixelAt(int x, int y)
-    {
-        return imageData[y * width + x];
-    }
-    vec2 uvAt(int x, int y)
-    {
-        return vec2(x / float(width), y / float(height));
-    }
-
     void resize(int newWidth, int newHeight)
     {
+        syncAndUploadShadingResult(); // 先同步着色结果,再进行缩放
         width = newWidth;
         height = newHeight;
 
+        camera.resize(newWidth, newHeight); // 适应image比例
         imageTexture.Resize(newWidth, newHeight);
 
         // 拉伸imageData
         imageData.clear();
         imageData.resize(newWidth * newHeight);
-        draw();
     }
 
     void draw()
     {
-        for (int x = 0; x < width; ++x)
+        launchAsyncShadingTasks(12);
+
+        ImGui::Begin("RenderUI", 0);
         {
-            for (int y = 0; y < height; ++y)
-            {
-                shade(x, y);
-            }
+            ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f);
+            ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f);
+            ImGui::Text(std::format("HFov: {}", camera.getHorizontalFOV()).c_str());
+            ImGui::End();
         }
-        imageTexture.SetData(imageData.data());
     }
 
+private:
     void shade(int x, int y)
     {
         vec2 uv = uvAt(x, y);
         vec4 &pixelColor = pixelAt(x, y);
-
-        static Camera camera = Camera(0.2f, point3(0.0f), 2.0f, float(16) / float(9));
-
-        camera.resize(width, height); // 适应image比例
 
         Ray ray(camera.position, camera.getRayDirction(uv)); // 每一个像素,打出一根光线进行追踪,然后着色
         pixelColor = castRay(ray);

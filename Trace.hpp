@@ -3,6 +3,8 @@
 
 #include "Utils.hpp"
 #include "Ray.hpp"
+#include "Objects.hpp"
+#include "Scene.hpp"
 
 inline float hitSphere(const point3 &center, float radius, const Ray &r)
 {
@@ -21,16 +23,21 @@ inline float hitSphere(const point3 &center, float radius, const Ray &r)
     }
 }
 
+// inline static Sphere sphere(point3(0.0f, 0.0f, 2.f), 1.5f);
+
 inline color4 castRay(Ray &ray)
 {
-    auto t = hitSphere(point3(0.0f, 0.0f, 2.f), 1.5f, ray);
-    if (t > 0.0f)
+    for (auto &&object : Scene::Objects)
     {
-        vec3 N = glm::normalize(ray.at(t) - vec3(0.0f, 0.f, -1.f));
-        return 0.5f * color4(N.x + 1, N.y + 1, N.z + 1, 1.0f);
+        auto hitInfos = object->intersect(ray);
+        if (hitInfos)
+        {
+            auto N = hitInfos->normal;
+            return 0.5f * color4(N.x + 1, N.y + 1, N.z + 1, 1.0f);
+        }
     }
 
     float a = 0.5f * (ray.getDirection().y + 1.0f);
 
-    return (1.0f - a) * vec4(1.0f) + a * vec4(0.5f, 0.7f, 1.0f, 1.0f);
+    return (1.0f - a) * vec4(1.0f) + a * vec4(0.0f, 0.0f, 1.0f, 1.0f);
 }

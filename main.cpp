@@ -12,6 +12,7 @@
 
 #include "Renderer.hpp"
 #include "InputHandler.hpp"
+#include "Scene.hpp"
 
 using namespace glm;
 
@@ -32,8 +33,9 @@ int main()
         glfwTerminate();
         return -1;
     }
-    glfwMakeContextCurrent(window);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    InputHandler::BindWindow(window);
+
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //初始关闭鼠标光标
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -64,8 +66,9 @@ int main()
 
     std::shared_ptr<Renderer> RTRenderer = std::make_shared<Renderer>();
 
-    InputHandler::BindWindow(window);
     InputHandler::BindApplication(RTRenderer);
+
+    Scene::Initialze();
 
     while (!glfwWindowShouldClose(window))
     {

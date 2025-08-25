@@ -2,6 +2,9 @@
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <cmath>
+#include <iostream>
+#include <format>
 
 using point3 = glm::vec3;
 using poinn2 = glm::vec2;
