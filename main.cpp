@@ -11,6 +11,9 @@
 #include "imgui/imgui_internal.h"
 
 #include "Renderer.hpp"
+#include "InputHandler.hpp"
+
+using namespace glm;
 
 const int InitWidth = 1600;
 const int InitHeight = 900;
@@ -21,9 +24,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     const char *glsl_version = "#version 330";
-    // create window object
     GLFWwindow *window = glfwCreateWindow(InitWidth, InitHeight, "RayTracing", NULL, NULL);
     if (window == NULL)
     {
@@ -61,7 +62,11 @@ int main()
 
     std::cout << "ImGui Version: " << IMGUI_VERSION << std::endl;
 
-    Renderer RTRenderer;
+    std::shared_ptr<Renderer> RTRenderer = std::make_shared<Renderer>();
+
+    InputHandler::BindWindow(window);
+    InputHandler::BindApplication(RTRenderer);
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -72,7 +77,7 @@ int main()
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
-        RTRenderer.Render();
+        RTRenderer->render();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

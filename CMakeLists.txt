@@ -25,10 +25,11 @@ file(GLOB_RECURSE SHADER_SRC
     GLShader/*.cpp
 )
 
+
 include_directories(${IMGUI})
 include_directories(${GLSHADER})
 
-add_executable(${PROJECT_NAME} "main.cpp" ${IMGUI_SRC} ${SHADER_SRC})
+add_executable(${PROJECT_NAME} "main.cpp" "InputHandler.cpp" ${IMGUI_SRC} ${SHADER_SRC})
 
 find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)

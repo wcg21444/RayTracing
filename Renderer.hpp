@@ -1,81 +1,88 @@
+#pragma once
+
 #include "GLShader/Shader.hpp"
 #include "GLShader/Pass.hpp"
+#include "Utils.hpp"
+#include "Trace.hpp"
+#include "Camera.hpp"
 
-/// @brief 生成一个程序化的棋盘格纹理
-/// @return 成功则返回纹理ID，失败则返回0
-// 测试Renderer是否正常工作
-inline GLuint GenerateProceduralTexture()
+using namespace glm;
+
+class Image
 {
-    const int textureWidth = 64;
-    const int textureHeight = 64;
-    // 棋盘格的方块大小
-    const int tileSize = 8;
+public:
+    int width;
+    int height;
 
-    // 分配内存来存储像素数据
-    // 3个字节(RGB) per pixel
-    unsigned char *data = new unsigned char[textureWidth * textureHeight * 3];
+private:
+    Texture imageTexture;
+    std::vector<vec4> imageData;
 
-    // 遍历每个像素，生成棋盘格颜色
-    for (int y = 0; y < textureHeight; ++y)
+public:
+    Image(int _width,
+          int _height) : width(_width), height(_height),
+                         imageData(_width * _height)
     {
-        for (int x = 0; x < textureWidth; ++x)
+        imageTexture.Generate(_width, _height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
+        imageTexture.SetFilterMax(GL_NEAREST);
+        imageTexture.SetFilterMin(GL_NEAREST);
+    }
+    unsigned int getGLTextureID()
+    {
+        return imageTexture.ID;
+    }
+
+    void setPixel(int x, int y, vec4 &value)
+    {
+        imageData[y * width + x] = value;
+    }
+    vec4 &pixelAt(int x, int y)
+    {
+        return imageData[y * width + x];
+    }
+    vec2 uvAt(int x, int y)
+    {
+        return vec2(x / float(width), y / float(height));
+    }
+
+    void resize(int newWidth, int newHeight)
+    {
+        width = newWidth;
+        height = newHeight;
+
+        imageTexture.Resize(newWidth, newHeight);
+
+        // 拉伸imageData
+        imageData.clear();
+        imageData.resize(newWidth * newHeight);
+        draw();
+    }
+
+    void draw()
+    {
+        for (int x = 0; x < width; ++x)
         {
-            // 判断当前像素是哪个颜色
-            unsigned char color1_r = 255; // 红色
-            unsigned char color1_g = 255;
-            unsigned char color1_b = 255;
-            unsigned char color2_r = 0; // 黑色
-            unsigned char color2_g = 0;
-            unsigned char color2_b = 0;
-
-            bool isColor1 = (((x / tileSize) % 2) == 0) ^ (((y / tileSize) % 2) == 0);
-
-            // 获取当前像素在数组中的索引
-            int index = (y * textureWidth + x) * 3;
-
-            if (isColor1)
+            for (int y = 0; y < height; ++y)
             {
-                data[index + 0] = color1_r;
-                data[index + 1] = color1_g;
-                data[index + 2] = color1_b;
-            }
-            else
-            {
-                data[index + 0] = color2_r;
-                data[index + 1] = color2_g;
-                data[index + 2] = color2_b;
+                shade(x, y);
             }
         }
+        imageTexture.SetData(imageData.data());
     }
 
-    // 1. 创建 OpenGL 纹理对象
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    if (textureID == 0)
+    void shade(int x, int y)
     {
-        std::cerr << "Failed to create OpenGL texture object." << std::endl;
-        delete[] data;
-        return 0;
+        vec2 uv = uvAt(x, y);
+        vec4 &pixelColor = pixelAt(x, y);
+
+        static Camera camera = Camera(0.2f, point3(0.0f), 2.0f, float(16) / float(9));
+
+        camera.resize(width, height); // 适应image比例
+
+        Ray ray(camera.position, camera.getRayDirction(uv)); // 每一个像素,打出一根光线进行追踪,然后着色
+        pixelColor = castRay(ray);
     }
-
-    // 2. 绑定纹理
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    // 3. 将像素数据上传到纹理
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-
-    // 4. 设置纹理过滤和环绕模式
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // 5. 释放本地像素数据内存
-    delete[] data;
-
-    // 6. 返回纹理ID
-    return textureID;
-}
+};
 
 class Renderer
 {
@@ -85,11 +92,31 @@ private:
 
     Texture screenTexture;
 
+private:
 public:
-    ScreenPass screenPass = ScreenPass(width, height, "GLSL/screenQuad.vs", "GLSL/texture.fs");
-    void Render()
+    ScreenPass screenPass;
+    Image image;
+    // Camera camera;
+    // Scene
+
+    Renderer()
+        : screenPass(ScreenPass(width, height, "GLSL/screenQuad.vs", "GLSL/texture.fs")),
+          image(Image(width, height))
     {
-        auto TexID = GenerateProceduralTexture();
-        screenPass.render(TexID);
+        screenPass.contextSetup();
+    }
+    void render()
+    {
+        image.draw();
+        auto imageTextureID = image.getGLTextureID();
+        screenPass.render(imageTextureID);
+    }
+    void resize(int newWidth, int newHeight)
+    {
+        width = newWidth;
+        height = newHeight;
+
+        image.resize(width, height);
+        screenPass.resize(width, height);
     }
 };

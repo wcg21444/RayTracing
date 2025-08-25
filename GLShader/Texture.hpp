@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <iostream>
 
-/// @brief 管理GL Texture资源
+/// @brief 绠＄悊GL Texture璧勬簮
 class Texture
 {
 public:
