@@ -3,6 +3,17 @@
 #include "Ray.hpp"
 #include <optional>
 
+struct Material
+{
+    enum class Type
+    {
+        Diffuse
+    };
+
+    Type type = Type::Diffuse;
+    color4 albedo;
+};
+
 struct HitInfos
 {
     float t;     // 命中时光线的t
@@ -11,6 +22,7 @@ struct HitInfos
     vec3 invDir; // 光线dir倒数
     vec3 pos;    // 命中位置
     vec3 normal; // 世界法线
+    Material material;
 };
 
 class Hittable
@@ -27,8 +39,14 @@ class Sphere : public Hittable
 public:
     float radius;
     point3 center;
+    Material material;
 
-    Sphere(const point3 &center, float radius) : center(center), radius(radius) {}
+    Sphere(const point3 &center, float radius, const Material &material)
+        : center(center),
+          radius(radius),
+          material(material)
+    {
+    }
     std::optional<HitInfos> intersect(const Ray &ray) override
     {
         vec3 oc = center - ray.getOrigin();
@@ -55,7 +73,8 @@ public:
                                                  dir,
                                                  vec3(1.f / dir.x, 1.f / dir.y, 1.f / dir.z),
                                                  ray.at(t),
-                                                 N});
+                                                 N,
+                                                 material});
         }
     }
     ~Sphere() {}
