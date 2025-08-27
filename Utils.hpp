@@ -24,3 +24,17 @@ inline void CheckGLErrors()
         std::cout << "OpenGL error: " << err << std::endl;
     }
 }
+
+inline vec3 DirectionOf(float x, float y, float z)
+{
+    return normalize(vec3(x, y, z));
+}
+
+inline vec3 DirectionOf(const vec3 &v)
+{
+    return normalize(v);
+}
+inline vec3 DirectionOf(const point3 &end, const point3 &ori)
+{
+    return normalize(end - ori);
+}

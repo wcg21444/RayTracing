@@ -14,8 +14,6 @@
 #include "InputHandler.hpp"
 #include "Scene.hpp"
 
-using namespace glm;
-
 const int InitWidth = 1600;
 const int InitHeight = 900;
 

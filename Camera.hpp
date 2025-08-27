@@ -34,13 +34,17 @@ public:
             uv.y * height - height / 2,
             focalLength);
 
-        // auto lookAtTransform = glm::lookAt(position, lookAtCenter, vec3(0.f, 1.0f, 0.f));
-        // return glm::mat3(lookAtTransform) * normalize(viewDir);
-        return normalize(viewDir);
+        vec3 absY = vec3(0.f, 1.f, 0.f);
+        vec3 z = DirectionOf(lookAtCenter, position);
+        vec3 x = glm::normalize(glm::cross(absY, z));
+        vec3 y = glm::cross(z, x);
+        glm::mat3 rotation(x, y, z);
+
+        return rotation * normalize(viewDir);
     }
     void resize(int newWidth, int newHeight)
     {
-        aspectRatio = float(newWidth) / newHeight;
+        this->aspectRatio = float(newWidth) / newHeight;
         height = width / aspectRatio;
     }
     float getHorizontalFOV()

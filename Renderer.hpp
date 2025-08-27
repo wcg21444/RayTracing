@@ -10,8 +10,6 @@
 #include <thread>
 #include <future>
 
-using namespace glm;
-
 class Image
 {
 public:
@@ -51,8 +49,8 @@ private:
             {
                 future.get();
             }
-            sampleCount++;
-            imageTexture.SetData(imageData.data());
+            this->sampleCount++;
+            this->imageTexture.SetData(imageData.data());
         }
     }
 
@@ -98,9 +96,9 @@ public:
           int _height) : width(_width), height(_height),
                          imageData(_width * _height)
     {
-        imageTexture.Generate(_width, _height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
-        imageTexture.SetFilterMax(GL_NEAREST);
-        imageTexture.SetFilterMin(GL_NEAREST);
+        this->imageTexture.Generate(_width, _height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
+        this->imageTexture.SetFilterMax(GL_NEAREST);
+        this->imageTexture.SetFilterMin(GL_NEAREST);
     }
     unsigned int getGLTextureID()
     {
@@ -111,12 +109,12 @@ public:
     {
         syncResetSamples();
 
-        width = newWidth;
-        height = newHeight;
+        this->width = newWidth;
+        this->height = newHeight;
 
-        camera.resize(newWidth, newHeight); // 适应image比例
-        imageTexture.Resize(newWidth, newHeight);
-        imageData.resize(newWidth * newHeight, color4(0.0f));
+        this->camera.resize(newWidth, newHeight); // 适应image比例
+        this->imageTexture.Resize(newWidth, newHeight);
+        this->imageData.resize(newWidth * newHeight, color4(0.0f));
     }
 
     void syncResetSamples()
@@ -137,6 +135,7 @@ public:
         {
             if (
                 ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f) ||
+                ImGui::DragFloat3("LookAtCenter", glm::value_ptr(camera.lookAtCenter), 0.01f) ||
                 ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f) ||
                 ImGui::DragFloat("PerturbStrength", &perturbStrength, 1e-4f))
             {

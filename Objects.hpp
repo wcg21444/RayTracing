@@ -21,7 +21,7 @@ struct HitInfos
     vec3 dir;    // 命中光线的dir
     vec3 invDir; // 光线dir倒数
     vec3 pos;    // 命中位置
-    vec3 normal; // 世界法线
+    vec3 normal; // 归一化世界法线
     Material material;
 };
 
