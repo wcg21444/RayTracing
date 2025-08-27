@@ -20,16 +20,16 @@ private:
     Texture imageTexture;
     std::vector<vec4> imageData;
     std::vector<std::future<void>> shadingFutures; // 存储多个future对象
-    float perturbStrength = 1e-3f;
 
     Camera camera = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
 
     int sampleCount = 1;
+    float perturbStrength = 1e-3f;
 
 private:
     void setPixel(int x, int y, vec4 &value)
     {
-        imageData[y * width + x] = value;
+        this->imageData[y * width + x] = value;
     }
     vec4 &pixelAt(int x, int y)
     {
@@ -49,6 +49,7 @@ private:
             {
                 future.get();
             }
+
             this->sampleCount++;
             this->imageTexture.SetData(imageData.data());
         }
@@ -67,7 +68,7 @@ private:
 
         syncAndUploadShadingResult();
 
-        shadingFutures.clear();
+        this->shadingFutures.clear();
 
         int rowsPerThread = height / numThreads;
 
@@ -78,8 +79,8 @@ private:
             int endY = (i == numThreads - 1) ? height : startY + rowsPerThread;
 
             // 启动一个异步任务，处理指定的行范围
-            shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
-                                                {
+            this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
+                                                      {
                 for (int y = startY; y < endY; ++y) 
                 {
 
@@ -120,7 +121,7 @@ public:
     void syncResetSamples()
     {
         syncAndUploadShadingResult();
-        sampleCount = 1;
+        this->sampleCount = 1;
         for (auto &pixel : imageData)
         {
             pixel = color4(0.0f);
@@ -129,8 +130,7 @@ public:
 
     void draw()
     {
-        launchAsyncShadingTasks(12);
-
+        launchAsyncShadingTasks(16);
         ImGui::Begin("RenderUI", 0);
         {
             if (
@@ -146,6 +146,15 @@ public:
             ImGui::End();
         }
     }
+    // 采样积累 + gamma矫正 使得画面灰度不正确累积
+    // static color4 GammaCorrection(const color4 &color, float gamma = 2.f)
+    // {
+    //     return color4(
+    //         pow(color.r, 1 / (gamma)),
+    //         pow(color.g, 1 / (gamma)),
+    //         pow(color.b, 1 / (gamma)),
+    //         color.a);
+    // }
 
 private:
     void shade(int x, int y)
@@ -162,6 +171,73 @@ private:
     }
 };
 
+class PostProcessor : public Pass
+{
+private:
+    Texture processedTex;
+
+private:
+    void initializeGLResources()
+    {
+        glGenFramebuffers(1, &FBO);
+        processedTex.Generate(vp_width, vp_height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
+    }
+
+public:
+    PostProcessor() {}
+    PostProcessor(int _vp_width, int _vp_height, std::string _vs_path,
+                  std::string _fs_path) : Pass(_vp_width, _vp_height, _vs_path, _fs_path)
+    {
+        initializeGLResources();
+        contextSetup();
+    }
+
+    void contextSetup()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, processedTex.ID, 0);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void resize(int _width, int _height)
+    {
+        vp_width = _width;
+        vp_height = _height;
+        processedTex.Resize(_width, _height);
+        contextSetup();
+    }
+    unsigned int getTextures()
+    {
+        return processedTex.ID;
+    }
+    void render(unsigned int screenTex)
+    {
+        static int toggleGammaCorrection = 1;
+        static float gamma = 2.2f;
+
+        ImGui::Begin("RenderUI");
+        {
+            ImGui::Checkbox("ToggleGamma", (bool *)&toggleGammaCorrection);
+            ImGui::DragFloat("Gamma", &gamma, 1e-2f, 0.01f, 5.f);
+
+            ImGui::End();
+        }
+
+        glViewport(0, 0, vp_width, vp_height);
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        shaders.use();
+
+        // 设置着色器参数
+        shaders.setUniform("GammaCorrection", toggleGammaCorrection);
+        shaders.setUniform("gamma", gamma);
+
+        shaders.setTextureAuto(screenTex, GL_TEXTURE_2D, 0, "screenTex");
+        DrawQuad();
+    }
+};
+
 class Renderer
 {
 private:
@@ -173,21 +249,28 @@ private:
 private:
 public:
     ScreenPass screenPass;
+    PostProcessor postProcessor;
     Image image;
     // Camera camera;
     // Scene
 
     Renderer()
         : screenPass(ScreenPass(width, height, "GLSL/screenQuad.vs", "GLSL/texture.fs")),
+          postProcessor(PostProcessor(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
           image(Image(width, height))
     {
         screenPass.contextSetup();
+        postProcessor.contextSetup();
     }
     void render()
     {
         image.draw();
         auto imageTextureID = image.getGLTextureID();
-        screenPass.render(imageTextureID);
+
+        postProcessor.render(imageTextureID);
+        auto postProcessed = postProcessor.getTextures();
+
+        screenPass.render(postProcessed);
     }
     void resize(int newWidth, int newHeight)
     {
@@ -196,5 +279,6 @@ public:
 
         image.resize(width, height);
         screenPass.resize(width, height);
+        postProcessor.resize(width, height);
     }
 };
