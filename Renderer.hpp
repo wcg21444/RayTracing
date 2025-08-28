@@ -238,6 +238,133 @@ public:
     }
 };
 
+class GPURayTracer : public Pass
+{
+private:
+    unsigned int FBO1;
+    unsigned int FBO2;
+
+    Texture raytraceTex1;
+    Texture raytraceTex2;
+
+    int samplesCount = 1;
+
+    Camera camera = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
+
+private:
+    void initializeGLResources()
+    {
+        glGenFramebuffers(1, &FBO1);
+        glGenFramebuffers(1, &FBO2);
+        raytraceTex1.Generate(vp_width, vp_height, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
+        raytraceTex2.Generate(vp_width, vp_height, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
+    }
+
+public:
+    GPURayTracer() {}
+    GPURayTracer(int _vp_width, int _vp_height, std::string _vs_path,
+                 std::string _fs_path) : Pass(_vp_width, _vp_height, _vs_path, _fs_path)
+    {
+        initializeGLResources();
+        contextSetup();
+    }
+
+    ~GPURayTracer()
+    {
+        glDeleteBuffers(1, &FBO1);
+        glDeleteBuffers(1, &FBO2);
+    }
+
+    void contextSetup() override
+    {
+        resetSamples();
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO1);
+        {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, raytraceTex1.ID, 0);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO2);
+        {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, raytraceTex2.ID, 0);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void resize(int _width, int _height)
+    {
+        vp_width = _width;
+        vp_height = _height;
+        raytraceTex1.Resize(_width, _height);
+        raytraceTex2.Resize(_width, _height);
+        contextSetup();
+    }
+
+    void resetSamples() // 改变场景的任何物体 参数都要调用这个方法
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO1);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO2);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        samplesCount = 1;
+    }
+
+    unsigned int getTextures()
+    {
+        return raytraceTex1.ID;
+    }
+    void render(unsigned int screenTex)
+    {
+        static int toggleGammaCorrection = 1;
+        static float gamma = 2.2f;
+
+        ImGui::Begin("RenderUI");
+        {
+            if (
+                ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f) ||
+                ImGui::DragFloat3("LookAtCenter", glm::value_ptr(camera.lookAtCenter), 0.01f) ||
+                ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f))
+            {
+                resetSamples();
+            }
+            ImGui::Text(std::format("HFov: {}", camera.getHorizontalFOV()).c_str());
+            ImGui::Text(std::format("SamplesCount: {}", samplesCount).c_str());
+
+            ImGui::End();
+        }
+
+        glViewport(0, 0, vp_width, vp_height);
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO1); // Ping 着色
+        shaders.use();
+        shaders.setTextureAuto(raytraceTex2.ID, GL_TEXTURE_2D, 0, "lastSample");
+        shade();
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO2); // Pong 着色
+        shaders.setTextureAuto(raytraceTex1.ID, GL_TEXTURE_2D, 0, "lastSample");
+        shade();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+    void shade()
+    {
+
+        // 设置着色器参数
+        shaders.setUniform("width", vp_width);
+        shaders.setUniform("height", vp_height);
+        float rand = Random::randomFloats(Random::generator);
+        shaders.setUniform("rand", rand);
+        shaders.setUniform("samplesCount", samplesCount);
+
+        shaders.setUniform("cam.focalLength", camera.focalLength);
+        shaders.setUniform("cam.position", camera.position);
+        shaders.setUniform("cam.lookAtCenter", camera.lookAtCenter);
+        shaders.setUniform("cam.width", camera.width);
+        shaders.setUniform("cam.height", camera.height);
+        shaders.setUniform("cam.aspectRatio", camera.aspectRatio);
+        DrawQuad();
+        samplesCount++;
+    }
+};
+
 class Renderer
 {
 private:
@@ -247,9 +374,12 @@ private:
     Texture screenTexture;
 
 private:
+    bool useGPU = false;
+
 public:
     ScreenPass screenPass;
     PostProcessor postProcessor;
+    GPURayTracer gpuRayTracer;
     Image image;
     // Camera camera;
     // Scene
@@ -257,19 +387,43 @@ public:
     Renderer()
         : screenPass(ScreenPass(width, height, "GLSL/screenQuad.vs", "GLSL/texture.fs")),
           postProcessor(PostProcessor(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
+          gpuRayTracer(GPURayTracer(width, height, "GLSL/screenQuad.vs", "GLSL/simpleRayTrace.fs")),
           image(Image(width, height))
     {
         screenPass.contextSetup();
+        gpuRayTracer.contextSetup();
         postProcessor.contextSetup();
     }
     void render()
     {
-        image.draw();
-        auto imageTextureID = image.getGLTextureID();
+        ImGui::Begin("RenderUI");
+        {
+            ImGui::Checkbox("UseGPU", &useGPU);
+            ImGui::End();
+        }
+        if (!useGPU)
+        {
+            image.draw();
+            auto imageTextureID = image.getGLTextureID();
 
-        postProcessor.render(imageTextureID);
+            postProcessor.render(imageTextureID);
+        }
+        else
+        {
+            ImGui::Begin("RenderUI");
+            {
+                if ((ImGui::Button("Reload")))
+                {
+                    gpuRayTracer.reloadCurrentShaders();
+                }
+                ImGui::End();
+            }
+            gpuRayTracer.render(0);
+            auto raytraceTextureID = gpuRayTracer.getTextures();
+
+            postProcessor.render(raytraceTextureID);
+        }
         auto postProcessed = postProcessor.getTextures();
-
         screenPass.render(postProcessed);
     }
     void resize(int newWidth, int newHeight)
@@ -278,6 +432,7 @@ public:
         height = newHeight;
 
         image.resize(width, height);
+        gpuRayTracer.resize(width, height);
         screenPass.resize(width, height);
         postProcessor.resize(width, height);
     }
