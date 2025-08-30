@@ -14,6 +14,8 @@
 #include <unordered_set>
 #include <iostream>
 
+#include "ShaderIncludes.hpp"
+
 class Shader
 {
 public:
