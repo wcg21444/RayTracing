@@ -252,6 +252,8 @@ private:
 
     Camera camera = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
 
+    ComputeShader computeShader = ComputeShader("GLSL/computeShader.comp");
+
 private:
     void initializeGLResources()
     {
@@ -397,6 +399,71 @@ public:
     }
 };
 
+class ComputeShaderTest
+{
+private:
+    ComputeShader computeShader = ComputeShader("GLSL/computeShader.comp");
+    Texture CSTexture;
+    const unsigned int WIDTH = 1600;
+    const unsigned int HEIGHT = 900;
+
+private:
+    void initializeGLResources()
+    {
+        CSTexture.SetFilterMax(GL_NEAREST);
+        CSTexture.SetFilterMin(GL_NEAREST);
+
+        CSTexture.GenerateComputeStorage(WIDTH, HEIGHT, GL_RGBA32F);
+    }
+
+public:
+    ComputeShaderTest()
+    {
+        initializeGLResources();
+        contextSetup();
+    }
+
+    ~ComputeShaderTest()
+    {
+    }
+
+    void reloadCurrentShaders()
+    {
+        computeShader = ComputeShader("GLSL/computeShader.comp");
+        contextSetup();
+    }
+
+    void contextSetup()
+    {
+    }
+
+    void resize(int _width, int _height)
+    {
+        contextSetup();
+    }
+
+    unsigned int getTextures()
+    {
+        return CSTexture.ID;
+    }
+    void render()
+    {
+
+        CSTexture.Resize(WIDTH, HEIGHT);
+
+        glBindImageTexture(0,             // 图像单元，对应 shader 的 layout(binding=0)
+                           CSTexture.ID,  // 要绑定的纹理
+                           0,             // mipmap 级别
+                           GL_FALSE,      // 是否分层
+                           0,             // 数组层
+                           GL_WRITE_ONLY, // 访问模式 (writeonly)
+                           GL_RGBA32F);   // 纹理格式
+        computeShader.use();
+        glDispatchCompute(WIDTH / 16, HEIGHT / 16, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+};
+
 class Renderer
 {
 private:
@@ -412,6 +479,7 @@ public:
     ScreenPass screenPass;
     PostProcessor postProcessor;
     GPURayTracer gpuRayTracer;
+    ComputeShaderTest csTest;
     Image image;
     // Camera camera;
     // Scene
@@ -452,8 +520,18 @@ public:
             }
             gpuRayTracer.render(0);
             auto raytraceTextureID = gpuRayTracer.getTextures();
-
             postProcessor.render(raytraceTextureID);
+            // ImGui::Begin("RenderUI");
+            // {
+            //     if ((ImGui::Button("Reload")))
+            //     {
+            //         csTest.reloadCurrentShaders();
+            //     }
+            //     ImGui::End();
+            // }
+            // csTest.render();
+            // auto csTestTextureID = csTest.getTextures();
+            // postProcessor.render(csTestTextureID);
         }
         auto postProcessed = postProcessor.getTextures();
         screenPass.render(postProcessed);

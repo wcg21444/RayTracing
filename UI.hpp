@@ -4,6 +4,7 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include <glm/glm.hpp>
 
+#define IMGUI_EDITED IMGUI_EDITED
 #define IMGUI_EDITED_STATE_DEFINE \
     bool IMGUI_EDITED = false;
 #define CHECK_IMGUI_EDITED     \

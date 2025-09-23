@@ -4,7 +4,7 @@
 #include <iostream>
 
 // 构造函数
-Shader::Shader() : location_ID(0), progrm_ID(0) {}
+Shader::Shader() : texLocationID(0), programID(0) {}
 
 Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : Shader()
 {
@@ -19,9 +19,9 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     // Config Vertex Shader
     try
     {
-        shader_buf = loadShaderFile(vs_path);
+        shader_buf = LoadShaderFile(vs_path);
         const char *vertexShaderSource = shader_buf.c_str();
-        compileShader(vertexShaderSource, GL_VERTEX_SHADER, vertexShader);
+        CompileShader(vertexShaderSource, GL_VERTEX_SHADER, vertexShader);
     }
     catch (const std::exception &e)
     {
@@ -31,9 +31,9 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     // Config Fragment Shader
     try
     {
-        shader_buf = loadShaderFile(fs_path);
+        shader_buf = LoadShaderFile(fs_path);
         const char *fragmentShaderSource = shader_buf.c_str();
-        compileShader(fragmentShaderSource, GL_FRAGMENT_SHADER, fragmentShader);
+        CompileShader(fragmentShaderSource, GL_FRAGMENT_SHADER, fragmentShader);
     }
     catch (const std::exception &e)
     {
@@ -45,9 +45,9 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     {
         try
         {
-            shader_buf = loadShaderFile(gs_path);
+            shader_buf = LoadShaderFile(gs_path);
             const char *geometryShadersource = shader_buf.c_str();
-            compileShader(geometryShadersource, GL_GEOMETRY_SHADER, geometryShader);
+            CompileShader(geometryShadersource, GL_GEOMETRY_SHADER, geometryShader);
         }
         catch (const std::exception &e)
         {
@@ -56,21 +56,21 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     }
 
     // Cofig Shader Program
-    progrm_ID = glCreateProgram();
-    glAttachShader(progrm_ID, vertexShader);
-    glAttachShader(progrm_ID, fragmentShader);
+    programID = glCreateProgram();
+    glAttachShader(programID, vertexShader);
+    glAttachShader(programID, fragmentShader);
     if (hasGS)
     {
-        glAttachShader(progrm_ID, geometryShader);
+        glAttachShader(programID, geometryShader);
     }
-    glLinkProgram(progrm_ID);
+    glLinkProgram(programID);
 
     int success;
     char infoLog[512];
-    glGetProgramiv(progrm_ID, GL_LINK_STATUS, &success);
+    glGetProgramiv(programID, GL_LINK_STATUS, &success);
     if (!success)
     {
-        glGetProgramInfoLog(progrm_ID, 512, NULL, infoLog);
+        glGetProgramInfoLog(programID, 512, NULL, infoLog);
         std::cerr << "VS : " << std::string(vs_path) << "FS : " << std::string(fs_path) << std::endl;
         std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
                   << infoLog << std::endl;
@@ -89,10 +89,10 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
 // 析构函数
 Shader::~Shader()
 {
-    if (progrm_ID)
+    if (programID)
     {
-        std::cout << std::format("Shader Program ID:{} Was Deleted~\n", progrm_ID);
-        glDeleteProgram(progrm_ID);
+        std::cout << std::format("Shader Program ID:{} Was Deleted~\n", programID);
+        glDeleteProgram(programID);
     }
 }
 
@@ -101,27 +101,26 @@ Shader &Shader::operator=(Shader &&other) noexcept
 {
     if (this != &other)
     {
-        if (progrm_ID)
+        if (programID)
         {
-            std::cout << std::format("Shader Program ID:{} Was Deleted\n", progrm_ID);
-            glDeleteProgram(progrm_ID);
+            std::cout << std::format("Shader Program ID:{} Was Deleted\n", programID);
+            glDeleteProgram(programID);
         }
-        this->progrm_ID = other.progrm_ID;
+        this->programID = other.programID;
         this->used = other.used;
         this->vs_path = std::move(other.vs_path);
         this->fs_path = std::move(other.fs_path);
         this->gs_path = std::move(other.gs_path);
         this->textureLocationMap = std::move(other.textureLocationMap);
-        this->location_ID = other.location_ID;
-        other.progrm_ID = 0; // 释放源对象资源
+        this->texLocationID = other.texLocationID;
+        other.programID = 0; // 释放源对象资源
         other.used = false;
-        other.location_ID = 0;
+        other.texLocationID = 0;
     }
     return *this;
 }
 
-// 私有方法实现
-std::string Shader::loadShaderFile(const char *shader_path)
+std::string Shader::LoadShaderFile(const char *shader_path)
 {
     return GLSLPT::ShaderInclude::load(shader_path).src;
 }
@@ -136,13 +135,13 @@ GLint Shader::getUniformLocationSafe(const std::string &name)
     {
         return uniformLocationMap.at(name);
     }
-    GLint location = glGetUniformLocation(progrm_ID, name.c_str());
+    GLint location = glGetUniformLocation(programID, name.c_str());
     if (location == -1)
     {
-        if (!warningMsgSet.contains(std::format("{}{}", name, progrm_ID)))
+        if (!warningMsgSet.contains(std::format("{}{}", name, programID)))
         {
-            warningMsgSet.insert(std::format("{}{}", name, progrm_ID));
-            std::cout << std::format("Warning: Uniform {} not found in shader program: {} ", name, progrm_ID);
+            warningMsgSet.insert(std::format("{}{}", name, programID));
+            std::cout << std::format("Warning: Uniform {} not found in shader program: {} ", name, programID);
             std::cout << std::format("   Vertex Shader Path: {} ", vs_path);
             std::cout << std::format("   Fragment Shader Path: {} ", fs_path);
             if (!(gs_path == ""))
@@ -155,7 +154,7 @@ GLint Shader::getUniformLocationSafe(const std::string &name)
     return location;
 }
 
-void Shader::compileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id)
+void Shader::CompileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id)
 {
     shader_id = glCreateShader(shader_type);
     glShaderSource(shader_id, 1, &shader_source, NULL);
@@ -290,7 +289,7 @@ void Shader::setUniform(const std::string &name, int i)
 /**
  * @brief 自动管理并绑定纹理到着色器。
  * * 此函数旨在简化纹理绑定过程。它内部维护一个映射表 (textureLocationMap)，
- * 将着色器中的采样器 (sampler) 名称与一个唯一的纹理单元 ID (location_ID) 关联起来。
+ * 将着色器中的采样器 (sampler) 名称与一个唯一的纹理单元 ID (texLocationID) 关联起来。
  * 如果一个采样器是第一次绑定，它会被分配一个新的纹理单元。
  * 随后，函数会激活对应的纹理单元，将纹理对象绑定到该单元，
  * 并通过 glUniform1i 将该纹理单元 ID 传递给着色器中的 uniform 变量。
@@ -305,15 +304,15 @@ void Shader::setTextureAuto(GLuint textureID, GLenum textureTarget, int shaderTe
     if (textureLocationMap.find(samplerUniformName) == textureLocationMap.end())
     {
         // 将采样器名称与其唯一的纹理单元 ID 关联起来
-        textureLocationMap.insert({samplerUniformName, location_ID});
-        location_ID++;
+        textureLocationMap.insert({samplerUniformName, texLocationID});
+        texLocationID++;
     }
 
     // 从映射表中获取该采样器对应的纹理单元 ID
     int location = textureLocationMap.at(samplerUniformName);
 
     // 将纹理单元 ID 转换为 GL_TEXTURE0、GL_TEXTURE1 等枚举值
-    GLenum activeTextureUnit = getTextureUnitEnum(location);
+    GLenum activeTextureUnit = GetTextureUnitEnum(location);
 
     glActiveTexture(activeTextureUnit);
 
@@ -330,22 +329,22 @@ void Shader::setTextureAuto(GLuint textureID, GLenum textureTarget, int shaderTe
 }
 
 // 静态工具方法实现
-inline GLenum Shader::getTextureUnitEnum(int textureLocation)
+inline GLenum Shader::GetTextureUnitEnum(int textureLocation)
 {
-    if (getTextureUnitsLimits() == -1)
+    if (GetTextureUnitsLimits() == -1)
     {
         throw std::runtime_error("OpenGL texture limits not initialized.");
     }
-    if (textureLocation < 0 || textureLocation >= getTextureUnitsLimits())
+    if (textureLocation < 0 || textureLocation >= GetTextureUnitsLimits())
     {
         std::string errorMsg = "Texture location " + std::to_string(textureLocation) +
-                               " out of bounds. Max texture units: " + std::to_string(getTextureUnitsLimits()) + ".";
+                               " out of bounds. Max texture units: " + std::to_string(GetTextureUnitsLimits()) + ".";
         throw std::out_of_range(errorMsg);
     }
     return GL_TEXTURE0 + textureLocation;
 }
 
-inline GLint Shader::getTextureUnitsLimits()
+inline GLint Shader::GetTextureUnitsLimits()
 {
     static GLint s_maxTextureUnits = -1;
     if (s_maxTextureUnits == -1)
@@ -358,4 +357,104 @@ inline GLint Shader::getTextureUnitsLimits()
         }
     }
     return s_maxTextureUnits;
+}
+
+ComputeShader::ComputeShader()
+{
+}
+
+ComputeShader::ComputeShader(const char *cs_path)
+{
+
+    this->cs_path = cs_path;
+
+    std::string shader_buf;
+    unsigned int computeShader;
+
+    // Compile Compute Shader
+    try
+    {
+        shader_buf = LoadShaderFile(cs_path);
+        const char *computeShaderSource = shader_buf.c_str();
+        CompileShader(computeShaderSource, GL_COMPUTE_SHADER, computeShader);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Shader Load Error (Compute): " << e.what() << std::endl;
+    }
+
+    // Config Shader Program
+    programID = glCreateProgram();
+    glAttachShader(programID, computeShader);
+    glLinkProgram(programID);
+
+    int success;
+    char infoLog[512];
+    glGetProgramiv(programID, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(programID, 512, NULL, infoLog);
+        std::cerr << "CS : " << std::string(cs_path) << std::endl;
+        std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
+                  << infoLog << std::endl;
+        throw std::runtime_error("Shader program link failed.");
+    }
+    glDeleteShader(computeShader);
+}
+
+ComputeShader::~ComputeShader()
+{
+    if (programID)
+    {
+        std::cout << std::format("Shader Program ID:{} Was Deleted~\n", programID);
+        glDeleteProgram(programID);
+    }
+}
+
+ComputeShader &ComputeShader::operator=(ComputeShader &&other) noexcept
+{
+    if (this != &other)
+    {
+        if (programID)
+        {
+            std::cout << std::format("Shader Program ID:{} Was Deleted\n", programID);
+            glDeleteProgram(programID);
+        }
+        // Move the resources from the other object to this one
+        this->cs_path = std::move(other.cs_path);
+        this->programID = other.programID;
+        this->used = other.used;
+        this->uniformLocationMap = std::move(other.uniformLocationMap);
+        this->warningMsgSet = std::move(other.warningMsgSet);
+        this->texLocationID = other.texLocationID;
+
+        // Invalidate the other object
+        other.programID = 0;
+        other.used = false;
+        other.texLocationID = 0;
+    }
+    return *this;
+}
+GLint ComputeShader::getUniformLocationSafe(const std::string &name)
+{
+    if (!used)
+    {
+        throw std::runtime_error("Attempted to set uniform '" + name + "' while shader is not active (glUseProgram was not called).");
+    }
+    if (uniformLocationMap.find(name) != uniformLocationMap.end()) // Location缓存
+    {
+        return uniformLocationMap.at(name);
+    }
+    GLint location = glGetUniformLocation(programID, name.c_str());
+    if (location == -1)
+    {
+        if (!warningMsgSet.contains(std::format("{}{}", name, programID)))
+        {
+            warningMsgSet.insert(std::format("{}{}", name, programID));
+            std::cout << std::format("Warning: Uniform {} not found in shader program: {} ", name, programID);
+            std::cout << std::format("   Compute Shader Path: {} ", cs_path);
+        }
+    }
+    uniformLocationMap.insert({name, location});
+    return location;
 }

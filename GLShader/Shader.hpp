@@ -22,17 +22,21 @@ public:
     std::string vs_path;
     std::string fs_path;
     std::string gs_path;
-    unsigned int progrm_ID;
+    unsigned int programID;
     bool used = false;
     std::unordered_map<std::string, int> textureLocationMap;
     std::unordered_map<std::string, int> uniformLocationMap;
     std::unordered_set<std::string> warningMsgSet;
-    int location_ID;
+    int texLocationID;
 
 private:
-    std::string loadShaderFile(const char *shader_path);
     GLint getUniformLocationSafe(const std::string &name);
-    void compileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id);
+
+public:
+    static std::string LoadShaderFile(const char *shader_path);
+    static void CompileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id);
+    inline static GLenum GetTextureUnitEnum(int textureLocation);
+    inline static GLint GetTextureUnitsLimits();
 
 public:
     // 构造函数
@@ -44,12 +48,12 @@ public:
 
     bool hasUniform(const std::string &name)
     {
-        return glGetUniformLocation(progrm_ID, name.c_str()) != -1;
+        return glGetUniformLocation(programID, name.c_str()) != -1;
     }
 
     void use()
     {
-        glUseProgram(progrm_ID);
+        glUseProgram(programID);
         used = true;
     }
 
@@ -70,8 +74,36 @@ public:
     void setUniform(const std::string &name, int i);
 
     void setTextureAuto(GLuint textureID, GLenum textureTarget, int shaderTextureLocation, const std::string &samplerUniformName);
+};
 
-    // 静态工具方法
-    inline static GLenum getTextureUnitEnum(int textureLocation);
-    inline static GLint getTextureUnitsLimits();
+class ComputeShader : private Shader
+{
+public:
+    std::string cs_path;
+    unsigned int programID;
+    bool used = false;
+    std::unordered_map<std::string, int> uniformLocationMap;
+    std::unordered_set<std::string> warningMsgSet;
+
+private:
+    GLint getUniformLocationSafe(const std::string &name);
+
+public:
+    // 构造函数
+    ComputeShader();
+    ComputeShader(const char *cs_path);
+    ~ComputeShader();
+
+    ComputeShader &operator=(ComputeShader &&other) noexcept;
+
+    bool hasUniform(const std::string &name)
+    {
+        return glGetUniformLocation(programID, name.c_str()) != -1;
+    }
+
+    void use()
+    {
+        glUseProgram(programID);
+        used = true;
+    }
 };
