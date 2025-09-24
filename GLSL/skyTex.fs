@@ -28,14 +28,7 @@ uniform vec3 dirLightPos;
 uniform vec3 dirLightIntensity;
 
 /*****************Camera设置******************************************************************/
-uniform float nearPlane;
-uniform float farPlane;
 uniform vec3 eyePos;
-uniform vec3 eyeFront;
-uniform vec3 eyeUp;
-uniform float fov;
-uniform mat4 view; // 视图矩阵
-
 /*****************************天空大气计算********************************************************** */
 const float PI = 3.1415926535;
 const vec4 betaRayleigh = vec4(5.8e-6, 1.35e-5, 3.31e-5, 1.0f); // 散射率(波长/RGB)
@@ -130,6 +123,8 @@ vec3 computeSunlightDecay(vec3 camPos, vec3 fragDir, vec3 sunDir)
 
     return t1.rgb;
 }
+
+
 
 void initialize()
 {

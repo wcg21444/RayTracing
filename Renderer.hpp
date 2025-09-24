@@ -7,18 +7,20 @@
 #include "Camera.hpp"
 #include "Random.hpp"
 #include "UI.hpp"
+#include "SkyTexPass.hpp"
+#include "DebugObjectRenderer.hpp"
 
 #include <thread>
 #include <future>
 
-class Image
+class CPUImage
 {
 public:
     int width;
     int height;
 
 private:
-    Texture imageTexture;
+    Texture2D imageTexture;
     std::vector<vec4> imageData;
     std::vector<std::future<void>> shadingFutures; // 存储多个future对象
 
@@ -52,11 +54,11 @@ private:
             }
 
             this->sampleCount++;
-            this->imageTexture.SetData(imageData.data());
+            this->imageTexture.setData(imageData.data());
         }
     }
 
-    void launchAsyncShadingTasks(int numThreads)
+    void shadingAsync(int numThreads)
     {
 
         if (
@@ -94,13 +96,13 @@ private:
     }
 
 public:
-    Image(int _width,
-          int _height) : width(_width), height(_height),
-                         imageData(_width * _height)
+    CPUImage(int _width,
+             int _height) : width(_width), height(_height),
+                            imageData(_width * _height)
     {
-        this->imageTexture.Generate(_width, _height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
-        this->imageTexture.SetFilterMax(GL_NEAREST);
-        this->imageTexture.SetFilterMin(GL_NEAREST);
+        this->imageTexture.generate(_width, _height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
+        this->imageTexture.setFilterMax(GL_NEAREST);
+        this->imageTexture.setFilterMin(GL_NEAREST);
     }
     unsigned int getGLTextureID()
     {
@@ -115,7 +117,7 @@ public:
         this->height = newHeight;
 
         this->camera.resize(newWidth, newHeight); // 适应image比例
-        this->imageTexture.Resize(newWidth, newHeight);
+        this->imageTexture.resize(newWidth, newHeight);
         this->imageData.resize(newWidth * newHeight, color4(0.0f));
     }
 
@@ -131,7 +133,7 @@ public:
 
     void draw()
     {
-        launchAsyncShadingTasks(16);
+        shadingAsync(16);
         ImGui::Begin("RenderUI", 0);
         {
             if (
@@ -146,6 +148,7 @@ public:
             ImGui::Text(std::format("Count of Samples: {}", sampleCount).c_str());
             ImGui::End();
         }
+        DebugObjectRenderer::SetCamera(&camera);
     }
     // 采样积累 + gamma矫正 使得画面灰度不正确累积
     // static color4 GammaCorrection(const color4 &color, float gamma = 2.f)
@@ -175,13 +178,13 @@ private:
 class PostProcessor : public Pass
 {
 private:
-    Texture processedTex;
+    Texture2D processedTex;
 
 private:
     void initializeGLResources()
     {
         glGenFramebuffers(1, &FBO);
-        processedTex.Generate(vp_width, vp_height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
+        processedTex.generate(vp_width, vp_height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
     }
 
 public:
@@ -206,7 +209,7 @@ public:
     {
         vp_width = _width;
         vp_height = _height;
-        processedTex.Resize(_width, _height);
+        processedTex.resize(_width, _height);
         contextSetup();
     }
     unsigned int getTextures()
@@ -245,8 +248,8 @@ private:
     unsigned int FBO1;
     unsigned int FBO2;
 
-    Texture raytraceTex1;
-    Texture raytraceTex2;
+    Texture2D raytraceTex1;
+    Texture2D raytraceTex2;
 
     int samplesCount = 1;
 
@@ -259,8 +262,8 @@ private:
     {
         glGenFramebuffers(1, &FBO1);
         glGenFramebuffers(1, &FBO2);
-        raytraceTex1.Generate(vp_width, vp_height, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
-        raytraceTex2.Generate(vp_width, vp_height, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
+        raytraceTex1.generate(vp_width, vp_height, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
+        raytraceTex2.generate(vp_width, vp_height, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
     }
 
 public:
@@ -296,8 +299,8 @@ public:
     {
         vp_width = _width;
         vp_height = _height;
-        raytraceTex1.Resize(_width, _height);
-        raytraceTex2.Resize(_width, _height);
+        raytraceTex1.resize(_width, _height);
+        raytraceTex2.resize(_width, _height);
         contextSetup();
     }
 
@@ -317,7 +320,7 @@ public:
     {
         return raytraceTex1.ID;
     }
-    void render(unsigned int screenTex)
+    void render(TextureID skyTexID)
     {
         static int toggleGammaCorrection = 1;
         static float gamma = 2.2f;
@@ -337,22 +340,23 @@ public:
 
             ImGui::End();
         }
-        if (SkyGUI::Render() == CHANGED)
+        if (SkySettings::Render() == CHANGED)
         {
             resetSamples();
         }
+        DebugObjectRenderer::SetCamera(&camera);
 
         glViewport(0, 0, vp_width, vp_height);
         glBindFramebuffer(GL_FRAMEBUFFER, FBO1); // Ping 着色
         shaders.use();
         shaders.setTextureAuto(raytraceTex2.ID, GL_TEXTURE_2D, 0, "lastSample");
-        shade();
+        shade(skyTexID);
         glBindFramebuffer(GL_FRAMEBUFFER, FBO2); // Pong 着色
         shaders.setTextureAuto(raytraceTex1.ID, GL_TEXTURE_2D, 0, "lastSample");
-        shade();
+        shade(skyTexID);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-    void shade()
+    void shade(TextureID skyTexID)
     {
 
         // 设置着色器参数
@@ -362,40 +366,18 @@ public:
         shaders.setUniform("rand", rand);
         shaders.setUniform("samplesCount", samplesCount);
 
-        shaders.setUniform("cam.focalLength", camera.focalLength);
-        shaders.setUniform("cam.position", camera.position);
-        shaders.setUniform("cam.lookAtCenter", camera.lookAtCenter);
-        shaders.setUniform("cam.width", camera.width);
-        shaders.setUniform("cam.height", camera.height);
-        shaders.setUniform("cam.aspectRatio", camera.aspectRatio);
-
-        // /****************************************摄像机设置**************************************************/
-        // shaders.setUniform3fv("eyePos", cam.getPosition());
-        // shaders.setUniform3fv("eyeFront", cam.getFront());
-        // shaders.setUniform3fv("eyeUp", cam.getUp());
-        // shaders.setFloat("farPlane", cam.farPlane);
-        // shaders.setFloat("nearPlane", cam.nearPlane);
-        // shaders.setFloat("pointLightFar", pointLightFar);
-        // shaders.setFloat("fov", cam.fov);
-        // cam.setViewMatrix(shaders);
+        camera.setToFragShader(shaders, "cam");
         /****************************************天空设置*****************************************************/
-        shaders.setFloat("skyHeight", SkyGUI::skyHeight);
-        shaders.setFloat("earthRadius", SkyGUI::earthRadius);
-        shaders.setFloat("skyIntensity", SkyGUI::skyIntensity);
-        shaders.setInt("maxStep", SkyGUI::maxStep);
-        shaders.setFloat("HRayleigh", SkyGUI::HRayleigh);
-        shaders.setFloat("HMie", SkyGUI::HMie);
-        shaders.setFloat("atmosphereDensity", SkyGUI::atmosphereDensity);
-        shaders.setFloat("MieDensity", SkyGUI::MieDensity);
-        shaders.setFloat("gMie", SkyGUI::gMie);
-        shaders.setFloat("absorbMie", SkyGUI::absorbMie);
-        shaders.setFloat("MieIntensity", SkyGUI::MieIntensity);
-        shaders.setUniform("betaMie", SkyGUI::betaMie);
-        shaders.setUniform("sunlightDir", SkyGUI::sunlightDir);
-        shaders.setUniform("sunlightIntensity", SkyGUI::sunlightIntensity);
+        SkySettings::SetShaderUniforms(shaders);
+        shaders.setTextureAuto(skyTexID, GL_TEXTURE_CUBE_MAP, 0, "skybox");
 
         DrawQuad();
         samplesCount++;
+    }
+
+    const Camera &getCamera() const
+    {
+        return camera;
     }
 };
 
@@ -403,17 +385,17 @@ class ComputeShaderTest
 {
 private:
     ComputeShader computeShader = ComputeShader("GLSL/computeShader.comp");
-    Texture CSTexture;
+    Texture2D CSTexture;
     const unsigned int WIDTH = 1600;
     const unsigned int HEIGHT = 900;
 
 private:
     void initializeGLResources()
     {
-        CSTexture.SetFilterMax(GL_NEAREST);
-        CSTexture.SetFilterMin(GL_NEAREST);
+        CSTexture.setFilterMax(GL_NEAREST);
+        CSTexture.setFilterMin(GL_NEAREST);
 
-        CSTexture.GenerateComputeStorage(WIDTH, HEIGHT, GL_RGBA32F);
+        CSTexture.generateComputeStorage(WIDTH, HEIGHT, GL_RGBA32F);
     }
 
 public:
@@ -449,7 +431,7 @@ public:
     void render()
     {
 
-        CSTexture.Resize(WIDTH, HEIGHT);
+        CSTexture.resize(WIDTH, HEIGHT);
 
         glBindImageTexture(0,             // 图像单元，对应 shader 的 layout(binding=0)
                            CSTexture.ID,  // 要绑定的纹理
@@ -470,7 +452,7 @@ private:
     int width = 1600;
     int height = 900;
 
-    Texture screenTexture;
+    Texture2D screenTexture;
 
 private:
     bool useGPU = false;
@@ -479,20 +461,23 @@ public:
     ScreenPass screenPass;
     PostProcessor postProcessor;
     GPURayTracer gpuRayTracer;
+    SkyTexPass skyTexPass;
     ComputeShaderTest csTest;
-    Image image;
+    CPUImage image;
     // Camera camera;
     // Scene
 
     Renderer()
-        : screenPass(ScreenPass(width, height, "GLSL/screenQuad.vs", "GLSL/texture.fs")),
+        : screenPass(ScreenPass(width, height, "GLSL/screenQuad.vs", "GLSL/screenOutput.fs")),
           postProcessor(PostProcessor(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
           gpuRayTracer(GPURayTracer(width, height, "GLSL/screenQuad.vs", "GLSL/simpleRayTrace.fs")),
-          image(Image(width, height))
+          skyTexPass(SkyTexPass("GLSL/cubemapSphere.vs", "GLSL/skyTex.fs", 256)),
+          image(CPUImage(width, height))
     {
         screenPass.contextSetup();
         gpuRayTracer.contextSetup();
         postProcessor.contextSetup();
+        skyTexPass.contextSetup();
     }
     void render()
     {
@@ -501,12 +486,12 @@ public:
             ImGui::Checkbox("UseGPU", &useGPU);
             ImGui::End();
         }
+
+        TextureID raytraceResult;
         if (!useGPU)
         {
             image.draw();
-            auto imageTextureID = image.getGLTextureID();
-
-            postProcessor.render(imageTextureID);
+            raytraceResult = image.getGLTextureID();
         }
         else
         {
@@ -515,12 +500,16 @@ public:
                 if ((ImGui::Button("Reload")))
                 {
                     gpuRayTracer.reloadCurrentShaders();
+                    skyTexPass.reloadCurrentShaders();
+                    DebugObjectRenderer::ReloadCurrentShaders();
                 }
                 ImGui::End();
             }
-            gpuRayTracer.render(0);
-            auto raytraceTextureID = gpuRayTracer.getTextures();
-            postProcessor.render(raytraceTextureID);
+            skyTexPass.render(gpuRayTracer.getCamera().position);
+            auto skyTexID = skyTexPass.getCubemap();
+            gpuRayTracer.render(skyTexID);
+            raytraceResult = gpuRayTracer.getTextures();
+
             // ImGui::Begin("RenderUI");
             // {
             //     if ((ImGui::Button("Reload")))
@@ -530,11 +519,14 @@ public:
             //     ImGui::End();
             // }
             // csTest.render();
-            // auto csTestTextureID = csTest.getTextures();
-            // postProcessor.render(csTestTextureID);
+            // raytraceResult = csTest.getTextures();
         }
+        postProcessor.render(raytraceResult);
         auto postProcessed = postProcessor.getTextures();
-        screenPass.render(postProcessed);
+
+        auto debugRendererOutput = DebugObjectRenderer::GetRenderOutput();
+
+        screenPass.render(postProcessed, debugRendererOutput);
     }
     void resize(int newWidth, int newHeight)
     {

@@ -1,7 +1,7 @@
 #pragma once
-#include "imgui/imgui.h"
-#include "imgui/backends/imgui_impl_glfw.h"
-#include "imgui/backends/imgui_impl_opengl3.h"
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
 #include <glm/glm.hpp>
 
 #define IMGUI_EDITED IMGUI_EDITED
@@ -13,7 +13,7 @@
         IMGUI_EDITED = true;   \
     }
 
-class SkyGUI
+class SkySettings
 {
 public:
     inline static float skyHeight = 1e5;       // 大气层高度
@@ -30,6 +30,7 @@ public:
     inline static int maxStep = 32;
     inline static glm::vec3 sunlightDir = glm::vec3(1.0f, 0.3f, 0.4f);
     inline static glm::vec4 sunlightIntensity = glm::vec4(1.0f);
+
     inline static bool Render()
     {
         IMGUI_EDITED_STATE_DEFINE
@@ -80,5 +81,23 @@ public:
         }
         ImGui::End();
         return IMGUI_EDITED;
+    }
+
+    inline static void SetShaderUniforms(Shader &shaders)
+    {
+        shaders.setFloat("skyHeight", SkySettings::skyHeight);
+        shaders.setFloat("earthRadius", SkySettings::earthRadius);
+        shaders.setFloat("skyIntensity", SkySettings::skyIntensity);
+        shaders.setInt("maxStep", SkySettings::maxStep);
+        shaders.setFloat("HRayleigh", SkySettings::HRayleigh);
+        shaders.setFloat("HMie", SkySettings::HMie);
+        shaders.setFloat("atmosphereDensity", SkySettings::atmosphereDensity);
+        shaders.setFloat("MieDensity", SkySettings::MieDensity);
+        shaders.setFloat("gMie", SkySettings::gMie);
+        shaders.setFloat("absorbMie", SkySettings::absorbMie);
+        shaders.setFloat("MieIntensity", SkySettings::MieIntensity);
+        shaders.setUniform("betaMie", SkySettings::betaMie);
+        shaders.setUniform("sunlightDir", SkySettings::sunlightDir);
+        shaders.setUniform("sunlightIntensity", SkySettings::sunlightIntensity);
     }
 };

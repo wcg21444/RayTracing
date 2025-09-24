@@ -11,6 +11,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "Renderer.hpp"
+#include "DebugObjectRenderer.hpp"
 #include "InputHandler.hpp"
 #include "Scene.hpp"
 
@@ -63,6 +64,7 @@ int main()
 
     std::cout << "ImGui Version: " << IMGUI_VERSION << std::endl;
 
+    DebugObjectRenderer::Initialize();
     std::shared_ptr<Renderer> RTRenderer = std::make_shared<Renderer>();
 
     InputHandler::BindApplication(RTRenderer);
@@ -80,6 +82,9 @@ int main()
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
         RTRenderer->render();
+
+        DebugObjectRenderer::Render();
+
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

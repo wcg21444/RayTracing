@@ -1,5 +1,6 @@
 #include "InputHandler.hpp"
 #include "Renderer.hpp"
+#include "DebugObjectRenderer.hpp"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 // 内部逻辑实现
@@ -31,6 +32,7 @@ void InputHandler::ToggleControlMode(GLFWwindow *window)
 
 void InputHandler::WindowResizeCallback(GLFWwindow *window, int resizeWidth, int resizeHeight)
 {
+    DebugObjectRenderer::Resize(resizeWidth, resizeHeight);
     if (pRenderer)
     {
         pRenderer->resize(resizeWidth, resizeHeight);

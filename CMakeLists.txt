@@ -15,7 +15,8 @@ imgui
 imgui/backends
 )
 set(GLSHADER GLShader)
-
+set(RENDERPASS RenderPass)
+set(UI UI)
 
 file(GLOB_RECURSE IMGUI_SRC 
     imgui/*.cpp
@@ -25,11 +26,17 @@ file(GLOB_RECURSE SHADER_SRC
     GLShader/*.cpp
 )
 
+file(GLOB_RECURSE PASS_SRC
+    RenderPass/*.cpp
+)
+
 
 include_directories(${IMGUI})
 include_directories(${GLSHADER})
+include_directories(${RENDERPASS})
+include_directories(${UI})
 
-add_executable(${PROJECT_NAME} "main.cpp" "InputHandler.cpp" ${IMGUI_SRC} ${SHADER_SRC})
+add_executable(${PROJECT_NAME} "main.cpp" "InputHandler.cpp" "DebugObjectRenderer.cpp" ${IMGUI_SRC} ${SHADER_SRC} ${PASS_SRC})
 
 find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)

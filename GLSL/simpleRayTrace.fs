@@ -26,6 +26,8 @@ struct Camera
     float width;
     float height;
     float aspectRatio;
+    mat4 view;
+    mat4 projection;
 };
 
 struct Sphere
@@ -61,12 +63,14 @@ uniform vec3 sunlightDir;
 uniform vec4 sunlightIntensity;
 uniform Camera cam;
 
-const int bouanceLimit = 5;
+const int bounceLimit = 5;
 Sphere spheres[3];
 vec3 viewDir;
 vec2 uv;
 
 /*****************************天空大气计算********************************************************** */
+uniform samplerCube skybox;
+
 const float PI = 3.1415926535;
 const vec4 betaRayleigh = vec4(5.8e-6, 1.35e-5, 3.31e-5, 1.0f); // 散射率(波长/RGB)
 vec3 camRayDir = vec3(0.f);
@@ -166,6 +170,20 @@ vec3 computeSunlightDecay(vec3 camPos, vec3 fragDir, vec3 sunDir)
     return t1.rgb;
 }
 
+vec3 generateSunDisk(vec3 camPos, vec3 fragDir, vec3 sunDir, vec3 sunIntensity, float sunSize)
+{
+    // 计算太阳方向和片段方向之间的余弦值
+    float exponent = 1e2; // 锐利程度
+    float sunSizeInner = 1.f - 1e-6;
+    float sunSizeOuter = 1.f - 1e-3;
+
+    float sunDot = dot(normalize(fragDir), normalize(sunDir));
+    float sunSmoothstep = smoothstep(sunSizeOuter, sunSizeInner, sunDot);
+
+    // 返回太阳亮度，与透射率相乘
+    return sunIntensity * 1e4 * pow(sunSmoothstep, exponent) * pow(sunlightDecay, vec3(2.f));
+}
+
 vec3 dirLightDiffuse(vec3 fragPos, vec3 n)
 {
 
@@ -238,38 +256,59 @@ void intersectSphere(in Ray ray, in vec3 center, in float radius, out HitInfos h
 vec4 hitSky(vec3 ori, vec3 dir)
 {
     vec4 skyResult = vec4(0.0f);
-    float camHeight = length(ori - earthCenter) - earthRadius;
 
-    vec3 camEarthIntersection = intersectEarth(ori, dir);
-    if (camEarthIntersection != vec3(0.0f))
-    {
+    skyResult += texture(skybox, dir);
+    return skyResult;
+    /*     vec4 skyResult = vec4(0.0f);
+        float camHeight = length(ori - earthCenter) - earthRadius;
 
-        // 击中地球,渲染大气透视
-        skyResult = computeAerialPerspective(camEarthIntersection);
-
-        vec4 t1 = transmittance(ori, camEarthIntersection, 1.0f);
-
-        // 渲染地面
-        vec3 normal = normalize(camEarthIntersection - earthCenter);
-        vec3 lighting = dirLightDiffuse(camEarthIntersection, normal);
-        vec3 earthBaseColor = vec3(0.3, 0.3f, 0.34f); // 地面颜色
-        skyResult.rgb += lighting * earthBaseColor * t1.rgb;
-    }
-    else
-    {
-        if (camHeight > skyHeight)
+        vec3 camEarthIntersection = intersectEarth(ori, dir);
+        if (camEarthIntersection != vec3(0.0f))
         {
-            // 摄像机在大气层外
+
+            // 击中地球,渲染大气透视
+            skyResult = computeAerialPerspective(camEarthIntersection);
+
+            vec4 t1 = transmittance(ori, camEarthIntersection, 1.0f);
+
+            // 渲染地面
+            vec3 normal = normalize(camEarthIntersection - earthCenter);
+            vec3 lighting = dirLightDiffuse(camEarthIntersection, normal);
+            vec3 earthBaseColor = vec3(0.3, 0.3f, 0.34f); // 地面颜色
+            skyResult.rgb += lighting * earthBaseColor * t1.rgb;
         }
         else
         {
-            skyResult += computeSkyColor(ori, dir);
+            if (camHeight > skyHeight)
+            {
+                // 摄像机在大气层外
+            }
+            else
+            {
+                // skyResult += computeSkyColor(ori, dir);
+                skyResult = texture(skybox, dir);
+            }
+        }
+        // skyResult.rgb = clamp(skyResult.rgb, vec3(0.0f), vec3(1.0f));
+
+        skyResult.rgb = clamp(skyResult.rgb, vec3(0.0f), vec3(1.0f));
+        return skyResult; */
+}
+
+void hitScene(in Ray tracingRay, out HitInfos hitInfos)
+{
+    HitInfos closestHit;
+    closestHit.t = 1.0f / 0.0f;
+    for (int i = 0; i < 3; ++i)
+    {
+        HitInfos hitInfos;
+        intersectSphere(tracingRay, spheres[i].center, spheres[i].radius, hitInfos);
+        if (hitInfos.t >= 0.0f && hitInfos.t < closestHit.t)
+        {
+            closestHit = hitInfos;
         }
     }
-    // skyResult.rgb = clamp(skyResult.rgb, vec3(0.0f), vec3(1.0f));
-
-    skyResult.rgb = clamp(skyResult.rgb, vec3(0.0f), vec3(1.0f));
-    return skyResult;
+    hitInfos = closestHit;
 }
 
 // 光线入口函数
@@ -278,40 +317,31 @@ vec4 castRay(in Ray ray, int traceDepth)
     vec4 color = vec4(0.0f);
     vec3 throughout = vec3(1.f);
     Ray tracingRay = ray;
-    while (true)
+    while (traceDepth < bounceLimit)
     {
-        if (traceDepth > bouanceLimit)
-        {
-            break;
-        }
+
         traceDepth++;
-        // 深度测试
+        // 场景测试
         HitInfos closestHit;
         closestHit.t = 1.0f / 0.0f;
-        for (int i = 0; i < 3; ++i)
-        {
-            HitInfos hitInfos;
-            intersectSphere(tracingRay, spheres[i].center, spheres[i].radius, hitInfos);
-            if (hitInfos.t >= 0.0f && hitInfos.t < closestHit.t)
-            {
-                closestHit = hitInfos;
-            }
-        }
-        // 命中
+        hitScene(tracingRay, closestHit);
+        // 命中场景
         if (closestHit.t != 1.0f / 0.0f)
         {
             // color+= lambertianIrradiance(closestHit);
             throughout *= vec3(0.7f);
             vec3 rndDir = sampleCosineHemisphere(closestHit.normal, TexCoord * (rand + 1.f));
+
             tracingRay = Ray(closestHit.pos, rndDir);
             // color = vec4(1.0f,0.0f,0.0f,0.0f);
             continue;
         }
         // 未命中
-
         color.rgb += throughout * hitSky(tracingRay.ori, tracingRay.dir).rgb;
         break;
     }
+    color.rgb += generateSunDisk(tracingRay.ori, tracingRay.dir, sunDir, dirLightIntensity, 1e-3);
+
     return color;
 }
 
@@ -333,8 +363,8 @@ void initialize()
     // cam.width = 2.f;
     // cam.height =  cam.width/cam.aspectRatio;
     viewDir = vec3(
-        uv.x * cam.width - cam.width / 2.f,
-        uv.y * cam.height - cam.height / 2.f,
+        -(uv.x * cam.width - cam.width / 2.f),
+        (uv.y * cam.height - cam.height / 2.f),
         cam.focalLength);
 
     vec3 absY = vec3(0.f, 1.f, 0.f);
@@ -359,7 +389,9 @@ void main()
     initialize();
 
     Ray ray = Ray(cam.position, viewDir);
-    FragColor = (texture(lastSample, TexCoord) * float(samplesCount - 1.f) + castRay(ray, 0)) / float(samplesCount);
+    FragColor = (texture(lastSample, TexCoord) * float(samplesCount - 1.f) +
+                 castRay(ray, 0)) /
+                float(samplesCount);
 
     // int nSamples = 16;
     // for(int i=0;i<nSamples;++i) {
