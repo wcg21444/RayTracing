@@ -33,16 +33,8 @@ inline color4 castRay(const Ray &ray, int traceDepth)
         return color4(0.0f);
     }
     // 深度测试
-    HitInfos closestHit;
-    closestHit.t = std::numeric_limits<float>::infinity();
-    for (auto &&object : Scene::Objects)
-    {
-        auto hitInfos = object->intersect(ray);
-        if (hitInfos && hitInfos->t < closestHit.t)
-        {
-            closestHit = *hitInfos;
-        }
-    }
+    // auto closestHit = Scene::IntersectClosest(ray);
+    auto closestHit = Scene::IntersectClosestBVH(ray);
     // 命中
     if (closestHit.t != std::numeric_limits<float>::infinity())
     {

@@ -64,7 +64,7 @@ public:
 
     glm::mat4 getProjectionMatrix() const
     {
-        return glm::perspective(glm::radians(getVerticalFOV()), aspectRatio, 0.1f, 100.f);
+        return glm::perspective(glm::radians(getVerticalFOV()), aspectRatio, 0.1f, 1e5f);
     }
 
     void setToFragShader(Shader &shaders, std::string owner = "")

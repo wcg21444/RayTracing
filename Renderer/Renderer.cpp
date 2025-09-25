@@ -3,6 +3,7 @@
 #include "PostProcessor.hpp"
 #include "CPURayTracer.hpp"
 #include "SkyTexPass.hpp"
+#include "UICommon.hpp"
 
 Renderer::Renderer()
     : screenPass(std::make_unique<ScreenPass>(width, height, "GLSL/screenQuad.vs", "GLSL/screenOutput.fs")),
@@ -23,31 +24,33 @@ Renderer::~Renderer()
 
 void Renderer::render()
 {
+    if (RenderState::Dirty)
+    {
+        resetSamples();
+    }
+
     ImGui::Begin("RenderUI");
     {
-        ImGui::Checkbox("UseGPU", &useGPU);
+        RenderState::Dirty |= ImGui::Checkbox("UseGPU", &useGPU);
+        if ((ImGui::Button("Reload")))
+        {
+            gpuRayTracer->reloadCurrentShaders();
+            postProcessor->reloadCurrentShaders();
+            skyTexPass->reloadCurrentShaders();
+            DebugObjectRenderer::ReloadCurrentShaders();
+            RenderState::Dirty |= true;
+        }
         ImGui::End();
     }
 
     TextureID raytraceResult;
     if (!useGPU)
     {
-        cpuRayTracer->draw();
+        cpuRayTracer->draw(CPUThreads);
         raytraceResult = cpuRayTracer->getGLTextureID();
     }
     else
     {
-        ImGui::Begin("RenderUI");
-        {
-            if ((ImGui::Button("Reload")))
-            {
-                gpuRayTracer->reloadCurrentShaders();
-                postProcessor->reloadCurrentShaders();
-                skyTexPass->reloadCurrentShaders();
-                DebugObjectRenderer::ReloadCurrentShaders();
-            }
-            ImGui::End();
-        }
         skyTexPass->render(gpuRayTracer->getCamera().position);
         auto skyTexID = skyTexPass->getCubemap();
         gpuRayTracer->render(skyTexID);
@@ -71,7 +74,7 @@ void Renderer::resize(int newWidth, int newHeight)
     screenPass->resize(width, height);
     postProcessor->resize(width, height);
 
-    resetSamples();
+    RenderState::Dirty |= true;
 }
 
 void Renderer::resetSamples()
@@ -84,5 +87,13 @@ void Renderer::resetSamples()
     {
         gpuRayTracer->resetSamples();
     }
-    Dirty = false;
+    RenderState::Dirty &= false;
+}
+
+void Renderer::sync()
+{
+    if (!useGPU)
+    {
+        cpuRayTracer->sync();
+    }
 }

@@ -1,5 +1,5 @@
 #include "CPURayTracer.hpp"
-
+#include <chrono>
 CPURayTracer::~CPURayTracer() {}
 
 CPURayTracer::CPURayTracer(int _width, int _height)
@@ -17,6 +17,7 @@ unsigned int CPURayTracer::getGLTextureID()
 
 void CPURayTracer::resize(int newWidth, int newHeight)
 {
+    syncAndUploadShadingResult();
     this->width = newWidth;
     this->height = newHeight;
     this->camera.resize(newWidth, newHeight);
@@ -27,35 +28,39 @@ void CPURayTracer::resize(int newWidth, int newHeight)
 void CPURayTracer::resetSamples()
 {
     syncAndUploadShadingResult();
-    this->sampleCount = 1;
-    for (auto &pixel : imageData)
+
+    if (this->sampleCount > 1)
     {
-        pixel = color4(0.0f);
+        this->sampleCount = 1;
+        for (auto &pixel : imageData)
+        {
+            pixel = color4(0.0f);
+        }
     }
 }
 
-void CPURayTracer::draw()
+void CPURayTracer::draw(int numThreads)
 {
-    shadingAsync(16);
+    shadingAsync(numThreads);
     ImGui::Begin("RenderUI", 0);
     {
-        if (
-            ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f) ||
-            ImGui::DragFloat3("LookAtCenter", glm::value_ptr(camera.lookAtCenter), 0.01f) ||
-            ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f) ||
-            ImGui::DragFloat("PerturbStrength", &perturbStrength, 1e-4f))
-        {
-            Renderer::Dirty = true;
-        }
+        RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(camera.lookAtCenter), 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat("PerturbStrength", &perturbStrength, 1e-4f);
+
         ImGui::Text(std::format("HFov: {}", camera.getHorizontalFOV()).c_str());
         ImGui::Text(std::format("Count of Samples: {}", sampleCount).c_str());
+        ImGui::Text(std::format("Seconds per Sample: {}", secPerSample ).c_str());
+
         ImGui::End();
     }
     DebugObjectRenderer::SetCamera(&camera);
-    if (Renderer::Dirty)
-    {
-        resetSamples();
-    }
+}
+
+void CPURayTracer::sync()
+{
+    syncAndUploadShadingResult();
 }
 
 void CPURayTracer::setPixel(int x, int y, vec4 &value)
@@ -83,6 +88,12 @@ void CPURayTracer::syncAndUploadShadingResult()
         }
         this->sampleCount++;
         this->imageTexture.setData(imageData.data());
+
+        static auto lastTime = std::chrono::high_resolution_clock::now();
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration<double>(currentTime - lastTime).count();
+        lastTime = currentTime;
+        secPerSample = elapsed;
     }
 }
 
@@ -117,7 +128,7 @@ void CPURayTracer::shade(int x, int y)
     vec4 &pixelColor = pixelAt(x, y);
     Ray ray(
         camera.position,
-        camera.getRayDirction(uv) + Random::randomVector(perturbStrength));
+        camera.getRayDirction(uv) + Random::RandomVector(perturbStrength));
     auto newColor = castRay(ray);
     pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
 }

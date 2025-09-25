@@ -9,6 +9,7 @@
 #include "Random.hpp"
 #include "UI.hpp"
 #include "DebugObjectRenderer.hpp"
+#include "RenderState.hpp"
 
 #include <thread>
 #include <future>
@@ -27,11 +28,10 @@ private:
 
     Texture2D screenTexture;
 
+    int CPUThreads = 14;
+
 private:
     bool useGPU = false;
-
-public:
-    inline static bool Dirty = false;// 标记渲染器状态是否需要重置采样 所有更新方法都需要将此变量置true 所有重绘方法都需要检查此变量 并将其置false
 
 public:
     std::unique_ptr<ScreenPass> screenPass;
@@ -47,5 +47,6 @@ public:
     void render();  
     void resize(int newWidth, int newHeight);
     void resetSamples();
+    void sync();
 
 };

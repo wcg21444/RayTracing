@@ -45,7 +45,7 @@ private:
     inline static std::queue<DebugObjectDrawCall> drawQueue;
     inline static int width = 1600;
     inline static int height = 900;
-    inline static Camera* camera = nullptr;
+    inline static Camera *camera = nullptr;
     inline static std::shared_ptr<DebugObjectPass> debugObjectPass;
 
 public:
@@ -53,13 +53,14 @@ public:
     static void Initialize();
     static void Resize(int _width, int _height);
     static void Render();
-    static void SetCamera(Camera* cam)
+    static void SetCamera(Camera *cam)
     {
         camera = cam;
     }
     static void ReloadCurrentShaders();
     static unsigned int GetRenderOutput();
     static void CheckInitialized();
-    static void DrawCube(Shader &shaders, glm::vec4 color = glm::vec4(1.0f), glm::mat4 modelMatrix = glm::identity<glm::mat4>());
-    static void DrawWireframeCube(Shader &shaders, glm::vec4 color = glm::vec4(1.0f), glm::mat4 modelMatrix = glm::identity<glm::mat4>());
+    static void DrawCube(Shader &shaders, glm::mat4 modelMatrix = glm::identity<glm::mat4>(), glm::vec4 color = glm::vec4(1.0f));
+    static void DrawWireframeCube(Shader &shaders,  glm::mat4 modelMatrix = glm::identity<glm::mat4>(), glm::vec4 color = glm::vec4(1.0f));
+    static void DrawWireframeCube(Shader &shaders, glm::vec3 pMin, glm::vec3 pMax,glm::vec4 color = glm::vec4(1.0f));
 };

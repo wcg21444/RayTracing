@@ -9,6 +9,7 @@
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 #include "Renderer.hpp"
+#include "RenderState.hpp"
 
 class GPURayTracer : public Pass
 {
@@ -97,25 +98,18 @@ public:
 
         ImGui::Begin("RenderUI");
         {
-            if (
-                ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f) ||
-                ImGui::DragFloat3("LookAtCenter", glm::value_ptr(camera.lookAtCenter), 0.01f) ||
-                ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f))
-            {
-                Renderer::Dirty = true;
-            }
+            RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(camera.lookAtCenter), 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f);
+
             ImGui::Text(std::format("HFov: {}", camera.getHorizontalFOV()).c_str());
             ImGui::Text(std::format("SamplesCount: {}", samplesCount).c_str());
 
             ImGui::End();
         }
-        if (SkySettings::RenderUI() == CHANGED)
-        {
-            Renderer::Dirty = true;
-        }
         DebugObjectRenderer::SetCamera(&camera);
         DebugObjectRenderer::AddDrawCall([](Shader &_shaders) -> void
-                                         { DebugObjectRenderer::DrawWireframeCube(_shaders, glm::vec4(1.0f), glm::scale(glm::identity<glm::mat4>(), glm::vec3(2.0f))); });
+                                         { DebugObjectRenderer::DrawWireframeCube(_shaders, glm::scale(glm::identity<glm::mat4>(), glm::vec3(2.0f))); });
 
         glViewport(0, 0, vp_width, vp_height);
         glBindFramebuffer(GL_FRAMEBUFFER, FBO1); // Ping 着色

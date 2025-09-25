@@ -24,6 +24,7 @@ private:
     Camera camera = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
     int sampleCount = 1;
     float perturbStrength = 1e-3f;
+    float secPerSample = 0.f;
 
     void setPixel(int x, int y, vec4 &value);
     vec4 &pixelAt(int x, int y);
@@ -38,5 +39,6 @@ public:
     unsigned int getGLTextureID();
     void resize(int newWidth, int newHeight);
     void resetSamples();
-    void draw();
+    void draw(int numThreads=16);
+    void sync();
 };

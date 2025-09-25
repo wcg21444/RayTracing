@@ -56,7 +56,7 @@ void DebugObjectRenderer::CheckInitialized()
     }
 }
 
-void DebugObjectRenderer::DrawCube(Shader &shaders, glm::vec4 color, glm::mat4 modelMatrix)
+void DebugObjectRenderer::DrawCube(Shader &shaders, glm::mat4 modelMatrix, glm::vec4 color)
 {
     static Cube cube(glm::vec3(1.0f), "CubeTmp");
 
@@ -64,10 +64,19 @@ void DebugObjectRenderer::DrawCube(Shader &shaders, glm::vec4 color, glm::mat4 m
     cube.draw(modelMatrix, shaders);
 }
 
-void DebugObjectRenderer::DrawWireframeCube(Shader &shaders, glm::vec4 color, glm::mat4 modelMatrix)
+void DebugObjectRenderer::DrawWireframeCube(Shader &shaders, glm::mat4 modelMatrix, glm::vec4 color)
 {
     static WireframeCube wireframeCube(glm::vec3(1.0f), "WireframeCubeTmp");
 
+    shaders.setUniform("color", color);
+    wireframeCube.draw(modelMatrix, shaders);
+}
+void DebugObjectRenderer::DrawWireframeCube(Shader &shaders, glm::vec3 pMin, glm::vec3 pMax, glm::vec4 color)
+{
+    static WireframeCube wireframeCube(glm::vec3(1.0f), "WireframeCubeTmp");
+    glm::vec3 size = pMax - pMin;
+    glm::vec3 center = (pMin + pMax) * 0.5f;
+    auto modelMatrix = glm::translate(glm::mat4(1.0f), center) * glm::scale(glm::mat4(1.0f), size);
     shaders.setUniform("color", color);
     wireframeCube.draw(modelMatrix, shaders);
 }

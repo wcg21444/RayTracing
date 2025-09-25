@@ -10,13 +10,13 @@ color4 castRay(const Ray &ray, int traceDepth = 0);
 
 struct HitInfos
 {
-    float t;                             // 命中时光线的t
-    vec3 origin;                         // 光线起点
-    vec3 dir;                            // 命中光线的dir
-    vec3 invDir;                         // 光线dir倒数
-    vec3 pos;                            // 命中位置
-    vec3 normal;                         // 归一化世界法线
-    std::shared_ptr<Material> pMaterial; // 材质指针  单一材质命中
+    float t = std::numeric_limits<float>::infinity(); // 命中时光线的t
+    vec3 origin;                                      // 光线起点
+    vec3 dir;                                         // 命中光线的dir
+    vec3 invDir;                                      // 光线dir倒数
+    vec3 pos;                                         // 命中位置
+    vec3 normal;                                      // 归一化世界法线
+    std::shared_ptr<Material> pMaterial;              // 材质指针  单一材质命中
 };
 
 class Material
@@ -59,7 +59,7 @@ public:
     {
         vec3 unit_direction = normalize(hitInfos.dir);
         auto a = 0.5f * (unit_direction.y + 1.0f);
-        return color4((1.0f - a) * vec3(1.0f, 1.0f, 1.0f) + a * vec3(0.5f, 0.7f, 1.0f), 1.0f);
+        return color4((1.0f - a) * vec3(1.0f, 1.0f, 1.0f) + a * vec3(0.5f, 0.7f, 1.0f), 1.0f)/1.f;
     }
 };
 

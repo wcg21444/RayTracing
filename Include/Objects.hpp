@@ -2,6 +2,7 @@
 
 #include "Ray.hpp"
 #include "Materials.hpp"
+#include "Bounding.hpp"
 #include <optional>
 
 class Hittable
@@ -9,7 +10,11 @@ class Hittable
 public:
     virtual ~Hittable() {}
 
-    virtual std::optional<HitInfos> intersect(const Ray &ray) = 0; // 不命中可以返回nullopt
+    virtual std::optional<HitInfos> intersect(const Ray &ray) = 0; // 不命中返回nullopt
+
+    virtual std::shared_ptr<Material> getMaterial() = 0;
+
+    virtual BoundingBox getBoundingBox() = 0;
 };
 
 class Sphere : public Hittable
@@ -19,12 +24,15 @@ public:
     float radius;
     point3 center;
     std::shared_ptr<Material> pMaterial;
+    BoundingBox boundingBox;
 
     Sphere(const point3 &center, float radius, std::shared_ptr<Material> pMaterial)
         : center(center),
           radius(radius),
           pMaterial(pMaterial)
     {
+        boundingBox.pMin = center - vec3(radius);
+        boundingBox.pMax = center + vec3(radius);
     }
     std::optional<HitInfos> intersect(const Ray &ray) override
     {
@@ -56,5 +64,15 @@ public:
                  pMaterial});
         }
     }
+
+    std::shared_ptr<Material> getMaterial() override
+    {
+        return pMaterial;
+    }
+    BoundingBox getBoundingBox() override
+    {
+        return boundingBox;
+    }
+
     ~Sphere() {}
 };

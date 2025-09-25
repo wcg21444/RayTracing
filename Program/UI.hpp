@@ -1,17 +1,7 @@
 #pragma once
-#include "imgui.h"
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"
 #include <glm/glm.hpp>
-
-#define IMGUI_EDITED IMGUI_EDITED
-#define IMGUI_EDITED_STATE_DEFINE \
-    bool IMGUI_EDITED = false;
-#define CHECK_IMGUI_EDITED     \
-    if (ImGui::IsItemEdited()) \
-    {                          \
-        IMGUI_EDITED = true;   \
-    }
+#include "UICommon.hpp"
+#include "RenderState.hpp"
 
 class SkySettings
 {
@@ -31,10 +21,8 @@ public:
     inline static glm::vec3 sunlightDir = glm::vec3(1.0f, 0.3f, 0.4f);
     inline static glm::vec4 sunlightIntensity = glm::vec4(1.0f);
 
-    inline static bool RenderUI()
+    inline static void RenderUI()
     {
-        IMGUI_EDITED_STATE_DEFINE
-
         ImGui::Begin("ShadersGUI");
         {
             ImGui::PushItemWidth(100.f);
@@ -42,45 +30,28 @@ public:
             // β_Mie
             ImGui::Text("BetaMie");
             ImGui::PushID("BetaMie");
-            ImGui::DragFloat("R", &betaMie.r, 1.0e-7f, 1e-7f, 1e-4f, "%.5e");
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("G", &betaMie.g, 1.0e-7f, 1e-7f, 1e-4f, "%.5e");
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("B", &betaMie.b, 1.0e-7f, 1e-7f, 1e-4f, "%.5e");
-            CHECK_IMGUI_EDITED;
+            RenderState::Dirty |= ImGui::DragFloat("R", &betaMie.r, 1.0e-7f, 1e-7f, 1e-4f, "%.5e");
+            RenderState::Dirty |= ImGui::DragFloat("G", &betaMie.g, 1.0e-7f, 1e-7f, 1e-4f, "%.5e");
+            RenderState::Dirty |= ImGui::DragFloat("B", &betaMie.b, 1.0e-7f, 1e-7f, 1e-4f, "%.5e");
             ImGui::PopID();
 
-            ImGui::DragFloat("skyHeight", &skyHeight, 1e3f, 1e1f, 1e7f);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("earthRadius", &earthRadius, 1e4f, 1e1f, 1e7f);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("skyIntensity", &skyIntensity, 1e-1f, 0.0f, 1e3);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragInt("maxStep", &maxStep, 1, 1, 128);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("HRayleigh", &HRayleigh, 10.f, 0.0f, 1e5);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("HMie", &HMie, 2.f, 0.0f, 1e4);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("AtmosphereDensity", &atmosphereDensity, 0.05f, 0.0f, 1e2);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("MieDensity", &MieDensity, 0.05f, 0.0f, 1e2);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("gMie", &gMie, 0.01f, 0.0f, 1.f);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("absorbMie", &absorbMie, 0.01f, 1e-3f, 1e1);
-            CHECK_IMGUI_EDITED;
-            ImGui::DragFloat("MieIntensity", &MieIntensity, 0.01f, 1e-2f, 1e2);
-            CHECK_IMGUI_EDITED;
+            RenderState::Dirty |= ImGui::DragFloat("skyHeight", &skyHeight, 1e3f, 1e1f, 1e7f);
+            RenderState::Dirty |= ImGui::DragFloat("earthRadius", &earthRadius, 1e4f, 1e1f, 1e7f);
+            RenderState::Dirty |= ImGui::DragFloat("skyIntensity", &skyIntensity, 1e-1f, 0.0f, 1e3);
+            RenderState::Dirty |= ImGui::DragInt("maxStep", &maxStep, 1, 1, 128);
+            RenderState::Dirty |= ImGui::DragFloat("HRayleigh", &HRayleigh, 10.f, 0.0f, 1e5);
+            RenderState::Dirty |= ImGui::DragFloat("HMie", &HMie, 2.f, 0.0f, 1e4);
+            RenderState::Dirty |= ImGui::DragFloat("AtmosphereDensity", &atmosphereDensity, 0.05f, 0.0f, 1e2);
+            RenderState::Dirty |= ImGui::DragFloat("MieDensity", &MieDensity, 0.05f, 0.0f, 1e2);
+            RenderState::Dirty |= ImGui::DragFloat("gMie", &gMie, 0.01f, 0.0f, 1.f);
+            RenderState::Dirty |= ImGui::DragFloat("absorbMie", &absorbMie, 0.01f, 1e-3f, 1e1);
+            RenderState::Dirty |= ImGui::DragFloat("MieIntensity", &MieIntensity, 0.01f, 1e-2f, 1e2);
             ImGui::PopItemWidth();
 
-            ImGui::DragFloat3("SunlightDir", glm::value_ptr(sunlightDir));
-            CHECK_IMGUI_EDITED;
-            ImGui::ColorPicker4("SunlightIntensity", glm::value_ptr(sunlightIntensity));
-            CHECK_IMGUI_EDITED;
+            RenderState::Dirty |= ImGui::DragFloat3("SunlightDir", glm::value_ptr(sunlightDir));
+            RenderState::Dirty |= ImGui::ColorPicker4("SunlightIntensity", glm::value_ptr(sunlightIntensity));
         }
         ImGui::End();
-        return IMGUI_EDITED;
     }
 
     inline static void SetShaderUniforms(Shader &shaders)
