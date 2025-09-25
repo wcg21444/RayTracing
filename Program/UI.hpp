@@ -31,7 +31,7 @@ public:
     inline static glm::vec3 sunlightDir = glm::vec3(1.0f, 0.3f, 0.4f);
     inline static glm::vec4 sunlightIntensity = glm::vec4(1.0f);
 
-    inline static bool Render()
+    inline static bool RenderUI()
     {
         IMGUI_EDITED_STATE_DEFINE
 

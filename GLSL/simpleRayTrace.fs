@@ -362,24 +362,30 @@ void initialize()
 
     // cam.width = 2.f;
     // cam.height =  cam.width/cam.aspectRatio;
+    // viewDir = vec3(
+    //     -(uv.x * cam.width - cam.width / 2.f),
+    //     (uv.y * cam.height - cam.height / 2.f),
+    //     cam.focalLength);
     viewDir = vec3(
-        -(uv.x * cam.width - cam.width / 2.f),
-        (uv.y * cam.height - cam.height / 2.f),
-        cam.focalLength);
+        ((uv.x - 0.5f) * cam.width),
+        (uv.y - 0.5f) * cam.height,
+        -cam.focalLength);
 
-    vec3 absY = vec3(0.f, 1.f, 0.f);
-    vec3 z = normalize(cam.lookAtCenter - cam.position);
-    vec3 x = normalize(cross(absY, z));
-    vec3 y = cross(z, x);
-    mat3 rotation = mat3(x, y, z);
+    // vec3 absY = vec3(0.f, 1.f, 0.f);
+    // vec3 z = normalize(cam.lookAtCenter - cam.position);
+    // vec3 x = normalize(cross(absY, z));
+    // vec3 y = cross(z, x);
+    // mat3 rotation = mat3(x, y, z);
 
+
+    viewDir = inverse(mat3(cam.view))*normalize(viewDir);
     camRayDir = viewDir;
     camPos = cam.position;
     earthCenter = vec3(0.0f, -earthRadius, 0.0f); // 地球球心，位于地面原点正下方
     sunDir = sunlightDir;
     sunlightDecay = computeSunlightDecay(camPos, camRayDir, sunDir);
 
-    viewDir = rotation * (viewDir);
+    // viewDir = rotation * (viewDir);
 
     initializeScene();
 }

@@ -1,7 +1,7 @@
 #include "SkyTexPass.hpp"
 #include "Cubemap.hpp"
 #include "UI.hpp"
-#include "../Camera.hpp"
+#include "Camera.hpp"
 SkyTexPass::SkyTexPass(std::string _vs_path, std::string _fs_path, int _cubemapSize)
     : Pass(0, 0, _vs_path, _fs_path),
       cubemapSize(_cubemapSize)
