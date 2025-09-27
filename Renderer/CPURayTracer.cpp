@@ -1,5 +1,7 @@
 #include "CPURayTracer.hpp"
+#include "Trace.hpp"
 #include <chrono>
+#include "Random.hpp"
 CPURayTracer::~CPURayTracer() {}
 
 CPURayTracer::CPURayTracer(int _width, int _height)
@@ -20,7 +22,6 @@ void CPURayTracer::resize(int newWidth, int newHeight)
     syncAndUploadShadingResult();
     this->width = newWidth;
     this->height = newHeight;
-    this->camera.resize(newWidth, newHeight);
     this->imageTexture.resize(newWidth, newHeight);
     this->imageData.resize(newWidth * newHeight, color4(0.0f));
 }
@@ -44,18 +45,18 @@ void CPURayTracer::draw(int numThreads)
     shadingAsync(numThreads);
     ImGui::Begin("RenderUI", 0);
     {
-        RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f);
-        RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(camera.lookAtCenter), 0.01f);
-        RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(Renderer::Cam.position), 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(Renderer::Cam.lookAtCenter), 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &Renderer::Cam.focalLength, 0.01f);
         RenderState::Dirty |= ImGui::DragFloat("PerturbStrength", &perturbStrength, 1e-4f);
 
-        ImGui::Text(std::format("HFov: {}", camera.getHorizontalFOV()).c_str());
+        ImGui::Text(std::format("HFov: {}", Renderer::Cam.getHorizontalFOV()).c_str());
         ImGui::Text(std::format("Count of Samples: {}", sampleCount).c_str());
-        ImGui::Text(std::format("Seconds per Sample: {}", secPerSample ).c_str());
+        ImGui::Text(std::format("Seconds per Sample: {}", secPerSample).c_str());
 
         ImGui::End();
     }
-    DebugObjectRenderer::SetCamera(&camera);
+    DebugObjectRenderer::SetCamera(&Renderer::Cam);
 }
 
 void CPURayTracer::sync()
@@ -93,7 +94,7 @@ void CPURayTracer::syncAndUploadShadingResult()
         auto currentTime = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration<double>(currentTime - lastTime).count();
         lastTime = currentTime;
-        secPerSample = elapsed;
+        secPerSample = static_cast<float>(elapsed);
     }
 }
 
@@ -127,8 +128,8 @@ void CPURayTracer::shade(int x, int y)
     vec2 uv = uvAt(x, y);
     vec4 &pixelColor = pixelAt(x, y);
     Ray ray(
-        camera.position,
-        camera.getRayDirction(uv) + Random::RandomVector(perturbStrength));
-    auto newColor = castRay(ray);
+        Renderer::Cam.position,
+        Renderer::Cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
+    auto newColor = Trace::CastRay(ray, 0);
     pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
 }

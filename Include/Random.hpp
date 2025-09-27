@@ -3,6 +3,7 @@
 #include <random>
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
+#include <glm/gtc/constants.hpp>
 #include <vector>
 
 namespace Random
@@ -68,5 +69,11 @@ namespace Random
         }
         glm::mat3 TBN_matrix = glm::mat3(T, B, normal);
         return TBN_matrix * local_dir;
+    }
+
+    inline float RussianRoulette(float p)
+    {
+        std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+        return dist(generator) < p ? 1.0f / p : 0.0f;
     }
 }

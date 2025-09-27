@@ -14,10 +14,6 @@ set(IMGUI
 imgui
 imgui/backends
 )
-set(GLSHADER GLShader)
-set(RENDERPASS RenderPass)
-set(PROGRAM program)
-set(RENDERER Renderer)
 
 file(GLOB_RECURSE IMGUI_SRC 
     imgui/*.cpp
@@ -37,12 +33,17 @@ file(GLOB_RECURSE PROGRAM_SRC
     Program/*.cpp
 )
 
+file(GLOB_RECURSE CPURAYTRACE_SRC
+    CPURayTrace/*.cpp
+)
+
 
 include_directories(${IMGUI})
-include_directories(${GLSHADER})
-include_directories(${RENDERPASS})
-include_directories(${RENDERER})
-include_directories(${PROGRAM})
+include_directories("GLShader")
+include_directories("RenderPass")
+include_directories("Renderer")
+include_directories("Program")
+include_directories("CPURayTrace")
 include_directories("Include")
 
 add_executable(${PROJECT_NAME}
@@ -52,6 +53,7 @@ ${SHADER_SRC}
 ${PASS_SRC}
 ${RENDERER_SRC}
 ${PROGRAM_SRC}
+${CPURAYTRACE_SRC}
        )
 
 find_package(glfw3 CONFIG REQUIRED)

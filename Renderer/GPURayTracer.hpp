@@ -22,8 +22,6 @@ private:
 
     int samplesCount = 1;
 
-    Camera camera = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
-
     void initializeGLResources()
     {
         glGenFramebuffers(1, &FBO1);
@@ -98,16 +96,16 @@ public:
 
         ImGui::Begin("RenderUI");
         {
-            RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(camera.position), 0.01f);
-            RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(camera.lookAtCenter), 0.01f);
-            RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &camera.focalLength, 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(Renderer::Cam.position), 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(Renderer::Cam.lookAtCenter), 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &Renderer::Cam.focalLength, 0.01f);
 
-            ImGui::Text(std::format("HFov: {}", camera.getHorizontalFOV()).c_str());
+            ImGui::Text(std::format("HFov: {}", Renderer::Cam.getHorizontalFOV()).c_str());
             ImGui::Text(std::format("SamplesCount: {}", samplesCount).c_str());
 
             ImGui::End();
         }
-        DebugObjectRenderer::SetCamera(&camera);
+        DebugObjectRenderer::SetCamera(&Renderer::Cam);
         DebugObjectRenderer::AddDrawCall([](Shader &_shaders) -> void
                                          { DebugObjectRenderer::DrawWireframeCube(_shaders, glm::scale(glm::identity<glm::mat4>(), glm::vec3(2.0f))); });
 
@@ -131,7 +129,7 @@ public:
         shaders.setUniform("rand", rand);
         shaders.setUniform("samplesCount", samplesCount);
 
-        camera.setToFragShader(shaders, "cam");
+        Renderer::Cam.setToFragShader(shaders, "cam");
         /****************************************天空设置*****************************************************/
         SkySettings::SetShaderUniforms(shaders);
         shaders.setTextureAuto(skyTexID, GL_TEXTURE_CUBE_MAP, 0, "skybox");
@@ -140,8 +138,4 @@ public:
         samplesCount++;
     }
 
-    const Camera &getCamera() const
-    {
-        return camera;
-    }
 };

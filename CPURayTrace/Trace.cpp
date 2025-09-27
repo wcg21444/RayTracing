@@ -4,14 +4,15 @@
 #include "Utils.hpp"
 #include "Ray.hpp"
 #include "Objects.hpp"
-#include "Scene.hpp"
 #include "Random.hpp"
+#include "Materials/Sky.hpp"
+#include "BVHUI.hpp"
+#include "Scene.hpp"
+#include "Trace.hpp"
 
 #include <limits>
 
-inline int bouanceLimit = 4;
-
-inline color4 castRayDirectionLight(const Ray &ray, const color4 &light)
+color4 Trace::CastRayDirectionLight(const Ray &ray, const color4 &light)
 {
     HitInfos closestHit;
     closestHit.t = std::numeric_limits<float>::infinity();
@@ -26,23 +27,29 @@ inline color4 castRayDirectionLight(const Ray &ray, const color4 &light)
     return light;
 }
 
-inline color4 castRay(const Ray &ray, int traceDepth)
+color4 Trace::CastRay(const Ray &ray, int traceDepth)
 {
-    if (traceDepth > bouanceLimit)
+    float rr = traceDepth <= 1 ? 1.0f : Random::RussianRoulette(0.8f);
+
+    if (traceDepth > bouanceLimit || rr == 0.0f)
     {
         return color4(0.0f);
     }
     // 深度测试
     // auto closestHit = Scene::IntersectClosest(ray);
-    auto closestHit = Scene::IntersectClosestBVH(ray);
+    HitInfos closestHit;
+    if (BVHSettings::toggleBVHAccel)
+        closestHit = Scene::intersectClosestBVH(ray);
+    else
+        closestHit = Scene::intersectClosest(ray);
     // 命中
     if (closestHit.t != std::numeric_limits<float>::infinity())
     {
-        return closestHit.pMaterial->getIrradiance(closestHit, traceDepth);
+        return closestHit.pMaterial->getIrradiance(closestHit, traceDepth) * rr;
     }
     // 未命中
     Sky sky;
     HitInfos hitSky;
     hitSky.dir = ray.getDirection();
-    return sky.getIrradiance(hitSky, traceDepth);
+    return sky.getIrradiance(hitSky, traceDepth) * rr;
 }

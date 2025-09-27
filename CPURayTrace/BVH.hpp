@@ -1,10 +1,6 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <vector>
-#include <memory>
-#include <algorithm>
-#include <functional>
-#include "Objects.hpp"
+#include "Bounding.hpp"
+#include "Materials.hpp"
 
 struct BVHNode
 {
@@ -14,9 +10,11 @@ struct BVHNode
     std::shared_ptr<Hittable> object = nullptr; // 叶子节点存储物体
 };
 
-class BVHAccelerator
+class BVH
 {
 public:
+    BVHNode *root = nullptr;
+
     inline static BVHNode *BuildBVH(std::vector<std::shared_ptr<Hittable>> &objects, int start, int end) // [start, end)
     {
         if (end - start <= 0)
@@ -69,18 +67,12 @@ public:
         node->right = BuildBVH(objects, mid, end);
         return node;
     }
-};
 
-class BVH
-{
-public:
-    BVHNode *root = nullptr;
+    inline BVH() {}
 
-    BVH() {}
+    inline BVH(BVHNode *root) : root(root) {}
 
-    BVH(BVHNode *root) : root(root) {}
-
-    ~BVH()
+    inline ~BVH()
     {
         // 递归删除节点
         auto deleteNode = [&](auto &&self, BVHNode *node) -> void
@@ -94,20 +86,18 @@ public:
         deleteNode(deleteNode, root);
     }
 
-    void build(std::vector<std::shared_ptr<Hittable>> &objects)
+    inline void build(std::vector<std::shared_ptr<Hittable>> &objects)
     {
         std::vector<std::shared_ptr<Hittable>> objsCopy = objects; // 复制一份,不改变原始顺序
-        root = BVHAccelerator::BuildBVH(objsCopy, 0, objsCopy.size());
+        root = BVH::BuildBVH(objsCopy, 0, static_cast<int>(objsCopy.size()));
     }
 
-    HitInfos intersect(const Ray &ray)
+    inline HitInfos intersect(const Ray &ray)
     {
         HitInfos closestHit;
         auto traverse = [&ray, &closestHit](auto &&traverseSelf, BVHNode *node) -> void
         {
-            if (!node)
-                return;
-            if (!node->box.intersect(ray, 0.001f, closestHit.t)) // closestHit.t 是当前最近的命中距离，避免不必要的遍历
+            if (!node || !node->box.intersect(ray, 0.001f, closestHit.t))
             {
                 return;
             }
@@ -125,93 +115,6 @@ public:
             traverseSelf(traverseSelf, node->right);
         };
         traverse(traverse, root);
-        return closestHit;
-    }
-};
-
-// 全局静态场景类
-class Scene
-{
-public:
-    inline static std::vector<std::shared_ptr<Hittable>> Objects;
-    inline static BVH BVHTree;
-
-    inline static void Initialze() // 布置场景
-    {
-        Objects.push_back(
-            std::make_shared<Sphere>(
-                point3(2.0f, 0.0f, 2.f),
-                1.5f,
-                std::make_shared<Lambertian>(color4(0.7f, 0.1f, 0.15f, 1.0f))));
-        Objects.push_back(
-            std::make_shared<Sphere>(
-                point3(3.0f, 1.5f, 1.f),
-                1.5f,
-                std::make_shared<Lambertian>(color4(0.2f, 0.7f, 0.1f, 1.0f))));
-        Objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-6.0f, 2.f, 5.f),
-                1.5f,
-                std::make_shared<Metal>(color4(0.8f, 0.7f, 0.2f, 1.0f), 0.99f)));
-        Objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-2.0f, 4.f, 2.f),
-                1.5f,
-                std::make_shared<Metal>(color4(0.7f, 0.7f, 0.4f, 1.0f), 0.5f)));
-        Objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-2.0f, 14.f, 7.f),
-                1.5f,
-                std::make_shared<Metal>(color4(0.7f, 0.7f, 0.4f, 1.0f), 0.5f)));
-        Objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-2.0f, 18.f, 9.f),
-                1.5f,
-                std::make_shared<Metal>(color4(0.7f, 0.7f, 0.4f, 1.0f), 0.5f)));
-        Objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-2.0f, 15.f, 0.f),
-                4.f,
-                std::make_shared<LightEmit>(color4(50.0f)))); // 光源
-        Objects.push_back(
-            std::make_shared<Sphere>(
-                point3(0.f, -6.3e3f, 0.f),
-                6.3e3f,
-                std::make_shared<Lambertian>(color4(0.7f, 0.7f, 0.7f, 1.0f)))); // 地球
-        for (size_t i = 0; i < 100; i++)
-        {
-            point3 center = point3(Random::RandomVector(40.f));
-            center.y = glm::length(center) / 40.f+1.f ;
-            Objects.push_back(
-                std::make_shared<Sphere>(
-                    center,
-                    1.f,
-                    std::make_shared<Lambertian>(color4((Random::RandomVector(1.0f) + 1.0f) / 2.f, 1.0f)
-
-                                                     )));
-        }
-    }
-
-    inline static void Update()
-    {
-        BVHTree.build(Objects);
-    }
-
-    inline static HitInfos IntersectClosestBVH(const Ray &ray)
-    {
-        return BVHTree.intersect(ray);
-    }
-    inline static HitInfos IntersectClosest(const Ray &ray)
-    {
-        HitInfos closestHit;
-        for (auto &&object : Objects)
-        {
-            auto hitInfos = object->intersect(ray);
-            if (hitInfos && hitInfos->t < closestHit.t)
-            {
-                closestHit = *hitInfos;
-            }
-        }
         return closestHit;
     }
 };

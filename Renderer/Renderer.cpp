@@ -51,7 +51,7 @@ void Renderer::render()
     }
     else
     {
-        skyTexPass->render(gpuRayTracer->getCamera().position);
+        skyTexPass->render(Renderer::Cam.position);
         auto skyTexID = skyTexPass->getCubemap();
         gpuRayTracer->render(skyTexID);
         raytraceResult = gpuRayTracer->getTextures();

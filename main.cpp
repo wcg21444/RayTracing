@@ -9,11 +9,13 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "CPURayTrace/Scene.hpp"
+#include "BVHUI.hpp"
 
 #include "Renderer.hpp"
 #include "DebugObjectRenderer.hpp"
 #include "InputHandler.hpp"
-#include "Scene.hpp"
+
 
 const int InitWidth = 800;
 const int InitHeight = 600;
@@ -71,8 +73,8 @@ int main()
 
     InputHandler::BindApplication(RTRenderer);
 
-    Scene::Initialze();
-    Scene::Update();
+    Scene::initialize();
+    Scene::update();
 
     while (!glfwWindowShouldClose(window))
     {
@@ -87,45 +89,8 @@ int main()
         RTRenderer->render();
 
         // RTRenderer->sync();
-
-        // // 遍历bvh 树
-        static int maxDepth = 40;
-        static int minDepth = 0;
-        static bool toggleVisualizeBVH = true;
-        ImGui::Begin("BVH Debug");
-        {
-            ImGui::Text(std::format("ObjectsCount: {}", Scene::Objects.size()).c_str());
-            ImGui::DragInt("Max Depth", &maxDepth, 1, 1, 40);
-            ImGui::DragInt("Min Depth", &minDepth, 1, 0, 40);
-            ImGui::Checkbox("Visualize BVH", &toggleVisualizeBVH);
-        }
-        ImGui::End();
-        std::function<void(BVHNode *, int)> traverse = [&](BVHNode *node, int depth) -> void
-        {
-            if (!node)
-                return;
-            if (node->object)
-            {
-                auto AABB = node->object->getBoundingBox();
-                if (toggleVisualizeBVH)
-                {
-                    DebugObjectRenderer::AddDrawCall([AABB, depth](Shader &_shaders)
-                                                     { DebugObjectRenderer::DrawWireframeCube(_shaders, AABB.pMin, AABB.pMax, color4(1.0f, 0.0f, 0.0f, 1.0f)); });
-                }
-            }
-            else
-            {
-                auto AABB = node->box;
-                if (depth <= maxDepth && depth >= minDepth && toggleVisualizeBVH)
-                {
-                    DebugObjectRenderer::AddDrawCall([AABB, depth](Shader &_shaders)
-                                                     { DebugObjectRenderer::DrawWireframeCube(_shaders, AABB.pMin, AABB.pMax, color4(0.0f, 1.0f, depth / 8.f, 1.0f)); });
-                }
-            }
-            traverse(node->left, depth + 1);
-            traverse(node->right, depth + 1);
-        };
-        traverse(Scene::BVHTree.root, 0);
+        BVHSettings::RenderUI();
+        BVHSettings::RenderVisualization(Scene::BVHTree.root);
         DebugObjectRenderer::Render();
 
         ImGui::Render();

@@ -4,9 +4,7 @@
 
 #include "Pass.hpp"
 #include "Utils.hpp"
-#include "Trace.hpp"
 #include "Camera.hpp"
-#include "Random.hpp"
 #include "UI.hpp"
 #include "DebugObjectRenderer.hpp"
 #include "RenderState.hpp"
@@ -39,14 +37,15 @@ public:
     std::unique_ptr<GPURayTracer> gpuRayTracer;
     std::unique_ptr<SkyTexPass> skyTexPass;
     std::unique_ptr<CPURayTracer> cpuRayTracer;
+    inline static Camera Cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
+
     // Camera camera;
     // Scene
 
     Renderer();
     ~Renderer();
-    void render();  
+    void render();
     void resize(int newWidth, int newHeight);
     void resetSamples();
     void sync();
-
 };
