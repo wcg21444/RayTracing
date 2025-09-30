@@ -1,6 +1,7 @@
 #pragma once
 #include "Bounding.hpp"
 #include "Materials.hpp"
+#include "Objects.hpp"
 
 struct BVHNode
 {
@@ -15,6 +16,7 @@ class BVH
 public:
     BVHNode *root = nullptr;
 
+    //TODO 并行化构建
     inline static BVHNode *BuildBVH(std::vector<std::shared_ptr<Hittable>> &objects, int start, int end) // [start, end)
     {
         if (end - start <= 0)
@@ -72,6 +74,10 @@ public:
 
     inline BVH(BVHNode *root) : root(root) {}
 
+    // 禁用拷贝
+    inline BVH(const BVH &other) = delete;
+    inline BVH &operator=(const BVH &other) = delete;
+
     inline ~BVH()
     {
         // 递归删除节点
@@ -86,18 +92,17 @@ public:
         deleteNode(deleteNode, root);
     }
 
-    inline void build(std::vector<std::shared_ptr<Hittable>> &objects)
+    inline void build(std::vector<std::shared_ptr<Hittable>> &objects) // 构建的BVH叶子节点指向实际存储
     {
-        std::vector<std::shared_ptr<Hittable>> objsCopy = objects; // 复制一份,不改变原始顺序
-        root = BVH::BuildBVH(objsCopy, 0, static_cast<int>(objsCopy.size()));
+        root = BVH::BuildBVH(objects, 0, static_cast<int>(objects.size()));
     }
 
-    inline HitInfos intersect(const Ray &ray)
+    inline HitInfos intersect(const Ray &ray) const
     {
         HitInfos closestHit;
         auto traverse = [&ray, &closestHit](auto &&traverseSelf, BVHNode *node) -> void
         {
-            if (!node || !node->box.intersect(ray, 0.001f, closestHit.t))
+            if (!node || !node->box.intersect(ray, 1e-6f, closestHit.t))
             {
                 return;
             }

@@ -12,7 +12,7 @@ namespace Trace
 {
     inline int bouanceLimit = 6;
 
-    color4 CastRayDirectionLight(const Ray &ray, const color4 &light);
+    color4 CastRayDirectionLight(const Ray &ray, const color4 &light,const Scene& scene);
 
-    color4 CastRay(const Ray &ray, int traceDepth);
+    color4 CastRay(const Ray &ray, int traceDepth,const Scene& scene);
 }

@@ -17,7 +17,7 @@ class PostProcessor;
 class GPURayTracer;
 class SkyTexPass;
 class CPURayTracer;
-
+class Scene;
 class Renderer
 {
 private:
@@ -44,7 +44,7 @@ public:
 
     Renderer();
     ~Renderer();
-    void render();
+    void render(const Scene& scene);
     void resize(int newWidth, int newHeight);
     void resetSamples();
     void sync();

@@ -22,7 +22,7 @@ Renderer::~Renderer()
 {
 }
 
-void Renderer::render()
+void Renderer::render(const Scene &scene)
 {
     if (RenderState::Dirty)
     {
@@ -46,7 +46,7 @@ void Renderer::render()
     TextureID raytraceResult;
     if (!useGPU)
     {
-        cpuRayTracer->draw(CPUThreads);
+        cpuRayTracer->draw(CPUThreads, scene);
         raytraceResult = cpuRayTracer->getGLTextureID();
     }
     else

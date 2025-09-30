@@ -12,11 +12,11 @@
 #include "CPURayTrace/Scene.hpp"
 #include "BVHUI.hpp"
 
+#include "ModelLoader.hpp"
 #include "Renderer.hpp"
 #include "DebugObjectRenderer.hpp"
 #include "InputHandler.hpp"
-
-
+#include "Materials/Lambertian.hpp"
 const int InitWidth = 800;
 const int InitHeight = 600;
 
@@ -73,8 +73,11 @@ int main()
 
     InputHandler::BindApplication(RTRenderer);
 
-    Scene::initialize();
-    Scene::update();
+    Scene scene;
+    scene.initialize();
+    ModelLoader::Run(scene);
+
+    scene.update();
 
     while (!glfwWindowShouldClose(window))
     {
@@ -86,11 +89,31 @@ int main()
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
-        RTRenderer->render();
+        RTRenderer->render(scene);
 
+        ImGui::Begin("RenderUI");
+        {
+            if (ImGui::Button("Add Sphere"))
+            {
+                RenderState::Dirty |= true;
+                RenderState::SceneDirty |= true;
+                scene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
+                scene.update();
+            }
+            ImGui::End();
+        }
         // RTRenderer->sync();
         BVHSettings::RenderUI();
-        BVHSettings::RenderVisualization(Scene::BVHTree.root);
+        BVHSettings::RenderVisualization(scene.BVHTree.root);
+
+        for (auto &&object : scene.objects)
+        {
+            if (auto root = object->getInsideBVHRoot())
+            {
+                BVHSettings::RenderVisualization(root);
+            }
+        }
+
         DebugObjectRenderer::Render();
 
         ImGui::Render();

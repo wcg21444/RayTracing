@@ -40,9 +40,10 @@ void CPURayTracer::resetSamples()
     }
 }
 
-void CPURayTracer::draw(int numThreads)
+void CPURayTracer::draw(int numThreads, const Scene &sceneInput)
 {
-    shadingAsync(numThreads);
+    shadeAsync(numThreads, sceneInput);
+
     ImGui::Begin("RenderUI", 0);
     {
         RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(Renderer::Cam.position), 0.01f);
@@ -98,7 +99,7 @@ void CPURayTracer::syncAndUploadShadingResult()
     }
 }
 
-void CPURayTracer::shadingAsync(int numThreads)
+void CPURayTracer::shadeAsync(int numThreads, const Scene &scene)
 {
     if (!shadingFutures.empty() && shadingFutures[0].valid() && shadingFutures[0].wait_for(std::chrono::seconds(0)) != std::future_status::ready)
     {
@@ -106,6 +107,13 @@ void CPURayTracer::shadingAsync(int numThreads)
     }
     syncAndUploadShadingResult();
     this->shadingFutures.clear();
+
+    if (!renderScene || RenderState::SceneDirty) // 场景数据脏 则触发更新
+    {
+        renderScene = std::make_unique<Scene>(scene); // 拷贝一份Scene  更新渲染场景
+        RenderState::SceneDirty &= false;
+    }
+
     int rowsPerThread = height / numThreads;
     for (int i = 0; i < numThreads; ++i)
     {
@@ -130,6 +138,10 @@ void CPURayTracer::shade(int x, int y)
     Ray ray(
         Renderer::Cam.position,
         Renderer::Cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
-    auto newColor = Trace::CastRay(ray, 0);
+    if (!renderScene)
+    {
+        throw std::runtime_error("Scene is not loaded.");
+    }
+    auto newColor = Trace::CastRay(ray, 0, *renderScene);
     pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
 }

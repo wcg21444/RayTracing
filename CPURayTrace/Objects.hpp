@@ -3,7 +3,11 @@
 #include "Ray.hpp"
 #include "Materials.hpp"
 #include "Bounding.hpp"
+
 #include <optional>
+#include <vector>
+
+class BVHNode;
 
 class Hittable
 {
@@ -12,9 +16,11 @@ public:
 
     virtual std::optional<HitInfos> intersect(const Ray &ray) = 0; // 不命中返回nullopt
 
-    virtual std::shared_ptr<Material> getMaterial() = 0;
+    virtual Material &getMaterial() = 0;
 
     virtual BoundingBox getBoundingBox() = 0;
+
+    virtual BVHNode *getInsideBVHRoot() = 0;
 };
 
 class Sphere : public Hittable
@@ -23,13 +29,13 @@ class Sphere : public Hittable
 public:
     float radius;
     point3 center;
-    std::shared_ptr<Material> pMaterial;
+    std::unique_ptr<Material> pMaterial;
     BoundingBox boundingBox;
 
-    Sphere(const point3 &center, float radius, std::shared_ptr<Material> pMaterial)
+    Sphere(const point3 &center, float radius, const Material& _material)
         : center(center),
           radius(radius),
-          pMaterial(pMaterial)
+          pMaterial(_material.clone())
     {
         boundingBox.pMin = center - vec3(radius);
         boundingBox.pMax = center + vec3(radius);
@@ -61,18 +67,19 @@ public:
                  vec3(1.f / dir.x, 1.f / dir.y, 1.f / dir.z),
                  ray.at(t),
                  N,
-                 pMaterial});
+                 pMaterial.get()});
         }
     }
 
-    std::shared_ptr<Material> getMaterial() override
+    Material &getMaterial() override
     {
-        return pMaterial;
+        return *pMaterial;
     }
     BoundingBox getBoundingBox() override
     {
         return boundingBox;
     }
 
+    BVHNode *getInsideBVHRoot() override { return nullptr; }
     ~Sphere() {}
 };

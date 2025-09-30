@@ -8,12 +8,15 @@
 #include <vector>
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
-
+class Scene;
 class CPURayTracer
 {
 public:
     int width;
     int height;
+
+private:
+    std::unique_ptr<Scene> renderScene;
 
 private:
     Texture2D imageTexture;
@@ -27,7 +30,7 @@ private:
     vec4 &pixelAt(int x, int y);
     vec2 uvAt(int x, int y);
     void syncAndUploadShadingResult();
-    void shadingAsync(int numThreads);
+    void shadeAsync(int numThreads, const Scene &sceneInput);
     void shade(int x, int y);
 
 public:
@@ -36,6 +39,6 @@ public:
     unsigned int getGLTextureID();
     void resize(int newWidth, int newHeight);
     void resetSamples();
-    void draw(int numThreads=16);
+    void draw(int numThreads, const Scene &sceneInput);
     void sync();
 };

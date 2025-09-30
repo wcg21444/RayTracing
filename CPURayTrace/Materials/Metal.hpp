@@ -12,7 +12,7 @@ public:
     Metal(color4 albedo, float gross) : albedo(albedo), gross(gross) {}
     ~Metal() {}
 
-    color4 getIrradiance(const HitInfos &hitInfos, int traceDepth) const override
+    color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const Scene &scene) const override
     {
         auto &normal = hitInfos.normal;
         auto &pos = hitInfos.pos;
@@ -25,8 +25,13 @@ public:
         auto bounceRay = Ray(
             pos + bias,
             rayDir);
-        color4 irradiance = albedo * Trace::CastRay(bounceRay, traceDepth + 1);
+        color4 irradiance = albedo * Trace::CastRay(bounceRay, traceDepth + 1, scene);
 
         return irradiance;
+    }
+
+    std::unique_ptr<Material> clone() const override
+    {
+        return std::move(std::make_unique<Metal>(*this));
     }
 };
