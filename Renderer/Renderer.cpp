@@ -90,3 +90,10 @@ void Renderer::resetSamples()
     RenderState::Dirty &= false;
 }
 
+void Renderer::shutdown()
+{
+    if (!useGPU)
+    {
+        cpuRayTracer->shutdown();
+    }
+}

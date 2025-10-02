@@ -16,7 +16,7 @@ class BVH
 public:
     BVHNode *root = nullptr;
 
-    //TODO 并行化构建
+    // TODO 并行化构建
     inline static BVHNode *BuildBVH(std::vector<std::shared_ptr<Hittable>> &objects, int start, int end) // [start, end)
     {
         if (end - start <= 0)
@@ -74,9 +74,28 @@ public:
 
     inline BVH(BVHNode *root) : root(root) {}
 
-    // 禁用拷贝
-    inline BVH(const BVH &other) = delete;
-    inline BVH &operator=(const BVH &other) = delete;
+    // 拷贝构造
+    inline BVH(const BVH &other)
+    {
+        root = new BVHNode(*other.root);
+        auto copy = [](auto &&copySelf, BVHNode *copyNode, BVHNode *otherNode)
+        {
+            if (!otherNode)
+                return;
+            *copyNode = *otherNode;
+            if (otherNode->left)
+            {
+                copyNode->left = new BVHNode();
+                copySelf(copySelf, copyNode->left, otherNode->left);
+            }
+            if (otherNode->right)
+            {
+                copyNode->right = new BVHNode();
+                copySelf(copySelf, copyNode->right, otherNode->right);
+            }
+        };
+        copy(copy, root, other.root);
+    }
 
     inline ~BVH()
     {

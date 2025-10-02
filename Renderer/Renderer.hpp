@@ -47,4 +47,5 @@ public:
     void render(const Scene& scene);
     void resize(int newWidth, int newHeight);
     void resetSamples();
+    void shutdown();
 };

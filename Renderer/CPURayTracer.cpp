@@ -2,7 +2,10 @@
 #include "Trace.hpp"
 #include <chrono>
 #include "Random.hpp"
-CPURayTracer::~CPURayTracer() {}
+
+CPURayTracer::~CPURayTracer()
+{
+}
 
 CPURayTracer::CPURayTracer(int _width, int _height)
     : width(_width), height(_height), imageData(_width * _height)
@@ -19,31 +22,29 @@ unsigned int CPURayTracer::getGLTextureID()
 
 void CPURayTracer::resize(int newWidth, int newHeight)
 {
-    if (queryShadingTasksAllDone() == false)
-    {
-        discardShadingResults();
-    }
-    // 如果同步未完成,应该将下面操作加入到发起渲染任务之前
-    this->width = newWidth;
-    this->height = newHeight;
-    this->imageTexture.resize(newWidth, newHeight);
-    this->imageData.resize(newWidth * newHeight, color4(0.0f));
+    syncCallbackScheduler.addCallback(
+        HASH_CALLBACK,
+        [this, newWidth, newHeight]()
+        {
+            this->width = newWidth;
+            this->height = newHeight;
+            this->imageTexture.resize(newWidth, newHeight);
+            this->imageData.resize(newWidth * newHeight, color4(0.0f));
+        });
 }
 
 void CPURayTracer::resetSamples()
 {
-    if (queryShadingTasksAllDone() == false)//渲染任务未完成,则丢弃结果
-    {
-        discardShadingResults();//下一次阻塞同步将不上传图像
-    }
-    if (this->sampleCount > 1)
-    {
-        this->sampleCount = 1;
-        for (auto &pixel : imageData)
+    syncCallbackScheduler.addCallback(
+        HASH_CALLBACK,
+        [this]()
         {
-            pixel = color4(0.0f);
-        }
-    }
+            this->sampleCount = 1;
+            for (auto &pixel : imageData)
+            {
+                pixel = color4(0.0f);
+            }
+        });
 }
 
 void CPURayTracer::draw(int numThreads, const Scene &sceneInput)
@@ -66,6 +67,11 @@ void CPURayTracer::draw(int numThreads, const Scene &sceneInput)
     DebugObjectRenderer::SetCamera(&Renderer::Cam);
 }
 
+void CPURayTracer::shutdown()
+{
+    syncBlocking();
+}
+
 void CPURayTracer::setPixel(int x, int y, vec4 &value)
 {
     this->imageData[y * width + x] = value;
@@ -81,7 +87,7 @@ vec2 CPURayTracer::uvAt(int x, int y)
     return vec2(x / float(width), y / float(height));
 }
 
-//非阻塞查询任务是否全部完成
+// 非阻塞查询任务是否全部完成
 bool CPURayTracer::queryShadingTasksAllDone()
 {
     if (shadingFutures.empty())
@@ -100,16 +106,15 @@ bool CPURayTracer::queryShadingTasksAllDone()
     return allDone;
 }
 
-//下一次同步将不上传图像数据
+// 下一次同步将不上传图像数据
 void CPURayTracer::discardShadingResults()
 {
     discardCurrentImage = true;
 }
 
 // 阻塞线程,同步渲染结果;上传渲染结果;清除当前渲染future
-void CPURayTracer::syncAndUploadShadingResult()
+void CPURayTracer::syncBlocking()
 {
-    // 这个方法是非阻塞的
     //  将会同步渲染结果
     if (!shadingFutures.empty())
     {
@@ -117,20 +122,21 @@ void CPURayTracer::syncAndUploadShadingResult()
         {
             future.get(); // 如果有未完成future,将阻塞线程
         }
+        this->shadingFutures.clear();
 
-        if (!discardCurrentImage)
-        {
-            this->sampleCount++;
-            this->imageTexture.setData(imageData.data()); // 上传纹理
-        }
-        discardCurrentImage = false;
+        // 上传图像
+        this->sampleCount++;
+        this->imageTexture.setData(imageData.data());
 
+        // 同步操作
+        syncCallbackScheduler.executeAll();
+
+        // 计算帧周期
         static auto lastTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
         secPerSample = static_cast<float>(
             std::chrono::duration<double>(currentTime - lastTime).count());
         lastTime = currentTime;
-        this->shadingFutures.clear();
     }
 }
 
@@ -139,7 +145,7 @@ void CPURayTracer::shadeAsync(int numThreads, const Scene &scene)
 
     if (queryShadingTasksAllDone() == true)
     {
-        syncAndUploadShadingResult();
+        syncBlocking();
 
         if (!renderScene || RenderState::SceneDirty) // 场景数据脏 则触发更新
         {

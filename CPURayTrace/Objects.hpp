@@ -7,7 +7,7 @@
 #include <optional>
 #include <vector>
 
-class BVHNode;
+struct BVHNode;
 
 class Hittable
 {

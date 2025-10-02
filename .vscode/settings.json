@@ -96,7 +96,8 @@
         "future": "cpp",
         "*.fs": "c",
         "*.glsl": "c",
-        "cassert": "cpp"
+        "cassert": "cpp",
+        "source_location": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"

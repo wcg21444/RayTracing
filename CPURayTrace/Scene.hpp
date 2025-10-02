@@ -15,17 +15,41 @@ public:
     std::vector<std::shared_ptr<Hittable>> objects;
     BVH BVHTree;
 
-    inline Scene(){}
+    inline Scene() {}
     // 拷贝构造
     inline Scene(const Scene &other)
-        : objects(other.objects)
+        : objects(other.objects), BVHTree(other.BVHTree)
     {
         if (other.BVHTree.root)
         {
-            BVHTree.build(objects);
+            std::unordered_map<std::shared_ptr<Hittable>, int> indexHash;
+            for (int i = 0; i < objects.size(); ++i)
+            {
+                if (objects[i] != nullptr)
+                {
+                    indexHash[objects[i]] = i;
+                }
+            }
+            auto remapping = [this,&indexHash](auto &&traverseSelf, BVHNode *node) -> void
+            {
+                if (!node)
+                {
+                    return;
+                }
+                if (node->object) // 叶子节点
+                {
+                    node->object = objects[indexHash[node->object]];
+                }
+                traverseSelf(traverseSelf, node->left);
+                traverseSelf(traverseSelf, node->right);
+            };
+            remapping(remapping, BVHTree.root);
+
+            // BVHTree.build(objects);
         }
     }
     // 拷贝赋值
+    // 深拷贝场景 BVH
     inline Scene &operator=(const Scene &other)
     {
         objects = other.objects;
