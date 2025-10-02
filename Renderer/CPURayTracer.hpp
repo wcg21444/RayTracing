@@ -18,6 +18,8 @@ public:
 private:
     std::unique_ptr<Scene> renderScene;
 
+    bool discardCurrentImage = false;
+
 private:
     Texture2D imageTexture;
     std::vector<vec4> imageData;
@@ -30,6 +32,8 @@ private:
     vec4 &pixelAt(int x, int y);
     vec2 uvAt(int x, int y);
     void syncAndUploadShadingResult();
+    bool queryShadingTasksAllDone();
+    void discardShadingResults();
     void shadeAsync(int numThreads, const Scene &sceneInput);
     void shade(int x, int y);
 
@@ -40,5 +44,4 @@ public:
     void resize(int newWidth, int newHeight);
     void resetSamples();
     void draw(int numThreads, const Scene &sceneInput);
-    void sync();
 };

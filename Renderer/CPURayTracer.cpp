@@ -19,7 +19,11 @@ unsigned int CPURayTracer::getGLTextureID()
 
 void CPURayTracer::resize(int newWidth, int newHeight)
 {
-    syncAndUploadShadingResult();
+    if (queryShadingTasksAllDone() == false)
+    {
+        discardShadingResults();
+    }
+    // 如果同步未完成,应该将下面操作加入到发起渲染任务之前
     this->width = newWidth;
     this->height = newHeight;
     this->imageTexture.resize(newWidth, newHeight);
@@ -28,8 +32,10 @@ void CPURayTracer::resize(int newWidth, int newHeight)
 
 void CPURayTracer::resetSamples()
 {
-    syncAndUploadShadingResult();
-
+    if (queryShadingTasksAllDone() == false)//渲染任务未完成,则丢弃结果
+    {
+        discardShadingResults();//下一次阻塞同步将不上传图像
+    }
     if (this->sampleCount > 1)
     {
         this->sampleCount = 1;
@@ -60,11 +66,6 @@ void CPURayTracer::draw(int numThreads, const Scene &sceneInput)
     DebugObjectRenderer::SetCamera(&Renderer::Cam);
 }
 
-void CPURayTracer::sync()
-{
-    syncAndUploadShadingResult();
-}
-
 void CPURayTracer::setPixel(int x, int y, vec4 &value)
 {
     this->imageData[y * width + x] = value;
@@ -80,47 +81,79 @@ vec2 CPURayTracer::uvAt(int x, int y)
     return vec2(x / float(width), y / float(height));
 }
 
+//非阻塞查询任务是否全部完成
+bool CPURayTracer::queryShadingTasksAllDone()
+{
+    if (shadingFutures.empty())
+    {
+        return true;
+    }
+    bool allDone = true;
+    for (auto &future : shadingFutures)
+    {
+        if (future.valid() && future.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+        {
+            allDone = false;
+            break;
+        }
+    }
+    return allDone;
+}
+
+//下一次同步将不上传图像数据
+void CPURayTracer::discardShadingResults()
+{
+    discardCurrentImage = true;
+}
+
+// 阻塞线程,同步渲染结果;上传渲染结果;清除当前渲染future
 void CPURayTracer::syncAndUploadShadingResult()
 {
-    if (!shadingFutures.empty() && shadingFutures[0].valid())
+    // 这个方法是非阻塞的
+    //  将会同步渲染结果
+    if (!shadingFutures.empty())
     {
         for (auto &future : shadingFutures)
         {
-            future.get();
+            future.get(); // 如果有未完成future,将阻塞线程
         }
-        this->sampleCount++;
-        this->imageTexture.setData(imageData.data());
+
+        if (!discardCurrentImage)
+        {
+            this->sampleCount++;
+            this->imageTexture.setData(imageData.data()); // 上传纹理
+        }
+        discardCurrentImage = false;
 
         static auto lastTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
-        auto elapsed = std::chrono::duration<double>(currentTime - lastTime).count();
+        secPerSample = static_cast<float>(
+            std::chrono::duration<double>(currentTime - lastTime).count());
         lastTime = currentTime;
-        secPerSample = static_cast<float>(elapsed);
+        this->shadingFutures.clear();
     }
 }
 
 void CPURayTracer::shadeAsync(int numThreads, const Scene &scene)
 {
-    if (!shadingFutures.empty() && shadingFutures[0].valid() && shadingFutures[0].wait_for(std::chrono::seconds(0)) != std::future_status::ready)
-    {
-        return;
-    }
-    syncAndUploadShadingResult();
-    this->shadingFutures.clear();
 
-    if (!renderScene || RenderState::SceneDirty) // 场景数据脏 则触发更新
+    if (queryShadingTasksAllDone() == true)
     {
-        renderScene = std::make_unique<Scene>(scene); // 拷贝一份Scene  更新渲染场景
-        RenderState::SceneDirty &= false;
-    }
+        syncAndUploadShadingResult();
 
-    int rowsPerThread = height / numThreads;
-    for (int i = 0; i < numThreads; ++i)
-    {
-        int startY = i * rowsPerThread;
-        int endY = (i == numThreads - 1) ? height : startY + rowsPerThread;
-        this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
-                                                  {
+        if (!renderScene || RenderState::SceneDirty) // 场景数据脏 则触发更新
+        {
+            renderScene = std::make_unique<Scene>(scene); // 拷贝一份Scene  更新渲染场景
+            RenderState::SceneDirty &= false;
+        }
+
+        int rowsPerThread = height / numThreads;
+        for (int i = 0; i < numThreads; ++i)
+        {
+            int startY = i * rowsPerThread;
+            int endY = (i == numThreads - 1) ? height : startY + rowsPerThread;
+            this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
+                                                      {
             for (int y = startY; y < endY; ++y)
             {
                 for (int x = 0; x < width; ++x)
@@ -128,6 +161,7 @@ void CPURayTracer::shadeAsync(int numThreads, const Scene &scene)
                     this->shade(x, y);
                 }
             } }));
+        }
     }
 }
 

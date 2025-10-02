@@ -17,8 +17,8 @@
 #include "DebugObjectRenderer.hpp"
 #include "InputHandler.hpp"
 #include "Materials/Lambertian.hpp"
-const int InitWidth = 800;
-const int InitHeight = 600;
+const int InitWidth = 640;
+const int InitHeight = 360;
 
 int main()
 {

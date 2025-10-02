@@ -24,7 +24,7 @@ Renderer::~Renderer()
 
 void Renderer::render(const Scene &scene)
 {
-    if (RenderState::Dirty)
+    if (RenderState::Dirty && !RenderState::IsUIInteracting())
     {
         resetSamples();
     }
@@ -90,10 +90,3 @@ void Renderer::resetSamples()
     RenderState::Dirty &= false;
 }
 
-void Renderer::sync()
-{
-    if (!useGPU)
-    {
-        cpuRayTracer->sync();
-    }
-}
