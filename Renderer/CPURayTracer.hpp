@@ -11,14 +11,24 @@
 #include <glm/gtc/type_ptr.hpp>
 class Scene;
 
-//Emmmmm  实在没什么好的hash callback function的办法
-inline size_t GenerateUniqueCallbackID(int lineNumber, const char *fileName)
-{
-    return std::hash<std::string>()(std::string(fileName) + std::to_string(lineNumber));
+// Emmmmm  实在没什么好的hash callback function的办法
+//  inline size_t GenerateUniqueCallbackID(int lineNumber, const char *fileName)
+//  {
+//      return std::hash<std::string>()(std::string(fileName) + std::to_string(lineNumber));
+//  }
+
+// #define HASH_CALLBACK \
+//     GenerateUniqueCallbackID(__LINE__, __FILE__)
+
+#define GENERATE_CALLBACK_UNIQUE_ID() GenerateUniqueId(__FILE__, __LINE__)
+
+constexpr size_t fnv1a_hash(const char* str, size_t hash = 14695981039346656037u) {
+    return *str ? fnv1a_hash(str + 1, (hash ^ static_cast<size_t>(*str)) * 1099511628211u) : hash;
+}
+constexpr size_t GenerateUniqueId(const char* file, size_t line) {
+    return fnv1a_hash(file) ^ line;
 }
 
-#define HASH_CALLBACK \
-    GenerateUniqueCallbackID(__LINE__, __FILE__)
 class SyncCallbackScheduler
 {
 public:

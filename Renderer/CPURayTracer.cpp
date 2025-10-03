@@ -23,7 +23,7 @@ unsigned int CPURayTracer::getGLTextureID()
 void CPURayTracer::resize(int newWidth, int newHeight)
 {
     syncCallbackScheduler.addCallback(
-        HASH_CALLBACK,
+        GENERATE_CALLBACK_UNIQUE_ID(),
         [this, newWidth, newHeight]()
         {
             this->width = newWidth;
@@ -36,7 +36,7 @@ void CPURayTracer::resize(int newWidth, int newHeight)
 void CPURayTracer::resetSamples()
 {
     syncCallbackScheduler.addCallback(
-        HASH_CALLBACK,
+        GENERATE_CALLBACK_UNIQUE_ID(),
         [this]()
         {
             this->sampleCount = 1;

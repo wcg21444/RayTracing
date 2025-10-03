@@ -43,8 +43,10 @@ public:
     // Scene
 
     Renderer();
+    Renderer(const Renderer &) = delete;
+    Renderer &operator=(const Renderer &) = delete;
     ~Renderer();
-    void render(const Scene& scene);
+    void render(const Scene &scene);
     void resize(int newWidth, int newHeight);
     void resetSamples();
     void shutdown();

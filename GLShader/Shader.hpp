@@ -42,8 +42,11 @@ public:
     // 构造函数
     Shader();
     Shader(const char *vs_path, const char *fs_path, const char *gs_path = nullptr);
+    Shader(const Shader &) = delete;
+    Shader(Shader &&other) noexcept;
     ~Shader();
 
+    Shader &operator=(const Shader &) = delete;
     Shader &operator=(Shader &&other) noexcept;
 
     bool hasUniform(const std::string &name)

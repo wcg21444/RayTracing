@@ -86,6 +86,20 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     }
 }
 
+Shader::Shader(Shader &&other) noexcept
+{
+    this->programID = other.programID;
+    this->used = other.used;
+    this->vs_path = std::move(other.vs_path);
+    this->fs_path = std::move(other.fs_path);
+    this->gs_path = std::move(other.gs_path);
+    this->textureLocationMap = std::move(other.textureLocationMap);
+    this->texLocationID = other.texLocationID;
+    other.programID = 0; // 释放源对象资源
+    other.used = false;
+    other.texLocationID = 0;
+}
+
 // 析构函数
 Shader::~Shader()
 {
@@ -138,17 +152,17 @@ GLint Shader::getUniformLocationSafe(const std::string &name)
     GLint location = glGetUniformLocation(programID, name.c_str());
     if (location == -1)
     {
-/*         if (!warningMsgSet.contains(std::format("{}{}", name, programID)))
-        {
-            warningMsgSet.insert(std::format("{}{}", name, programID));
-            std::cout << std::format("Warning: Uniform {} not found in shader program: {} ", name, programID);
-            std::cout << std::format("   Vertex Shader Path: {} ", vs_path);
-            std::cout << std::format("   Fragment Shader Path: {} ", fs_path);
-            if (!(gs_path == ""))
-            {
-                std::cout << std::format("   Geometry Shader Path: {} ", gs_path);
-            }
-        } */
+        /*         if (!warningMsgSet.contains(std::format("{}{}", name, programID)))
+                {
+                    warningMsgSet.insert(std::format("{}{}", name, programID));
+                    std::cout << std::format("Warning: Uniform {} not found in shader program: {} ", name, programID);
+                    std::cout << std::format("   Vertex Shader Path: {} ", vs_path);
+                    std::cout << std::format("   Fragment Shader Path: {} ", fs_path);
+                    if (!(gs_path == ""))
+                    {
+                        std::cout << std::format("   Geometry Shader Path: {} ", gs_path);
+                    }
+                } */
     }
     uniformLocationMap.insert({name, location});
     return location;
