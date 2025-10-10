@@ -15,7 +15,7 @@ private:
 
 public:
     int cubemapSize;
-    std::shared_ptr<CubemapParameters> cubemapParam;
+    std::unique_ptr<CubemapParameters> cubemapParam;
 
 public:
     SkyTexPass(std::string _vs_path, std::string _fs_path, /*  std::string _gs_path, */ int _cubemapSize);

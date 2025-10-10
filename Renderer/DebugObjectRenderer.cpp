@@ -1,10 +1,10 @@
-#include <glad/glad.h>
-#include "Shader.hpp"
-#include "RenderTarget.hpp"
-#include "Texture.hpp"
 #include "DebugObjectRenderer.hpp"
-#include "DebugObject.hpp"
 #include "Camera.hpp"
+#include "DebugObject.hpp"
+#include "RenderTarget.hpp"
+#include "Shader.hpp"
+#include "Texture.hpp"
+#include <glad/glad.h>
 
 #define STATICIMPL
 
@@ -12,51 +12,45 @@ void DebugObjectRenderer::Initialize()
 {
     if (debugObjectPass)
         throw(std::runtime_error("DebugObjectRenderer already initialized."));
-    debugObjectPass = std::make_shared<DebugObjectPass>(width, height, "GLSL/debugRenderer.vs", "GLSL/debugRenderer.fs");
+    debugObjectPass = std::make_unique<DebugObjectPass>(width, height, "GLSL/debugRenderer.vs", "GLSL/debugRenderer.fs");
 }
 
 void DebugObjectRenderer::Resize(int _width, int _height)
 {
     width = _width;
     height = _height;
-    CheckInitialized();
     debugObjectPass->resize(width, height);
 }
 
 void DebugObjectRenderer::ReloadCurrentShaders()
 {
-    CheckInitialized();
     debugObjectPass->reloadCurrentShaders();
 }
 
-void DebugObjectRenderer::AddDrawCall(const DebugObjectDrawCall &drawCall)
+void DebugObjectRenderer::AddDrawCall(const DebugObjectDrawCall& drawCall)
 {
-    CheckInitialized();
     drawQueue.push(drawCall);
 }
 
 // Idea : 顺序上色
 void DebugObjectRenderer::Render()
 {
-    CheckInitialized();
     debugObjectPass->render(drawQueue, *camera);
 }
 
 unsigned int DebugObjectRenderer::GetRenderOutput()
 {
-    CheckInitialized();
     return debugObjectPass->getTexture();
 }
 
 void DebugObjectRenderer::CheckInitialized()
 {
-    if (!debugObjectPass)
-    {
+    if (!debugObjectPass) {
         throw std::runtime_error("DebugObjectRenderer not initialized. Call Initialize() first.");
     }
 }
 
-void DebugObjectRenderer::DrawCube(Shader &shaders, glm::mat4 modelMatrix, glm::vec4 color)
+void DebugObjectRenderer::DrawCube(Shader& shaders, glm::mat4 modelMatrix, glm::vec4 color)
 {
     static Cube cube(glm::vec3(1.0f), "CubeTmp");
 
@@ -64,14 +58,14 @@ void DebugObjectRenderer::DrawCube(Shader &shaders, glm::mat4 modelMatrix, glm::
     cube.draw(modelMatrix, shaders);
 }
 
-void DebugObjectRenderer::DrawWireframeCube(Shader &shaders, glm::mat4 modelMatrix, glm::vec4 color)
+void DebugObjectRenderer::DrawWireframeCube(Shader& shaders, glm::mat4 modelMatrix, glm::vec4 color)
 {
     static WireframeCube wireframeCube(glm::vec3(1.0f), "WireframeCubeTmp");
 
     shaders.setUniform("color", color);
     wireframeCube.draw(modelMatrix, shaders);
 }
-void DebugObjectRenderer::DrawWireframeCube(Shader &shaders, glm::vec3 pMin, glm::vec3 pMax, glm::vec4 color)
+void DebugObjectRenderer::DrawWireframeCube(Shader& shaders, glm::vec3 pMin, glm::vec3 pMax, glm::vec4 color)
 {
     static WireframeCube wireframeCube(glm::vec3(1.0f), "WireframeCubeTmp");
     glm::vec3 size = pMax - pMin;
@@ -84,10 +78,14 @@ void DebugObjectRenderer::DrawWireframeCube(Shader &shaders, glm::vec3 pMin, glm
 DebugObjectPass::DebugObjectPass(int _vp_width, int _vp_height, std::string _vs_path, std::string _fs_path)
     : Pass(_vp_width, _vp_height, _vs_path, _fs_path)
 {
-    renderTarget = std::make_shared<RenderTarget>(_vp_width, _vp_height);
-    debugObjectPassTex = std::make_shared<Texture2D>();
+    renderTarget = std::make_unique<RenderTarget>(_vp_width, _vp_height);
+    debugObjectPassTex = std::make_unique<Texture2D>();
     initializeGLResources();
     contextSetup();
+}
+DebugObjectPass::~DebugObjectPass()
+{
+    cleanUpGLResources();
 }
 void DebugObjectPass::initializeGLResources()
 {
@@ -118,7 +116,7 @@ void DebugObjectPass::resize(int _width, int _height)
 
     contextSetup();
 }
-void DebugObjectPass::render(std::queue<DebugObjectDrawCall> &drawQueue, Camera &cam)
+void DebugObjectPass::render(std::queue<DebugObjectDrawCall>& drawQueue, Camera& cam)
 {
     renderTarget->bind();
     renderTarget->setViewport();
@@ -128,9 +126,8 @@ void DebugObjectPass::render(std::queue<DebugObjectDrawCall> &drawQueue, Camera 
     shaders.setUniform("view", cam.getViewMatrix());
     shaders.setUniform("projection", cam.getProjectionMatrix());
 
-    while (!drawQueue.empty())
-    {
-        auto &drawCall = drawQueue.front();
+    while (!drawQueue.empty()) {
+        auto& drawCall = drawQueue.front();
         drawCall(shaders);
         drawQueue.pop();
     }

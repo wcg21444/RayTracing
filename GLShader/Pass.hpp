@@ -58,7 +58,7 @@ inline void DrawSphere()
 {
     // 静态变量，用于存储球体的VAO和顶点数量，确保只生成一次
     static unsigned int sphereVAO = 0;
-    static unsigned int indexCount;
+    static size_t indexCount;
 
     // 如果球体VAO尚未生成，则进行初始化
     if (sphereVAO == 0)
@@ -137,7 +137,7 @@ inline void DrawSphere()
 
     // 绘制球体
     glBindVertexArray(sphereVAO);
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indexCount), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
 

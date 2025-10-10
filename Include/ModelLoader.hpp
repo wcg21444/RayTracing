@@ -64,7 +64,7 @@ private:
     inline static std::vector<Mesh> PostProcess(const aiScene &loadedScene)
     {
         std::vector<Mesh> meshes;
-        for (int i = 0; i < loadedScene.mRootNode->mNumChildren; ++i)
+        for (size_t i = 0; i < loadedScene.mRootNode->mNumChildren; ++i)
         {
             // DebugOutput::AddLog("nums of Children of Node{}:{}\n", i, loadedScene.mRootNode->mChildren[i]->mNumChildren);
             auto &node = *(loadedScene.mRootNode->mChildren[i]);

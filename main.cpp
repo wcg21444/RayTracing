@@ -1,22 +1,18 @@
 #include <array>
 #include <iostream>
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-
+#include "BVHUI.hpp"
+#include "CPURayTrace/Scene.hpp"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
-#include "CPURayTrace/Scene.hpp"
-#include "BVHUI.hpp"
 
-#include "ModelLoader.hpp"
-#include "Renderer.hpp"
 #include "DebugObjectRenderer.hpp"
 #include "InputHandler.hpp"
 #include "Materials/Lambertian.hpp"
+#include "ModelLoader.hpp"
+#include "Renderer.hpp"
 const int InitWidth = 640;
 const int InitHeight = 360;
 
@@ -27,10 +23,9 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    const char *glsl_version = "#version 460";
-    GLFWwindow *window = glfwCreateWindow(InitWidth, InitHeight, "RayTracing", NULL, NULL);
-    if (window == NULL)
-    {
+    const char* glsl_version = "#version 460";
+    GLFWwindow* window = glfwCreateWindow(InitWidth, InitHeight, "RayTracing", NULL, NULL);
+    if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
@@ -39,15 +34,14 @@ int main()
 
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //初始关闭鼠标光标
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     (void)io;
 
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -79,8 +73,8 @@ int main()
 
     scene.update();
 
-    while (!glfwWindowShouldClose(window))
-    {
+    while (!glfwWindowShouldClose(window)) {
+
         glfwPollEvents();
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -93,8 +87,7 @@ int main()
 
         ImGui::Begin("RenderUI");
         {
-            if (ImGui::Button("Add Sphere"))
-            {
+            if (ImGui::Button("Add Sphere")) {
                 RenderState::Dirty |= true;
                 RenderState::SceneDirty |= true;
                 scene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
@@ -106,10 +99,8 @@ int main()
         BVHSettings::RenderUI();
         BVHSettings::RenderVisualization(scene.BVHTree.root);
 
-        for (auto &&object : scene.objects)
-        {
-            if (auto root = object->getInsideBVHRoot())
-            {
+        for (auto&& object : scene.objects) {
+            if (auto root = object->getInsideBVHRoot()) {
                 BVHSettings::RenderVisualization(root);
             }
         }
@@ -118,9 +109,8 @@ int main()
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            GLFWwindow *backup_current_context = glfwGetCurrentContext();
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            GLFWwindow* backup_current_context = glfwGetCurrentContext();
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_current_context);

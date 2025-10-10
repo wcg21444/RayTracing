@@ -6,7 +6,7 @@ SkyTexPass::SkyTexPass(std::string _vs_path, std::string _fs_path, int _cubemapS
     : Pass(0, 0, _vs_path, _fs_path),
       cubemapSize(_cubemapSize)
 {
-    cubemapParam = std::make_shared<CubemapParameters>(0.1f, 1e4f, glm::vec3(0.f));
+    cubemapParam = std::make_unique<CubemapParameters>(0.1f, 1e4f, glm::vec3(0.f));
     initializeGLResources();
     contextSetup();
 }

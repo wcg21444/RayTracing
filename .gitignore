@@ -6,3 +6,5 @@ includes/
 doxy/**
 Resource/LiveHouse
 Resource/
+.cache/
+CMakeFiles/

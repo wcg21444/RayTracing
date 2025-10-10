@@ -24,7 +24,7 @@ Renderer::~Renderer()
 
 void Renderer::render(const Scene &scene)
 {
-    if (RenderState::Dirty && !RenderState::IsUIInteracting())
+    if (RenderState::Dirty)
     {
         resetSamples();
     }
