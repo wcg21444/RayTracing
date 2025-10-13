@@ -8,7 +8,7 @@ CPURayTracer::~CPURayTracer()
 }
 
 CPURayTracer::CPURayTracer(int _width, int _height)
-    : width(_width), height(_height), imageData(_width * _height)
+    : width(_width), height(_height), tracer(_width, _height)
 {
     this->imageTexture.generate(_width, _height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
     this->imageTexture.setFilterMax(GL_NEAREST);
@@ -29,7 +29,8 @@ void CPURayTracer::resize(int newWidth, int newHeight)
             this->width = newWidth;
             this->height = newHeight;
             this->imageTexture.resize(newWidth, newHeight);
-            this->imageData.resize(newWidth * newHeight, color4(0.0f));
+            this->tracer.resize(newWidth, newHeight);
+            // this->imageData.resize(newWidth * newHeight, color4(0.0f));
         });
 }
 
@@ -39,23 +40,13 @@ void CPURayTracer::resetSamples()
         GENERATE_CALLBACK_UNIQUE_ID(),
         [this]()
         {
-            this->sampleCount = 1;
-            for (auto &pixel : imageData)
-            {
-                pixel = color4(0.0f);
-            }
+            tracer.resetSamples();
         });
 }
 
-void CPURayTracer::draw(int numThreads, const Scene &sceneInput)
+void CPURayTracer::draw(int numThreads)
 {
-    shadeAsync(numThreads, sceneInput);
-
-    interact();
-}
-void CPURayTracer::draw(int numThreads, const sd::Scene &sceneInput)
-{
-    shadeAsync(numThreads, sceneInput);
+    shadeAsync(numThreads);
 
     interact();
 }
@@ -65,19 +56,14 @@ void CPURayTracer::shutdown()
     syncBlocking();
 }
 
-void CPURayTracer::setPixel(int x, int y, vec4 &value)
+void CPURayTracer::setScene(const Scene &sceneInput)
 {
-    this->imageData[y * width + x] = value;
+    tracer.setScene(sceneInput);
 }
 
-vec4 &CPURayTracer::pixelAt(int x, int y)
+void CPURayTracer::setSdScene(const sd::Scene &sceneInput)
 {
-    return imageData[y * width + x];
-}
-
-vec2 CPURayTracer::uvAt(int x, int y)
-{
-    return vec2(x / float(width), y / float(height));
+    tracer.setSdScene(sceneInput);
 }
 
 // 非阻塞查询任务是否全部完成
@@ -118,8 +104,8 @@ void CPURayTracer::syncBlocking()
         this->shadingFutures.clear();
 
         // 上传图像
-        this->sampleCount++;
-        this->imageTexture.setData(imageData.data());
+        tracer.sampleCounts++;
+        this->imageTexture.setData(tracer.getImageData().data());
 
         // 同步操作
         syncCallbackScheduler.executeAll();
@@ -133,16 +119,16 @@ void CPURayTracer::syncBlocking()
     }
 }
 
-void CPURayTracer::shadeAsync(int numThreads, const Scene &scene)
+void CPURayTracer::shadeAsync(int numThreads)
 {
 
     if (queryShadingTasksAllDone() == true)
     {
         syncBlocking();
 
-        if (!renderScene || RenderState::SceneDirty) // 场景数据脏 则触发更新
+        if (RenderState::SceneDirty || !tracer.isSceneShadingLoaded()) // 场景数据脏 则触发更新
         {
-            renderScene = std::make_unique<Scene>(scene); // 拷贝一份Scene  更新渲染场景
+            tracer.uploadScene();
             RenderState::SceneDirty &= false;
         }
 
@@ -157,22 +143,22 @@ void CPURayTracer::shadeAsync(int numThreads, const Scene &scene)
             {
                 for (int x = 0; x < width; ++x)
                 {
-                    this->shade(x, y);
+                    tracer.shade(x, y);
                 }
             } }));
         }
     }
 }
-void CPURayTracer::shadeAsync(int numThreads, const sd::Scene &scene)
+void CPURayTracer::sdShadeAsync(int numThreads)
 {
 
     if (queryShadingTasksAllDone() == true)
     {
         syncBlocking();
 
-        if (!sdRenderScene || RenderState::SceneDirty) // 场景数据脏 则触发更新
+        if (RenderState::SceneDirty || !tracer.isSdSceneShadingLoaded()) // 场景数据脏 则触发更新
         {
-            sdRenderScene = std::make_unique<sd::Scene>(scene); // 拷贝一份Scene  更新渲染场景
+            tracer.uploadSdScene();
             RenderState::SceneDirty &= false;
         }
 
@@ -187,40 +173,11 @@ void CPURayTracer::shadeAsync(int numThreads, const sd::Scene &scene)
             {
                 for (int x = 0; x < width; ++x)
                 {
-                    this->sdShade(x, y);
+                    tracer.sdShade(x, y);
                 }
             } }));
         }
     }
-}
-
-void CPURayTracer::shade(int x, int y)
-{
-    vec2 uv = uvAt(x, y);
-    vec4 &pixelColor = pixelAt(x, y);
-    Ray ray(
-        Renderer::Cam.position,
-        Renderer::Cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
-    if (!renderScene)
-    {
-        throw std::runtime_error("Scene is not loaded.");
-    }
-    auto newColor = Trace::CastRay(ray, 0, *renderScene);
-    pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
-}
-void CPURayTracer::sdShade(int x, int y)
-{
-    vec2 uv = uvAt(x, y);
-    vec4 &pixelColor = pixelAt(x, y);
-    Ray ray(
-        Renderer::Cam.position,
-        Renderer::Cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
-    if (!sdRenderScene)
-    {
-        throw std::runtime_error("Scene is not loaded.");
-    }
-    auto newColor = Trace::CastRay(ray, 0, *sdRenderScene->pDataStorage);
-    pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
 }
 
 void CPURayTracer::interact()
@@ -230,10 +187,10 @@ void CPURayTracer::interact()
         RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(Renderer::Cam.position), 0.01f);
         RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(Renderer::Cam.lookAtCenter), 0.01f);
         RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &Renderer::Cam.focalLength, 0.01f);
-        RenderState::Dirty |= ImGui::DragFloat("PerturbStrength", &perturbStrength, 1e-4f);
+        RenderState::Dirty |= ImGui::DragFloat("PerturbStrength", &tracer.perturbStrength, 1e-4f);
 
         ImGui::Text(std::format("HFov: {}", Renderer::Cam.getHorizontalFOV()).c_str());
-        ImGui::Text(std::format("Count of Samples: {}", sampleCount).c_str());
+        ImGui::Text(std::format("Count of Samples: {}", tracer.sampleCounts).c_str());
         ImGui::Text(std::format("Seconds per Sample: {}", secPerSample).c_str());
 
         ImGui::End();

@@ -4,7 +4,6 @@ imgui/
 includes/
 **/.vs/**
 doxy/**
-Resource/LiveHouse
-Resource/
+Resources/
 .cache/
 CMakeFiles/

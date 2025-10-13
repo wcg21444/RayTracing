@@ -5,24 +5,28 @@ namespace SimplifiedData
 {
 
     // TriangleStorage 成员函数定义
-    uint32_t TriangleStorage::addTriangle(const sd::Triangle &triangle)
+    uint32_t TriangleStorage::addTriangle(const sd::Triangle &_triangle)
     {
+        if (nextIndex + 1 > TRIANGLESIZE)
+        {
+            throw std::runtime_error("TriangleStorage overflow: Exceeded maximum triangle storage size.");
+        }
         if (nextIndex < TRIANGLESIZE)
         {
-            this->triangles[nextIndex++] = triangle;
+            this->triangles[nextIndex++] = _triangle;
         }
         return nextIndex - 1;
     }
 
     // move triangles to storage
-    uint32_t TriangleStorage::addTriangleArray(std::vector<sd::Triangle> &triangles)
+    uint32_t TriangleStorage::addTriangleArray(std::vector<sd::Triangle> &_triangles)
     {
         uint32_t startIndex = nextIndex;
-        if (nextIndex + triangles.size() > TRIANGLESIZE)
+        if (nextIndex + _triangles.size() > TRIANGLESIZE)
         {
             throw std::runtime_error("TriangleStorage overflow: Exceeded maximum triangle storage size.");
         }
-        for (const auto &tri : triangles)
+        for (const auto &tri : _triangles)
         {
             this->triangles[this->nextIndex++] = tri;
         }
@@ -34,32 +38,41 @@ namespace SimplifiedData
     }
 
     // NodeStorage 成员函数定义
-    uint32_t NodeStorage::addNode(const sd::Node &node)
+    uint32_t NodeStorage::addNode(const sd::Node &_node)
     {
+        if (nextIndex + 1 > this->nodes.size())
+        {
+            throw std::runtime_error("NodeStorage overflow: Exceeded maximum node storage size.");
+        }
+
         if (nextIndex < nodes.size())
         {
-            nodes[nextIndex++] = node;
+            nodes[nextIndex++] = _node;
         }
         return nextIndex - 1;
     }
 
-    uint32_t NodeStorage::addNodeBack(const sd::Node &node)
+    uint32_t NodeStorage::addNodeBack(const sd::Node &_node)
     {
+        if (nextIndex + 1 > this->nodes.size())
+        {
+            throw std::runtime_error("NodeStorage overflow: Exceeded maximum node storage size.");
+        }
         if (nextIndexBack >= nextIndex)
         {
-            nodes[nextIndexBack--] = node;
+            nodes[nextIndexBack--] = _node;
         }
         return nextIndexBack + 1;
     }
 
-    uint32_t sd::NodeStorage::addLeafNodeArray(const std::vector<sd::Node> &nodes)
+    uint32_t sd::NodeStorage::addLeafNodeArray(const std::vector<sd::Node> &_nodes)
     {
         uint32_t startIndex = nextIndex;
-        if (nextIndex + nodes.size() > this->nodes.size())
+        if (nextIndex + _nodes.size() > this->nodes.size())
         {
             throw std::runtime_error("NodeStorage overflow: Exceeded maximum node storage size.");
         }
-        for (const auto &node : nodes)
+        for (const auto &node : _nodes)
         {
             this->nodes[nextIndex++] = node;
         }

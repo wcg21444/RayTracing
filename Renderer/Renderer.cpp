@@ -47,7 +47,8 @@ void Renderer::render(const Scene &scene)
     TextureID raytraceResult;
     if (!useGPU)
     {
-        cpuRayTracer->draw(CPUThreads, scene);
+        cpuRayTracer->setScene(scene);
+        cpuRayTracer->draw(CPUThreads);
         raytraceResult = cpuRayTracer->getGLTextureID();
     }
     else
@@ -88,7 +89,9 @@ void Renderer::render(const sd::Scene &scene)
     TextureID raytraceResult;
     if (!useGPU)
     {
-        cpuRayTracer->draw(CPUThreads, scene);
+
+        cpuRayTracer->setSdScene(scene);
+        cpuRayTracer->draw(CPUThreads);
         raytraceResult = cpuRayTracer->getGLTextureID();
     }
     else

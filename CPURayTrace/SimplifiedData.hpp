@@ -89,7 +89,7 @@ namespace SimplifiedData
         Mesh(DataStorage &dataStroage, const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices, const Material &_material);
     };
 
-    const uint32_t TRIANGLESIZE = 1 << 16; // 假设最多有65536个三角形
+    const uint32_t TRIANGLESIZE = 1 << 6; // 2^5 = 32 个三角形
     class TriangleStorage
     {
     public:
@@ -135,7 +135,6 @@ namespace SimplifiedData
         inline static uint32_t BuildBVHFromNodes(NodeStorage &nodeStorage, uint32_t *nodeIndices, size_t start, size_t end)
         {
             auto &nodes = nodeStorage.nodes;
-            // ISSUE 叶子节点重定向
             if (end - start <= 0)
                 // return sd::invalidIndex;
                 throw std::runtime_error("Build Failed. end - start <= 0 ");
@@ -175,15 +174,15 @@ namespace SimplifiedData
             float yExtent = nodeBox.pMax.y - nodeBox.pMin.y;
             float zExtent = nodeBox.pMax.z - nodeBox.pMin.z;
 
-            static auto compx = [&nodes](const uint32_t &a, const uint32_t &b)
+            auto compx = [&nodes](const uint32_t &a, const uint32_t &b)
             {
                 return nodes[a].box.pMin.x + nodes[a].box.pMax.x < nodes[b].box.pMin.x + nodes[b].box.pMax.x;
             };
-            static auto compy = [&nodes](const uint32_t &a, const uint32_t &b)
+            auto compy = [&nodes](const uint32_t &a, const uint32_t &b)
             {
                 return nodes[a].box.pMin.y + nodes[a].box.pMax.y < nodes[b].box.pMin.y + nodes[b].box.pMax.y;
             };
-            static auto compz = [&nodes](const uint32_t &a, const uint32_t &b)
+            auto compz = [&nodes](const uint32_t &a, const uint32_t &b)
             {
                 return nodes[a].box.pMin.z + nodes[a].box.pMax.z < nodes[b].box.pMin.z + nodes[b].box.pMax.z;
             };
@@ -200,7 +199,7 @@ namespace SimplifiedData
             {
                 std::sort(nodeIndices + start, nodeIndices + end, compz);
             }
-            int mid = start + (end - start) / 2;
+            size_t mid = start + (end - start) / 2;
             uint32_t leftIndex = BuildBVHFromNodes(nodeStorage, nodeIndices, start, mid);
             uint32_t rightIndex = BuildBVHFromNodes(nodeStorage, nodeIndices, mid, end);
             uint32_t nodeIndex = nodeStorage.addNodeBack(Node{

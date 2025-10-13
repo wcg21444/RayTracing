@@ -258,17 +258,9 @@ namespace SimplifiedData
                     aiProcess_JoinIdenticalVertices |
                     aiProcess_SortByPType);
 
-            try
-            {
-                auto meshIndices = PostProcess(*raw_model);
-                uint32_t root = sd::BVH::BuildBVHFromNodes(pDataStroage->nodeStorage, meshIndices.data(), 0, meshIndices.size()); // 问题
-                return root;
-            }
-            catch (std::exception &e)
-            {
-                std::cout << e.what() << std::endl;
-                return sd::invalidIndex;
-            }
+            auto meshIndices = PostProcess(*raw_model);
+            uint32_t root = sd::BVH::BuildBVHFromNodes(pDataStroage->nodeStorage, meshIndices.data(), 0, meshIndices.size()); // 问题
+            return root;
         }
         inline static void SetDataStorage(sd::DataStorage *ptr)
         {

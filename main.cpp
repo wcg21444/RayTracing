@@ -86,7 +86,7 @@ int main()
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
-        // RTRenderer->render(scene);
+        RTRenderer->render(scene);
         RTRenderer->render(sdscene);
 
         ImGui::Begin("RenderUI");
@@ -99,17 +99,16 @@ int main()
             }
             ImGui::End();
         }
-        // RTRenderer->sync();
         BVHSettings::RenderUI();
-        // BVHSettings::RenderVisualization(scene.BVHTree.root);
+        BVHSettings::RenderVisualization(scene.BVHTree.root);
 
-        // for (auto&& object : scene.objects) {
-        //     if (auto root = object->getInsideBVHRoot()) {
-        //         BVHSettings::RenderVisualization(root);
-        //     }
-        // }
+        for (auto&& object : scene.objects) {
+            if (auto root = object->getInsideBVHRoot()) {
+                BVHSettings::RenderVisualization(root);
+            }
+        }
 
-        BVHSettings::RenderVisualization(*sdscene.pDataStorage);
+        // BVHSettings::RenderVisualization(*sdscene.pDataStorage);
 
         DebugObjectRenderer::Render();
 

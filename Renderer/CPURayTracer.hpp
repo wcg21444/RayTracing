@@ -4,6 +4,7 @@
 #include "Utils.hpp"
 #include "Camera.hpp"
 #include "Renderer.hpp"
+#include "Trace.hpp"
 #include <future>
 #include <vector>
 #include <unordered_map>
@@ -18,10 +19,12 @@ namespace sd = SimplifiedData;
 
 #define GENERATE_CALLBACK_UNIQUE_ID() GenerateUniqueId(__FILE__, __LINE__)
 
-constexpr size_t fnv1a_hash(const char* str, size_t hash = 14695981039346656037u) {
+constexpr size_t fnv1a_hash(const char *str, size_t hash = 14695981039346656037u)
+{
     return *str ? fnv1a_hash(str + 1, (hash ^ static_cast<size_t>(*str)) * 1099511628211u) : hash;
 }
-constexpr size_t GenerateUniqueId(const char* file, size_t line) {
+constexpr size_t GenerateUniqueId(const char *file, size_t line)
+{
     return fnv1a_hash(file) ^ line;
 }
 
@@ -58,23 +61,17 @@ private:
     bool discardCurrentImage = false;
 
 private:
+    Tracer tracer;
     Texture2D imageTexture;
-    std::vector<vec4> imageData;
     std::vector<std::future<void>> shadingFutures;
-    int sampleCount = 1;
     float perturbStrength = 1e-3f;
     float secPerSample = 0.f;
 
-    void setPixel(int x, int y, vec4 &value);
-    vec4 &pixelAt(int x, int y);
-    vec2 uvAt(int x, int y);
     void syncBlocking();
     bool queryShadingTasksAllDone();
     void discardShadingResults();
-    void shadeAsync(int numThreads, const Scene &sceneInput);
-    void shadeAsync(int numThreads, const sd::Scene &sceneInput);
-    void sdShade(int x, int y);
-    void shade(int x, int y);
+    void shadeAsync(int numThreads);
+    void sdShadeAsync(int numThreads);
     void interact();
 
 public:
@@ -83,7 +80,8 @@ public:
     unsigned int getGLTextureID();
     void resize(int newWidth, int newHeight);
     void resetSamples();
-    void draw(int numThreads, const Scene &sceneInput);
-    void draw(int numThreads, const sd::Scene &sceneInput);
+    void draw(int numThreads);
     void shutdown();
+    void setScene(const Scene &sceneInput);
+    void setSdScene(const sd::Scene &sceneInput);
 };
