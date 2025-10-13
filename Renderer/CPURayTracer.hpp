@@ -10,15 +10,11 @@
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 class Scene;
-
-// Emmmmm  实在没什么好的hash callback function的办法
-//  inline size_t GenerateUniqueCallbackID(int lineNumber, const char *fileName)
-//  {
-//      return std::hash<std::string>()(std::string(fileName) + std::to_string(lineNumber));
-//  }
-
-// #define HASH_CALLBACK \
-//     GenerateUniqueCallbackID(__LINE__, __FILE__)
+namespace SimplifiedData
+{
+    class Scene;
+}
+namespace sd = SimplifiedData;
 
 #define GENERATE_CALLBACK_UNIQUE_ID() GenerateUniqueId(__FILE__, __LINE__)
 
@@ -57,6 +53,7 @@ public:
 
 private:
     std::unique_ptr<Scene> renderScene;
+    std::unique_ptr<sd::Scene> sdRenderScene;
     SyncCallbackScheduler syncCallbackScheduler;
     bool discardCurrentImage = false;
 
@@ -75,7 +72,10 @@ private:
     bool queryShadingTasksAllDone();
     void discardShadingResults();
     void shadeAsync(int numThreads, const Scene &sceneInput);
+    void shadeAsync(int numThreads, const sd::Scene &sceneInput);
+    void sdShade(int x, int y);
     void shade(int x, int y);
+    void interact();
 
 public:
     CPURayTracer(int _width, int _height);
@@ -84,5 +84,6 @@ public:
     void resize(int newWidth, int newHeight);
     void resetSamples();
     void draw(int numThreads, const Scene &sceneInput);
+    void draw(int numThreads, const sd::Scene &sceneInput);
     void shutdown();
 };

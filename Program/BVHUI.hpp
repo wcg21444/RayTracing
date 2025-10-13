@@ -4,7 +4,7 @@
 #include "RenderState.hpp"
 #include "DebugObjectRenderer.hpp"
 #include "../CPURayTrace/Scene.hpp"
-
+#include "SimplifiedData.hpp"
 class BVHSettings
 {
 public:
@@ -53,5 +53,48 @@ public:
             traverse(node->right, depth + 1);
         };
         traverse(root, 0);
+    }
+    inline static void RenderVisualization(const sd::DataStorage &dataStorage)
+    {
+
+        static thread_local std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
+        static thread_local size_t top = 0;
+
+        size_t depth = 0;
+
+        callStack[top++] = dataStorage.rootIndex;
+
+        while (top > 0)
+        {
+            depth++;
+            uint32_t index = callStack[--top];
+            const sd::Node &node = dataStorage.nodeStorage.nodes[index];
+
+            if (index == sd::invalidIndex)
+            {
+                continue;
+            }
+            if (node.flags == sd::NODE_LEAF) // 叶子节点
+            {
+                auto AABB = node.box;
+                if (toggleVisualizeBVH)
+                {
+                    DebugObjectRenderer::AddDrawCall([AABB](Shader &_shaders)
+                                                     { DebugObjectRenderer::DrawWireframeCube(_shaders, AABB.pMin, AABB.pMax, color4(1.0f, 0.0f, 0.0f, 1.0f)); });
+                }
+                continue;
+            }
+            else
+            {
+                auto AABB = node.box;
+                if (depth <= maxDepth && depth >= minDepth && toggleVisualizeBVH)
+                {
+                    DebugObjectRenderer::AddDrawCall([AABB, depth](Shader &_shaders)
+                                                     { DebugObjectRenderer::DrawWireframeCube(_shaders, AABB.pMin, AABB.pMax, color4(0.0f, 1.0f, depth / 8.f, 1.0f)); });
+                }
+            }
+            callStack[top++] = node.left;
+            callStack[top++] = node.right;
+        }
     }
 };

@@ -13,6 +13,8 @@
 #include "Materials/Lambertian.hpp"
 #include "ModelLoader.hpp"
 #include "Renderer.hpp"
+
+#include "SimplifiedData.hpp"
 const int InitWidth = 640;
 const int InitHeight = 360;
 
@@ -68,10 +70,11 @@ int main()
     InputHandler::BindApplication(RTRenderer);
 
     Scene scene;
-    scene.initialize();
     ModelLoader::Run(scene);
-
     scene.update();
+
+    sd::Scene sdscene;
+
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -83,7 +86,8 @@ int main()
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
-        RTRenderer->render(scene);
+        // RTRenderer->render(scene);
+        RTRenderer->render(sdscene);
 
         ImGui::Begin("RenderUI");
         {
@@ -97,13 +101,15 @@ int main()
         }
         // RTRenderer->sync();
         BVHSettings::RenderUI();
-        BVHSettings::RenderVisualization(scene.BVHTree.root);
+        // BVHSettings::RenderVisualization(scene.BVHTree.root);
 
-        for (auto&& object : scene.objects) {
-            if (auto root = object->getInsideBVHRoot()) {
-                BVHSettings::RenderVisualization(root);
-            }
-        }
+        // for (auto&& object : scene.objects) {
+        //     if (auto root = object->getInsideBVHRoot()) {
+        //         BVHSettings::RenderVisualization(root);
+        //     }
+        // }
+
+        BVHSettings::RenderVisualization(*sdscene.pDataStorage);
 
         DebugObjectRenderer::Render();
 

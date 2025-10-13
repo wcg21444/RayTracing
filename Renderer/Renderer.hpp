@@ -18,6 +18,12 @@ class GPURayTracer;
 class SkyTexPass;
 class CPURayTracer;
 class Scene;
+
+namespace SimplifiedData
+{
+    class Scene;
+}
+
 class Renderer
 {
 private:
@@ -47,6 +53,7 @@ public:
     Renderer &operator=(const Renderer &) = delete;
     ~Renderer();
     void render(const Scene &scene);
+    void render(const SimplifiedData::Scene &scene);
     void resize(int newWidth, int newHeight);
     void resetSamples();
     void shutdown();

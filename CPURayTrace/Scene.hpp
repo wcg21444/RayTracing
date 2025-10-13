@@ -7,6 +7,7 @@
 #include "Objects.hpp"
 #include "BVH.hpp"
 #include "Materials.hpp"
+#include "SimplifiedData.hpp"
 
 // 全局静态场景类
 class Scene
@@ -15,7 +16,10 @@ public:
     std::vector<std::shared_ptr<Hittable>> objects;
     BVH BVHTree;
 
-    inline Scene() {}
+    inline Scene()
+    {
+        initialize();
+    }
     // 拷贝构造
     inline Scene(const Scene &other)
         : objects(other.objects), BVHTree(other.BVHTree)
@@ -30,7 +34,7 @@ public:
                     indexHash[objects[i]] = i;
                 }
             }
-            auto remapping = [this,&indexHash](auto &&traverseSelf, BVHNode *node) -> void
+            auto remapping = [this, &indexHash](auto &&traverseSelf, BVHNode *node) -> void
             {
                 if (!node)
                 {
@@ -90,3 +94,22 @@ public:
         return closestHit;
     }
 };
+
+namespace SimplifiedData
+{
+    class Scene
+    {
+    public:
+        std::unique_ptr<sd::DataStorage> pDataStorage = nullptr;
+        std::vector<uint32_t> sceneIndices;
+
+        Scene();
+
+        //拷贝
+        Scene(const Scene &other) ;
+        Scene &operator=(const Scene &other);
+        
+
+        void initialize(); // 布置场景
+    };
+}

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <format>
+#include <memory>
 
 using point3 = glm::vec3;
 using point2 = glm::vec2;
@@ -42,4 +43,3 @@ inline vec3 DirectionOf(const point3 &end, const point3 &ori)
 {
     return normalize(end - ori);
 }
-

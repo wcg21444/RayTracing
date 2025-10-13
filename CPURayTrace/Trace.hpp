@@ -7,12 +7,17 @@
 #include "Scene.hpp"
 
 #include <limits>
-
+namespace SimplifiedData
+{
+    class DataStorage;
+}
 namespace Trace
 {
-    inline int bouanceLimit = 6;
+    inline size_t bounceLimit = 10;
 
-    color4 CastRayDirectionLight(const Ray &ray, const color4 &light,const Scene& scene);
+    color4 CastRayDirectionLight(const Ray &ray, const color4 &light, const Scene &scene);
 
-    color4 CastRay(const Ray &ray, int traceDepth,const Scene& scene);
+    color4 CastRay(const Ray &ray, int traceDepth, const Scene &scene);
+
+    color4 CastRay(const Ray &ray, int traceDepth, SimplifiedData::DataStorage &dataStorage);
 }

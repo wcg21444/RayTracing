@@ -4,6 +4,7 @@
 #include "CPURayTracer.hpp"
 #include "SkyTexPass.hpp"
 #include "UICommon.hpp"
+#include "SimplifiedData.hpp"
 
 Renderer::Renderer()
     : screenPass(std::make_unique<ScreenPass>(width, height, "GLSL/screenQuad.vs", "GLSL/screenOutput.fs")),
@@ -23,6 +24,47 @@ Renderer::~Renderer()
 }
 
 void Renderer::render(const Scene &scene)
+{
+    if (RenderState::Dirty)
+    {
+        resetSamples();
+    }
+
+    ImGui::Begin("RenderUI");
+    {
+        RenderState::Dirty |= ImGui::Checkbox("UseGPU", &useGPU);
+        if ((ImGui::Button("Reload")))
+        {
+            gpuRayTracer->reloadCurrentShaders();
+            postProcessor->reloadCurrentShaders();
+            skyTexPass->reloadCurrentShaders();
+            DebugObjectRenderer::ReloadCurrentShaders();
+            RenderState::Dirty |= true;
+        }
+        ImGui::End();
+    }
+
+    TextureID raytraceResult;
+    if (!useGPU)
+    {
+        cpuRayTracer->draw(CPUThreads, scene);
+        raytraceResult = cpuRayTracer->getGLTextureID();
+    }
+    else
+    {
+        skyTexPass->render(Renderer::Cam.position);
+        auto skyTexID = skyTexPass->getCubemap();
+        gpuRayTracer->render(skyTexID);
+        raytraceResult = gpuRayTracer->getTextures();
+    }
+    postProcessor->render(raytraceResult);
+    auto postProcessed = postProcessor->getTextures();
+
+    auto debugRendererOutput = DebugObjectRenderer::GetRenderOutput();
+
+    screenPass->render(postProcessed, debugRendererOutput);
+}
+void Renderer::render(const sd::Scene &scene)
 {
     if (RenderState::Dirty)
     {

@@ -161,5 +161,42 @@ void Scene::initialize()
     //         },
     //         LightEmit(color4(8.f, 6.f, 5.f, 1.f))));
 
-    ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj",*this);
+    ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj", *this);
+}
+
+namespace SimplifiedData
+{
+    Scene::Scene()
+    {
+        pDataStorage = std::make_unique<sd::DataStorage>();
+
+        initialize();
+    }
+
+    Scene::Scene(const Scene &other)
+    {
+        pDataStorage = std::make_unique<sd::DataStorage>(*other.pDataStorage.get());
+    }
+
+    Scene &Scene::operator=(const Scene &other)
+    {
+        if (this != &other)
+        {
+            pDataStorage = std::make_unique<sd::DataStorage>(*other.pDataStorage.get());
+            sceneIndices = other.sceneIndices;
+        }
+        return *this;
+    }
+
+    void Scene::initialize()
+    {
+        ModelLoader::SetDataStorage(pDataStorage.get());
+
+        uint32_t root;
+        root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj");
+        sceneIndices.push_back(root);
+
+        auto sceneRoot = sd::BVH::BuildBVHFromNodes(pDataStorage->nodeStorage, sceneIndices.data(), 0, sceneIndices.size());
+        pDataStorage->rootIndex = sceneRoot;
+    }
 }

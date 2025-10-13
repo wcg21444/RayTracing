@@ -2,7 +2,7 @@
 #include "Trace.hpp"
 #include <chrono>
 #include "Random.hpp"
-
+#include "SimplifiedData.hpp"
 CPURayTracer::~CPURayTracer()
 {
 }
@@ -51,20 +51,13 @@ void CPURayTracer::draw(int numThreads, const Scene &sceneInput)
 {
     shadeAsync(numThreads, sceneInput);
 
-    ImGui::Begin("RenderUI", 0);
-    {
-        RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(Renderer::Cam.position), 0.01f);
-        RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(Renderer::Cam.lookAtCenter), 0.01f);
-        RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &Renderer::Cam.focalLength, 0.01f);
-        RenderState::Dirty |= ImGui::DragFloat("PerturbStrength", &perturbStrength, 1e-4f);
+    interact();
+}
+void CPURayTracer::draw(int numThreads, const sd::Scene &sceneInput)
+{
+    shadeAsync(numThreads, sceneInput);
 
-        ImGui::Text(std::format("HFov: {}", Renderer::Cam.getHorizontalFOV()).c_str());
-        ImGui::Text(std::format("Count of Samples: {}", sampleCount).c_str());
-        ImGui::Text(std::format("Seconds per Sample: {}", secPerSample).c_str());
-
-        ImGui::End();
-    }
-    DebugObjectRenderer::SetCamera(&Renderer::Cam);
+    interact();
 }
 
 void CPURayTracer::shutdown()
@@ -170,6 +163,36 @@ void CPURayTracer::shadeAsync(int numThreads, const Scene &scene)
         }
     }
 }
+void CPURayTracer::shadeAsync(int numThreads, const sd::Scene &scene)
+{
+
+    if (queryShadingTasksAllDone() == true)
+    {
+        syncBlocking();
+
+        if (!sdRenderScene || RenderState::SceneDirty) // 场景数据脏 则触发更新
+        {
+            sdRenderScene = std::make_unique<sd::Scene>(scene); // 拷贝一份Scene  更新渲染场景
+            RenderState::SceneDirty &= false;
+        }
+
+        int rowsPerThread = height / numThreads;
+        for (int i = 0; i < numThreads; ++i)
+        {
+            int startY = i * rowsPerThread;
+            int endY = (i == numThreads - 1) ? height : startY + rowsPerThread;
+            this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
+                                                      {
+            for (int y = startY; y < endY; ++y)
+            {
+                for (int x = 0; x < width; ++x)
+                {
+                    this->sdShade(x, y);
+                }
+            } }));
+        }
+    }
+}
 
 void CPURayTracer::shade(int x, int y)
 {
@@ -184,4 +207,36 @@ void CPURayTracer::shade(int x, int y)
     }
     auto newColor = Trace::CastRay(ray, 0, *renderScene);
     pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
+}
+void CPURayTracer::sdShade(int x, int y)
+{
+    vec2 uv = uvAt(x, y);
+    vec4 &pixelColor = pixelAt(x, y);
+    Ray ray(
+        Renderer::Cam.position,
+        Renderer::Cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
+    if (!sdRenderScene)
+    {
+        throw std::runtime_error("Scene is not loaded.");
+    }
+    auto newColor = Trace::CastRay(ray, 0, *sdRenderScene->pDataStorage);
+    pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
+}
+
+void CPURayTracer::interact()
+{
+    ImGui::Begin("RenderUI", 0);
+    {
+        RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(Renderer::Cam.position), 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(Renderer::Cam.lookAtCenter), 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &Renderer::Cam.focalLength, 0.01f);
+        RenderState::Dirty |= ImGui::DragFloat("PerturbStrength", &perturbStrength, 1e-4f);
+
+        ImGui::Text(std::format("HFov: {}", Renderer::Cam.getHorizontalFOV()).c_str());
+        ImGui::Text(std::format("Count of Samples: {}", sampleCount).c_str());
+        ImGui::Text(std::format("Seconds per Sample: {}", secPerSample).c_str());
+
+        ImGui::End();
+    }
+    DebugObjectRenderer::SetCamera(&Renderer::Cam);
 }
