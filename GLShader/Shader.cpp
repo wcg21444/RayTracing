@@ -3,7 +3,7 @@
 #include <format>
 #include <iostream>
 
-// ¹¹Ôìº¯Êý
+// ï¿½ï¿½ï¿½ìº¯ï¿½ï¿½
 Shader::Shader() : texLocationID(0), programID(0) {}
 
 Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : Shader()
@@ -95,12 +95,12 @@ Shader::Shader(Shader &&other) noexcept
     this->gs_path = std::move(other.gs_path);
     this->textureLocationMap = std::move(other.textureLocationMap);
     this->texLocationID = other.texLocationID;
-    other.programID = 0; // ÊÍ·ÅÔ´¶ÔÏó×ÊÔ´
+    other.programID = 0; // ï¿½Í·ï¿½Ô´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô´
     other.used = false;
     other.texLocationID = 0;
 }
 
-// Îö¹¹º¯Êý
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 Shader::~Shader()
 {
     if (programID)
@@ -110,7 +110,7 @@ Shader::~Shader()
     }
 }
 
-// ÒÆ¶¯¸³ÖµÔËËã·û
+// ï¿½Æ¶ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½
 Shader &Shader::operator=(Shader &&other) noexcept
 {
     if (this != &other)
@@ -127,7 +127,7 @@ Shader &Shader::operator=(Shader &&other) noexcept
         this->gs_path = std::move(other.gs_path);
         this->textureLocationMap = std::move(other.textureLocationMap);
         this->texLocationID = other.texLocationID;
-        other.programID = 0; // ÊÍ·ÅÔ´¶ÔÏó×ÊÔ´
+        other.programID = 0; // ï¿½Í·ï¿½Ô´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô´
         other.used = false;
         other.texLocationID = 0;
     }
@@ -145,7 +145,7 @@ GLint Shader::getUniformLocationSafe(const std::string &name)
     {
         throw std::runtime_error("Attempted to set uniform '" + name + "' while shader is not active (glUseProgram was not called).");
     }
-    if (uniformLocationMap.find(name) != uniformLocationMap.end()) // Location»º´æ
+    if (uniformLocationMap.find(name) != uniformLocationMap.end()) // Locationï¿½ï¿½ï¿½ï¿½
     {
         return uniformLocationMap.at(name);
     }
@@ -186,7 +186,7 @@ void Shader::CompileShader(const char *shader_source, GLenum shader_type, unsign
     }
 }
 
-// Uniform ÉèÖÃ·½·¨ÊµÏÖ
+// Uniform ï¿½ï¿½ï¿½Ã·ï¿½ï¿½ï¿½Êµï¿½ï¿½
 void Shader::setUniform4fv(const std::string &name, GLsizei count, const float *value)
 {
     GLint location = getUniformLocationSafe(name);
@@ -250,7 +250,7 @@ void Shader::setUniform(const std::string &name, const glm::vec4 &vec4)
     }
 }
 
-// Îª vec3 ±àÐ´µÄÖØÔØ
+// Îª vec3 ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void Shader::setUniform(const std::string &name, const glm::vec3 &vec3)
 {
     GLint location = getUniformLocationSafe(name);
@@ -260,7 +260,7 @@ void Shader::setUniform(const std::string &name, const glm::vec3 &vec3)
     }
 }
 
-// Îª vec2 ±àÐ´µÄÖØÔØ (GLM vec2)
+// Îª vec2 ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (GLM vec2)
 void Shader::setUniform(const std::string &name, const glm::vec2 &vec2)
 {
     GLint location = getUniformLocationSafe(name);
@@ -270,7 +270,7 @@ void Shader::setUniform(const std::string &name, const glm::vec2 &vec2)
     }
 }
 
-// Îª mat4 ±àÐ´µÄÖØÔØ
+// Îª mat4 ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void Shader::setUniform(const std::string &name, const glm::mat4 &mat)
 {
     GLint location = getUniformLocationSafe(name);
@@ -280,7 +280,7 @@ void Shader::setUniform(const std::string &name, const glm::mat4 &mat)
     }
 }
 
-// Îª float ±àÐ´µÄÖØÔØ
+// Îª float ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void Shader::setUniform(const std::string &name, float f)
 {
     GLint location = getUniformLocationSafe(name);
@@ -290,7 +290,7 @@ void Shader::setUniform(const std::string &name, float f)
     }
 }
 
-// Îª int ±àÐ´µÄÖØÔØ
+// Îª int ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void Shader::setUniform(const std::string &name, int i)
 {
     GLint location = getUniformLocationSafe(name);
@@ -301,31 +301,31 @@ void Shader::setUniform(const std::string &name, int i)
 }
 
 /**
- * @brief ×Ô¶¯¹ÜÀí²¢°ó¶¨ÎÆÀíµ½×ÅÉ«Æ÷¡£
- * * ´Ëº¯ÊýÖ¼ÔÚ¼ò»¯ÎÆÀí°ó¶¨¹ý³Ì¡£ËüÄÚ²¿Î¬»¤Ò»¸öÓ³Éä±í (textureLocationMap)£¬
- * ½«×ÅÉ«Æ÷ÖÐµÄ²ÉÑùÆ÷ (sampler) Ãû³ÆÓëÒ»¸öÎ¨Ò»µÄÎÆÀíµ¥Ôª ID (texLocationID) ¹ØÁªÆðÀ´¡£
- * Èç¹ûÒ»¸ö²ÉÑùÆ÷ÊÇµÚÒ»´Î°ó¶¨£¬Ëü»á±»·ÖÅäÒ»¸öÐÂµÄÎÆÀíµ¥Ôª¡£
- * Ëæºó£¬º¯Êý»á¼¤»î¶ÔÓ¦µÄÎÆÀíµ¥Ôª£¬½«ÎÆÀí¶ÔÏó°ó¶¨µ½¸Ãµ¥Ôª£¬
- * ²¢Í¨¹ý glUniform1i ½«¸ÃÎÆÀíµ¥Ôª ID ´«µÝ¸ø×ÅÉ«Æ÷ÖÐµÄ uniform ±äÁ¿¡£
- * * @param textureID Òª°ó¶¨µÄÎÆÀí¶ÔÏóµÄ OpenGL ID¡£
- * @param textureTarget ÎÆÀíÄ¿±êÀàÐÍ£¬ÀýÈç GL_TEXTURE_2D¡¢GL_TEXTURE_CUBE_MAP µÈ¡£
- * @param shaderTextureLocation Õ¼Î»·û
- * @param samplerUniformName ×ÅÉ«Æ÷ÖÐ sampler uniform ±äÁ¿µÄÃû³Æ£¬ÀýÈç "u_AlbedoMap"¡£
+ * @brief ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½
+ * * ï¿½Ëºï¿½ï¿½ï¿½Ö¼ï¿½Ú¼ï¿½ï¿½ï¿½ï¿½ï¿½ó¶¨¹ï¿½ï¿½Ì¡ï¿½ï¿½ï¿½ï¿½Ú²ï¿½Î¬ï¿½ï¿½Ò»ï¿½ï¿½Ó³ï¿½ï¿½ï¿½ (textureLocationMap)ï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ÐµÄ²ï¿½ï¿½ï¿½ï¿½ï¿½ (sampler) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Î¨Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôª ID (texLocationID) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+ * ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Çµï¿½Ò»ï¿½Î°ó¶¨£ï¿½ï¿½ï¿½ï¿½á±»ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½
+ * ï¿½ï¿½ó£¬ºï¿½ï¿½ï¿½ï¿½á¼¤ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ó¶¨µï¿½ï¿½Ãµï¿½Ôªï¿½ï¿½
+ * ï¿½ï¿½Í¨ï¿½ï¿½ glUniform1i ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôª ID ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½Ðµï¿½ uniform ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+ * * @param textureID Òªï¿½ó¶¨µï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ OpenGL IDï¿½ï¿½
+ * @param textureTarget ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ GL_TEXTURE_2Dï¿½ï¿½GL_TEXTURE_CUBE_MAP ï¿½È¡ï¿½
+ * @param shaderTextureLocation Õ¼Î»ï¿½ï¿½
+ * @param samplerUniformName ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½ sampler uniform ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ£ï¿½ï¿½ï¿½ï¿½ï¿½ "u_AlbedoMap"ï¿½ï¿½
  */
 void Shader::setTextureAuto(GLuint textureID, GLenum textureTarget, int shaderTextureLocation, const std::string &samplerUniformName)
 {
-    // µÚÒ»´ÎÎª¸Ã²ÉÑùÆ÷ uniform °ó¶¨ÎÆÀí
+    // ï¿½ï¿½Ò»ï¿½ï¿½Îªï¿½Ã²ï¿½ï¿½ï¿½ï¿½ï¿½ uniform ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     if (textureLocationMap.find(samplerUniformName) == textureLocationMap.end())
     {
-        // ½«²ÉÑùÆ÷Ãû³ÆÓëÆäÎ¨Ò»µÄÎÆÀíµ¥Ôª ID ¹ØÁªÆðÀ´
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¨Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôª ID ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         textureLocationMap.insert({samplerUniformName, texLocationID});
         texLocationID++;
     }
 
-    // ´ÓÓ³Éä±íÖÐ»ñÈ¡¸Ã²ÉÑùÆ÷¶ÔÓ¦µÄÎÆÀíµ¥Ôª ID
+    // ï¿½ï¿½Ó³ï¿½ï¿½ï¿½ï¿½Ð»ï¿½È¡ï¿½Ã²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôª ID
     int location = textureLocationMap.at(samplerUniformName);
 
-    // ½«ÎÆÀíµ¥Ôª ID ×ª»»Îª GL_TEXTURE0¡¢GL_TEXTURE1 µÈÃ¶¾ÙÖµ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôª ID ×ªï¿½ï¿½Îª GL_TEXTURE0ï¿½ï¿½GL_TEXTURE1 ï¿½ï¿½Ã¶ï¿½ï¿½Öµ
     GLenum activeTextureUnit = GetTextureUnitEnum(location);
 
     glActiveTexture(activeTextureUnit);
@@ -336,13 +336,13 @@ void Shader::setTextureAuto(GLuint textureID, GLenum textureTarget, int shaderTe
 
     if (samplerLoc != -1)
     {
-        // ½«ÎÆÀíµ¥Ôª ID (location) ´«µÝ¸ø×ÅÉ«Æ÷ÖÐµÄ uniform ±äÁ¿
-        // ÕâÑù×ÅÉ«Æ÷¾ÍÖªµÀÓ¦¸Ã´ÓÄÄ¸öÎÆÀíµ¥Ôª¶ÁÈ¡Êý¾Ý
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôª ID (location) ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½Ðµï¿½ uniform ï¿½ï¿½ï¿½ï¿½
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½Öªï¿½ï¿½Ó¦ï¿½Ã´ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½
         glUniform1i(samplerLoc, location);
     }
 }
 
-// ¾²Ì¬¹¤¾ß·½·¨ÊµÏÖ
+// ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ß·ï¿½ï¿½ï¿½Êµï¿½ï¿½
 inline GLenum Shader::GetTextureUnitEnum(int textureLocation)
 {
     if (GetTextureUnitsLimits() == -1)
@@ -455,7 +455,7 @@ GLint ComputeShader::getUniformLocationSafe(const std::string &name)
     {
         throw std::runtime_error("Attempted to set uniform '" + name + "' while shader is not active (glUseProgram was not called).");
     }
-    if (uniformLocationMap.find(name) != uniformLocationMap.end()) // Location»º´æ
+    if (uniformLocationMap.find(name) != uniformLocationMap.end()) // Locationï¿½ï¿½ï¿½ï¿½
     {
         return uniformLocationMap.at(name);
     }

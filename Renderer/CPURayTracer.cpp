@@ -46,8 +46,14 @@ void CPURayTracer::resetSamples()
 
 void CPURayTracer::draw(int numThreads)
 {
-    // shadeAsync(numThreads);
-    sdShadeAsync(numThreads);
+    if (usingSdScene)
+    {
+        sdShadeAsync(numThreads);
+    }
+    else
+    {
+        shadeAsync(numThreads);
+    }
 
     interact();
 }
@@ -60,11 +66,13 @@ void CPURayTracer::shutdown()
 void CPURayTracer::setScene(const Scene &sceneInput)
 {
     pNewScene = &sceneInput;
+    usingSdScene = false;
 }
 
 void CPURayTracer::setSdScene(const sd::Scene &sceneInput)
 {
     pNewSdScene = &sceneInput;
+    usingSdScene = true;
 }
 
 // 非阻塞查询任务是否全部完成

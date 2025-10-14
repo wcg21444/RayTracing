@@ -6,6 +6,7 @@
 #include "Objects.hpp"
 #include "Random.hpp"
 #include "Materials/Sky.hpp"
+#include "Materials/Lambertian.hpp"
 #include "BVHUI.hpp"
 #include "Scene.hpp"
 #include "Trace.hpp"
@@ -72,16 +73,23 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStora
         {
             // color+= lambertianIrradiance(closestHit);
             // vec3 rndDir = sampleCosineHemisphere(closestHit.normal, TexCoord * (rand + 1.f));
-            vec3 rndDir = Random::GenerateCosineSemiSphereVector(closestHit.normal);
-            vec3 bias = closestHit.normal*1e-5f;
-            tracingRay = Ray(closestHit.pos+bias, rndDir);
-            throughout *= vec3(0.9f, 0.4f, 0.7f);
+            // vec3 rndDir = Random::GenerateCosineSemiSphereVector(closestHit.normal);
+            // vec3 bias = closestHit.normal * 1e-5f;
+            // tracingRay = Ray(closestHit.pos + bias, rndDir);
+            // throughout *= vec3(0.9f, 0.4f, 0.7f);
             // color = vec4(1.0f,0.0f,0.0f,0.0f);
+            if(closestHit.matFlags == sd::LambertianMat)
+            throughout *= vec3(Lambertian::Hit(closestHit, tracingRay, color4(0.9f, 0.6f, 0.5f, 1.0f)));
             continue;
         }
         // 未命中
         // color.rgb += throughout * hitSky(tracingRay.ori, tracingRay.dir).rgb;
-        color += vec4(throughout * vec3(0.4f), 1.0f);
+        vec3 unit_direction = normalize(tracingRay.getDirection());
+        auto a = 0.5f * (unit_direction.y + 1.0f);
+
+        vec3 skyColor = (1.0f - a) * vec3(1.0f, 1.0f, 1.0f) + a * vec3(0.5f, 0.7f, 1.0f) / 1.f;
+        color += color4(throughout * skyColor, 1.0f);
+
         break;
     }
 

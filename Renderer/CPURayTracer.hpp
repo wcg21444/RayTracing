@@ -64,6 +64,8 @@ private:
     SyncCallbackScheduler syncCallbackScheduler;
     bool discardCurrentImage = false;
 
+    bool usingSdScene = true;
+
 private:
     Tracer tracer;
     Texture2D imageTexture;

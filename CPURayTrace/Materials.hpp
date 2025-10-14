@@ -3,7 +3,6 @@
 #include <limits>
 #include "Utils.hpp"
 
-
 class Material;
 class Scene;
 struct HitInfos

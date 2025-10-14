@@ -31,4 +31,19 @@ public:
     {
         return std::move(std::make_unique<Lambertian>(*this));
     }
+
+    inline static color4 Hit(const sd::HitInfos &hitInfos, Ray &tracingRay, const color4 &albedo)
+    {
+        auto &normal = hitInfos.normal;
+        auto &pos = hitInfos.pos;
+
+        vec3 bias = normal * 1e-5f; // 防止自相交
+        vec3 rndDir = Random::GenerateCosineSemiSphereVector(normal);
+        tracingRay = Ray(
+            pos + bias,
+            rndDir);
+        color4 irradiance = albedo;
+
+        return irradiance;
+    }
 };

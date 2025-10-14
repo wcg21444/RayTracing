@@ -48,6 +48,14 @@ namespace SimplifiedData
     };
     bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax);
 
+    enum Matierals
+    {
+        LambertianMat,
+        MetalMat,
+        LightEmitMat,
+        SkyMat
+    };
+
     struct HitInfos
     {
         bool hit = false;
@@ -70,6 +78,7 @@ namespace SimplifiedData
         BoundingBox box;
         uint8_t flags; // 节点? 叶子节点? Mesh节点? 三角形节点?...
     };
+
     struct Triangle
     {
         vec3 positions[3];
@@ -132,147 +141,9 @@ namespace SimplifiedData
     public:
         // 收集所有网格节点 拷贝, 然后排序 划分 最终还是指向存储中的索引[start, end)
         /// nodes: ... ... |TN2|TN1| SceneRoot|...|SI3|SI2|SI1|... ...|*Mesh2|M2I1|M2I2...|*Mesh1|M1I1|M1I2...|
-        inline static uint32_t BuildBVHFromNodes(NodeStorage &nodeStorage, uint32_t *nodeIndices, size_t start, size_t end)
-        {
-            auto &nodes = nodeStorage.nodes;
-            if (end - start <= 0)
-                // return sd::invalidIndex;
-                throw std::runtime_error("Build Failed. end - start <= 0 ");
-            if (end - start == 1)
-            {
-                return nodeIndices[start]; // start 是相对inputNodes 的位置 ,不一定是strorage索引值
-            }
-            if (end - start == 2)
-            {
-                uint32_t leftIndex = nodeIndices[start];
-                uint32_t rightIndex = nodeIndices[start + 1];
-
-                auto &leftNode = nodes[leftIndex];
-                auto &rightNode = nodes[rightIndex];
-                BoundingBox box;
-                box.pMin = glm::min(leftNode.box.pMin, rightNode.box.pMin);
-                box.pMax = glm::max(leftNode.box.pMax, rightNode.box.pMax);
-                return nodeStorage.addNodeBack(
-                    Node{
-                        .left = leftIndex,
-                        .right = rightIndex,
-                        .box = box,
-                        .flags = NODE_INTERNAL,
-                    });
-            }
-            // 分治
-            BoundingBox nodeBox;
-
-            for (uint32_t i = start; i < end; i++)
-            {
-                auto &subNode = nodes[nodeIndices[i]];
-                auto subBox = subNode.box;
-                nodeBox.pMin = glm::min(nodeBox.pMin, subBox.pMin);
-                nodeBox.pMax = glm::max(nodeBox.pMax, subBox.pMax);
-            }
-            float xExtent = nodeBox.pMax.x - nodeBox.pMin.x;
-            float yExtent = nodeBox.pMax.y - nodeBox.pMin.y;
-            float zExtent = nodeBox.pMax.z - nodeBox.pMin.z;
-
-            auto compx = [&nodes](const uint32_t &a, const uint32_t &b)
-            {
-                return nodes[a].box.pMin.x + nodes[a].box.pMax.x < nodes[b].box.pMin.x + nodes[b].box.pMax.x;
-            };
-            auto compy = [&nodes](const uint32_t &a, const uint32_t &b)
-            {
-                return nodes[a].box.pMin.y + nodes[a].box.pMax.y < nodes[b].box.pMin.y + nodes[b].box.pMax.y;
-            };
-            auto compz = [&nodes](const uint32_t &a, const uint32_t &b)
-            {
-                return nodes[a].box.pMin.z + nodes[a].box.pMax.z < nodes[b].box.pMin.z + nodes[b].box.pMax.z;
-            };
-            // 选择最长轴进行划分
-            if (xExtent >= yExtent && xExtent >= zExtent) // x轴最长
-            {
-                std::sort(nodeIndices + start, nodeIndices + end, compx);
-            }
-            else if (yExtent >= xExtent && yExtent >= zExtent) // y轴最长
-            {
-                std::sort(nodeIndices + start, nodeIndices + end, compy);
-            }
-            else // z轴最长
-            {
-                std::sort(nodeIndices + start, nodeIndices + end, compz);
-            }
-            size_t mid = start + (end - start) / 2;
-            uint32_t leftIndex = BuildBVHFromNodes(nodeStorage, nodeIndices, start, mid);
-            uint32_t rightIndex = BuildBVHFromNodes(nodeStorage, nodeIndices, mid, end);
-            uint32_t nodeIndex = nodeStorage.addNodeBack(Node{
-                .left = leftIndex,
-                .right = rightIndex,
-                .box = nodeBox,
-                .flags = NODE_INTERNAL,
-            });
-            return nodeIndex;
-        }
-
-        inline static HitInfos Intersect(DataStorage &dataStorage, const Ray &ray)
-        {
-
-            HitInfos closestHit;
-            auto traverse = [&ray, &closestHit, &dataStorage](auto &&traverseSelf, uint32_t nodeIndex) -> void
-            {
-                Node node = dataStorage.nodeStorage.nodes[nodeIndex];
-                if (nodeIndex == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
-                {
-                    return;
-                }
-                if (node.flags == NODE_LEAF) // 叶子节点
-                {
-                    // 展开求交
-                    auto tri = dataStorage.triangleStorage.triangles[node.left];
-                    auto hitInfos = sd::IntersectTriangle(tri, ray, 1e-6f, closestHit.t);
-                    if (hitInfos.hit && hitInfos.t < closestHit.t) // 代替原来的命中物体收集
-                    {
-                        closestHit = hitInfos;
-                    }
-                    return;
-                }
-                traverseSelf(traverseSelf, node.left);
-                traverseSelf(traverseSelf, node.right);
-            };
-            traverse(traverse, dataStorage.rootIndex);
-            return closestHit;
-        }
-
-        inline static HitInfos IntersectLoop(DataStorage &dataStorage, const Ray &ray)
-        {
-            static thread_local std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
-            static thread_local size_t top = 0;
-            HitInfos closestHit;
-
-            callStack[top++] = dataStorage.rootIndex;
-
-            while (top > 0)
-            {
-                uint32_t index = callStack[--top];
-                const Node &node = dataStorage.nodeStorage.nodes[index];
-
-                if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
-                {
-                    continue;
-                }
-                if (node.flags == NODE_LEAF) // 叶子节点
-                {
-                    // 展开求交
-                    const auto &tri = dataStorage.triangleStorage.triangles[node.left];
-                    auto hitInfos = sd::IntersectTriangle(tri, ray, 1e-6f, closestHit.t);
-                    if (hitInfos.hit && hitInfos.t < closestHit.t) // 代替原来的命中物体收集
-                    {
-                        closestHit = hitInfos;
-                    }
-                    continue;
-                }
-                callStack[top++] = node.left;
-                callStack[top++] = node.right;
-            }
-            return closestHit;
-        }
+        static uint32_t BuildBVHFromNodes(NodeStorage &nodeStorage, uint32_t *nodeIndices, size_t start, size_t end);
+        static HitInfos Intersect(DataStorage &dataStorage, const Ray &ray);
+        static HitInfos IntersectLoop(DataStorage &dataStorage, const Ray &ray);
     };
 
 }
