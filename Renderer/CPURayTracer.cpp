@@ -46,7 +46,8 @@ void CPURayTracer::resetSamples()
 
 void CPURayTracer::draw(int numThreads)
 {
-    shadeAsync(numThreads);
+    // shadeAsync(numThreads);
+    sdShadeAsync(numThreads);
 
     interact();
 }
@@ -58,12 +59,12 @@ void CPURayTracer::shutdown()
 
 void CPURayTracer::setScene(const Scene &sceneInput)
 {
-    tracer.setScene(sceneInput);
+    pNewScene = &sceneInput;
 }
 
 void CPURayTracer::setSdScene(const sd::Scene &sceneInput)
 {
-    tracer.setSdScene(sceneInput);
+    pNewSdScene = &sceneInput;
 }
 
 // 非阻塞查询任务是否全部完成
@@ -128,7 +129,9 @@ void CPURayTracer::shadeAsync(int numThreads)
 
         if (RenderState::SceneDirty || !tracer.isSceneShadingLoaded()) // 场景数据脏 则触发更新
         {
-            tracer.uploadScene();
+            renderSceneUploaded = std::make_unique<Scene>(*pNewScene);
+            tracer.uploadScene(renderSceneUploaded.get());
+
             RenderState::SceneDirty &= false;
         }
 
@@ -158,7 +161,9 @@ void CPURayTracer::sdShadeAsync(int numThreads)
 
         if (RenderState::SceneDirty || !tracer.isSdSceneShadingLoaded()) // 场景数据脏 则触发更新
         {
-            tracer.uploadSdScene();
+            sdRenderSceneUploaded = std::make_unique<sd::Scene>(*pNewSdScene);
+            tracer.uploadSdScene(sdRenderSceneUploaded.get());
+
             RenderState::SceneDirty &= false;
         }
 

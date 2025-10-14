@@ -73,8 +73,8 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStora
             // color+= lambertianIrradiance(closestHit);
             // vec3 rndDir = sampleCosineHemisphere(closestHit.normal, TexCoord * (rand + 1.f));
             vec3 rndDir = Random::GenerateCosineSemiSphereVector(closestHit.normal);
-
-            tracingRay = Ray(closestHit.pos, rndDir);
+            vec3 bias = closestHit.normal*1e-5f;
+            tracingRay = Ray(closestHit.pos+bias, rndDir);
             throughout *= vec3(0.9f, 0.4f, 0.7f);
             // color = vec4(1.0f,0.0f,0.0f,0.0f);
             continue;
@@ -118,24 +118,15 @@ void Tracer::sdShade(int x, int y)
     pixelColor = (pixelColor * static_cast<float>(sampleCounts - 1.f) + newColor) / static_cast<float>(sampleCounts);
 }
 
-void Tracer::uploadSdScene()
+void Tracer::uploadSdScene(SimplifiedData::Scene *sceneTracing)
 {
-    if (!pNewSdScene)
-    {
-        throw std::runtime_error("New Scene is not loaded.");
-    }
-    this->pSdSceneTracing = std::make_unique<sd::Scene>(*pNewSdScene); // copy 追踪时保持不变
+    this->pSdSceneTracing = sceneTracing;
 }
 
-void Tracer::uploadScene()
+void Tracer::uploadScene(Scene *sceneTracing)
 {
-    if (!pNewScene)
-    {
-        throw std::runtime_error("New Scene is not loaded.");
-    }
-    this->pSceneTracing = std::make_unique<Scene>(*pNewScene); // copy 追踪时保持不变
+    this->pSceneTracing = sceneTracing;
 }
-
 std::vector<vec4> Tracer::getImageData()
 {
     return imageData;
@@ -176,14 +167,4 @@ void Tracer::resetSamples()
     {
         pixel = color4(0.0f);
     }
-}
-
-void Tracer::setScene(const Scene &scene)
-{
-    this->pNewScene = &scene;
-}
-
-void Tracer::setSdScene(const SimplifiedData::Scene &sdScene)
-{
-    this->pNewSdScene = &sdScene;
 }

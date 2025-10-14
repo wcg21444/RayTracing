@@ -55,8 +55,12 @@ public:
     int height;
 
 private:
-    std::unique_ptr<Scene> renderScene;
-    std::unique_ptr<sd::Scene> sdRenderScene;
+    std::unique_ptr<Scene> renderSceneUploaded = nullptr;
+    std::unique_ptr<sd::Scene> sdRenderSceneUploaded = nullptr;
+
+    const Scene *pNewScene;
+    const sd::Scene *pNewSdScene;
+
     SyncCallbackScheduler syncCallbackScheduler;
     bool discardCurrentImage = false;
 

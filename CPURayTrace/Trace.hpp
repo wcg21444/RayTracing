@@ -13,7 +13,7 @@ namespace SimplifiedData
 }
 namespace Trace
 {
-    inline size_t bounceLimit = 10;
+    inline size_t bounceLimit = 4;
 
     color4 CastRayDirectionLight(const Ray &ray, const color4 &light, const Scene &scene);
 
@@ -28,13 +28,10 @@ private:
     int width;
     int height;
 
-    std::unique_ptr<Scene> pSceneTracing = nullptr;
-    std::unique_ptr<SimplifiedData::Scene> pSdSceneTracing = nullptr;
+    Scene *pSceneTracing = nullptr;
+    SimplifiedData::Scene *pSdSceneTracing = nullptr;
 
-    const Scene *pNewScene = nullptr;
-    const SimplifiedData::Scene *pNewSdScene = nullptr;
     std::vector<vec4> imageData;
-
 
 private:
     void setPixel(int x, int y, vec4 &value);
@@ -43,9 +40,8 @@ private:
 
 public:
     size_t sampleCounts = 1;
-    float perturbStrength=1e-3f;
+    float perturbStrength = 1e-3f;
 
-    size_t bounceLimit = 10;
 
     Tracer(int _width, int _height);
 
@@ -53,20 +49,19 @@ public:
 
     void resetSamples();
 
-    void setScene(const Scene &scene);
-    void setSdScene(const SimplifiedData::Scene &sdScene);
-
     void shade(int x, int y);
     void sdShade(int x, int y);
 
-    void uploadSdScene();
-    void uploadScene();
+    void uploadSdScene(SimplifiedData::Scene *sceneTracing);
+    void uploadScene(Scene *sceneTracing);
 
-    inline bool isSdSceneShadingLoaded(){
+    inline bool isSdSceneShadingLoaded()
+    {
         return pSdSceneTracing != nullptr;
     }
-    inline bool isSceneShadingLoaded(){
-        return pSceneTracing !=nullptr;
+    inline bool isSceneShadingLoaded()
+    {
+        return pSceneTracing != nullptr;
     }
 
     std::vector<vec4> getImageData();

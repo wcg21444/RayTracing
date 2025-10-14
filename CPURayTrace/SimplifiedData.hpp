@@ -89,7 +89,7 @@ namespace SimplifiedData
         Mesh(DataStorage &dataStroage, const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices, const Material &_material);
     };
 
-    const uint32_t TRIANGLESIZE = 1 << 6; // 2^5 = 32 个三角形
+    const uint32_t TRIANGLESIZE = 1 << 20; // 2^20 = 1048576 个三角形
     class TriangleStorage
     {
     public:
