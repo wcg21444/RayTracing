@@ -2,39 +2,17 @@
 #version 330 core
 out vec4 FragColor;
 in vec2 TexCoord;
-struct HitInfos
-{
-    float t;     // 命中时光线的t
-    vec3 origin; // 光线起点
-    vec3 dir;    // 命中光线的dir
-    vec3 invDir; // 光线dir倒数
-    vec3 pos;    // 命中位置
-    vec3 normal; // 归一化世界法线
-};
+#include "GPURayTrace/common.glsl"
 
-struct Ray
-{
-    vec3 ori;
-    vec3 dir;
-};
+#include "GPURayTrace/sceneTex.glsl"
 
-struct Camera
-{
-    float focalLength;
-    vec3 position;
-    vec3 lookAtCenter;
-    float width;
-    float height;
-    float aspectRatio;
-    mat4 view;
-    mat4 projection;
-};
+#include "GPURayTrace/BVH.glsl"
 
-struct Sphere
-{
-    vec3 center;
-    float radius;
-};
+
+/*****************Scene输入******************************************************************/
+uniform sampler2D nodeStorageTex;
+uniform sampler2D triangleStorageTex;
+uniform uint sceneRootIndex;
 
 /*****************Screen输入*****************************************************************/
 uniform sampler2D lastSample;
@@ -63,7 +41,7 @@ uniform vec3 sunlightDir;
 uniform vec4 sunlightIntensity;
 uniform Camera cam;
 
-const int bounceLimit = 5;
+const int bounceLimit = 10;
 Sphere spheres[3];
 vec3 viewDir;
 vec2 uv;
@@ -237,18 +215,18 @@ void intersectSphere(in Ray ray, in vec3 center, in float radius, out HitInfos h
     float discriminant = b * b - 4 * a * c;
     if (discriminant < 0)
     {
-        hitInfos = HitInfos(-1.f, ray.ori, ray.dir, 1 / ray.dir, vec3(0.0f), vec3(0.0f));
+        hitInfos = HitInfos(-1.f, ray.ori, ray.dir, 1 / ray.dir, vec3(0.0f), vec3(0.0f),MAT_LAMBERTIAN);
     }
     else
     {
         float t = (-b - sqrt(discriminant)) / (2.0f * a);
         if (t < 0)
         {
-            hitInfos = HitInfos(-1.f, ray.ori, ray.dir, 1 / ray.dir, vec3(0.0f), vec3(0.0f));
+            hitInfos = HitInfos(-1.f, ray.ori, ray.dir, 1 / ray.dir, vec3(0.0f), vec3(0.0f),MAT_LAMBERTIAN);
         }
         vec3 N = normalize(RayAt(ray, t) - center);
         vec3 dir = ray.dir;
-        hitInfos = HitInfos(t, ray.ori, ray.dir, 1 / ray.dir, RayAt(ray, t), N);
+        hitInfos = HitInfos(t, ray.ori, ray.dir, 1 / ray.dir, RayAt(ray, t), N, MAT_LAMBERTIAN);
     }
 }
 
@@ -312,7 +290,7 @@ void hitScene(in Ray tracingRay, out HitInfos hitInfos)
 }
 
 // 光线入口函数
-vec4 castRay(in Ray ray, int traceDepth)
+vec4 castRay(in Ray ray, int traceDepth,uint rootIndex)
 {
     vec4 color = vec4(0.0f);
     vec3 throughout = vec3(1.f);
@@ -322,17 +300,26 @@ vec4 castRay(in Ray ray, int traceDepth)
 
         traceDepth++;
         // 场景测试
-        HitInfos closestHit;
-        closestHit.t = 1.0f / 0.0f;
+        HitInfos closestHit = invalidHit;
         hitScene(tracingRay, closestHit);
+        
+        HitInfos closestHitBVH = invalidHit;
+        // closestHitBVH = BVHIntersectLoop(nodesData,trianglesData,rootIndex, tracingRay);
+
+        closestHitBVH = BVHIntersectLoopTex(nodeStorageTex,triangleStorageTex,rootIndex, tracingRay);
+
+        if(closestHitBVH.t!=invalidT&&closestHitBVH.t<closestHit.t){
+            closestHit = closestHitBVH;
+        }
+
         // 命中场景
-        if (closestHit.t != 1.0f / 0.0f)
+        if (closestHit.t != invalidT)
         {
             // color+= lambertianIrradiance(closestHit);
-            throughout *= vec3(0.7f);
+            throughout *= vec3(0.9f,0.5f,0.4f);
             vec3 rndDir = sampleCosineHemisphere(closestHit.normal, TexCoord * (rand + 1.f));
-
-            tracingRay = Ray(closestHit.pos, rndDir);
+            vec3 bias = closestHit.normal*1e-3;
+            tracingRay = Ray(closestHit.pos+bias, rndDir/10.f+closestHit.normal*4.f);
             // color = vec4(1.0f,0.0f,0.0f,0.0f);
             continue;
         }
@@ -396,7 +383,7 @@ void main()
 
     Ray ray = Ray(cam.position, viewDir);
     FragColor = (texture(lastSample, TexCoord) * float(samplesCount - 1.f) +
-                 castRay(ray, 0)) /
+                 castRay(ray, 0,sceneRootIndex)) /
                 float(samplesCount);
 
     // int nSamples = 16;

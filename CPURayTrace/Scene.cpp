@@ -175,6 +175,7 @@ namespace SimplifiedData
 
     Scene::Scene(const Scene &other)
     {
+
         pDataStorage = std::make_unique<sd::DataStorage>(*other.pDataStorage.get());
     }
 
@@ -198,8 +199,10 @@ namespace SimplifiedData
         {
             // root = sd::ModelLoader::LoadModelFileSync("Resources/Sphere.obj");
             // sceneIndices.push_back(root);
+            // root = sd::ModelLoader::LoadModelFileSync("Resources/brizzareTri.obj");
+            root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj");
+            sceneIndices.push_back(root);
             root = sd::ModelLoader::LoadModelFileSync("Resources/MultiHighCube.obj");
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj");
             sceneIndices.push_back(root);
 
             auto sceneRoot = sd::BVH::BuildBVHFromNodes(pDataStorage->nodeStorage, sceneIndices.data(), 0, sceneIndices.size());

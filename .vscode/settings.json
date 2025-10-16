@@ -94,11 +94,12 @@
         "text_encoding": "cpp",
         "variant": "cpp",
         "future": "cpp",
-        "*.fs": "c",
-        "*.glsl": "c",
+        "*.fs": "glsl",
+        "*.glsl": "glsl",
         "cassert": "cpp",
         "source_location": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "scenetex,glsl": "cpp"
     },
     // "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",

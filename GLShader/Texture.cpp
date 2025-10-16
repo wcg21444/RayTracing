@@ -433,3 +433,39 @@ Texture2DArray::~Texture2DArray()
         glDeleteTextures(1, &ID);
     }
 }
+
+void SSBO::generate(GLsizeiptr size, GLenum usage, void *data)
+{
+    Usage = usage;
+    Size = size;
+    if (ID != 0)
+    {
+        glDeleteBuffers(1, &ID);
+    }
+    glGenBuffers(1, &ID);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ID);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, Size, data, Usage);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void SSBO::setData(GLintptr offset, GLsizeiptr sizeBytes, void *data)
+{
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ID);
+    glNamedBufferStorage(ID, sizeBytes, data, Usage);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+SSBO::SSBO()
+{
+    ID = 0;
+    Usage = GL_STATIC_DRAW;
+    Size = 0;
+}
+
+SSBO::~SSBO()
+{
+    if (ID != 0)
+    {
+        glDeleteBuffers(1, &ID);
+    }
+}

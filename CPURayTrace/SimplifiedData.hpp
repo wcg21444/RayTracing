@@ -22,7 +22,7 @@ namespace SimplifiedData
     class TriangleStorage;
     class NodeStorage;
     class Mesh;
-    class DataStorage;
+    struct DataStorage;
     class BVH;
 
     inline const uint32_t invalidIndex = uint32_t(-1);
@@ -40,13 +40,6 @@ namespace SimplifiedData
         glm::vec3 normal;
         glm::vec2 texCoord;
     };
-    struct BoundingBox
-    {
-        vec3 pMin = vec3(FLT_MAX);
-        vec3 pMax = vec3(FLT_MIN);
-        BoundingBox &operator=(const BoundingBox &other);
-    };
-    bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax);
 
     enum Matierals
     {
@@ -68,8 +61,12 @@ namespace SimplifiedData
         uint16_t matFlags;                                // 材质
     };
 
-    bool operator==(const HitInfos &hit1, const HitInfos &hit2);
-
+    struct BoundingBox
+    {
+        vec3 pMin = vec3(FLT_MAX);
+        vec3 pMax = vec3(FLT_MIN);
+        BoundingBox &operator=(const BoundingBox &other);
+    };
     // flag 决定跳转到 NodeStorage 还是 TriangleStorage
     struct Node
     {
@@ -79,6 +76,9 @@ namespace SimplifiedData
         uint8_t flags; // 节点? 叶子节点? Mesh节点? 三角形节点?...
     };
 
+    // 6xvec3+3xvec2+2bytes = 3*6*16+3*2*8+2 = 96*16+24+2 = 1538 bytes
+    //  如果按 float 存储
+    //  4*(3*6+2*3)+2 = 4*24+2=98 floats, 392 bytes,  400 bytes对齐
     struct Triangle
     {
         vec3 positions[3];
@@ -86,7 +86,47 @@ namespace SimplifiedData
         vec2 texCoords[3];
         uint16_t matFlags;
     };
-    HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax);
+
+    inline constexpr uint32_t TRIANGLESIZE = 1 << 20;          // 2^20 = 1048576 个三角形  不要用一个数组分配太大内存 否则 bad alloc
+    inline constexpr uint32_t NODESIZE = TRIANGLESIZE * 2 - 1; // 完全二叉树节点数 = 2*n-1,也就是最大节点数
+
+    class TriangleStorage
+    {
+    public:
+        TriangleStorage();
+
+        std::vector<Triangle> triangles;
+        uint32_t nextIndex = 0;
+        uint32_t addTriangle(const sd::Triangle &triangle);
+        uint32_t addTriangleArray(std::vector<sd::Triangle> &triangles);
+
+        ~TriangleStorage();
+    };
+
+    // |...三角形叶子节点...|....BVH内部节点....|end
+    // |....三角形.........|end
+    class NodeStorage
+    {
+    public:
+        NodeStorage();
+
+        std::vector<Node> nodes;
+        uint32_t nextIndex = 0;
+        uint32_t nextIndexBack = NODESIZE - 1;
+        uint32_t addNode(const sd::Node &node);
+        uint32_t addNodeBack(const sd::Node &node);
+        uint32_t addLeafNodeArray(const std::vector<sd::Node> &nodes);
+
+        ~NodeStorage();
+    };
+
+    struct DataStorage
+    {
+    public:
+        TriangleStorage triangleStorage;
+        NodeStorage nodeStorage;
+        uint32_t rootIndex;
+    };
 
     // 网格到底是什么呢? 网格最终数据结构只是一堆三角形,不是最终实际存储,是一个临时数据结构
     class Mesh
@@ -98,44 +138,6 @@ namespace SimplifiedData
         Mesh(DataStorage &dataStroage, const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices, const Material &_material);
     };
 
-    const uint32_t TRIANGLESIZE = 1 << 20; // 2^20 = 1048576 个三角形
-    class TriangleStorage
-    {
-    public:
-        std::array<Triangle, TRIANGLESIZE> triangles;
-        uint32_t nextIndex = 0;
-        uint32_t addTriangle(const sd::Triangle &triangle);
-        uint32_t addTriangleArray(std::vector<sd::Triangle> &triangles);
-
-        ~TriangleStorage();
-    };
-
-    // |...三角形叶子节点...|....BVH内部节点....|end
-    // |....三角形.........|end
-    const uint32_t NODESIZE = TRIANGLESIZE * 2 - 1; // 完全二叉树节点数 = 2*n-1,也就是最大节点数
-    class NodeStorage
-    {
-    public:
-        std::array<Node, NODESIZE> nodes;
-        uint32_t nextIndex = 0;
-        uint32_t nextIndexBack = NODESIZE - 1;
-        uint32_t addNode(const sd::Node &node);
-        uint32_t addNodeBack(const sd::Node &node);
-        uint32_t addLeafNodeArray(const std::vector<sd::Node> &nodes);
-
-        ~NodeStorage();
-    };
-
-    sd::BoundingBox GetBoundingBox(const sd::Triangle &triangle);
-
-    class DataStorage
-    {
-    public:
-        TriangleStorage triangleStorage;
-        NodeStorage nodeStorage;
-        uint32_t rootIndex;
-    };
-
     class BVH
     {
     public:
@@ -145,6 +147,41 @@ namespace SimplifiedData
         static HitInfos Intersect(DataStorage &dataStorage, const Ray &ray);
         static HitInfos IntersectLoop(DataStorage &dataStorage, const Ray &ray);
     };
+
+    sd::BoundingBox GetBoundingBox(const sd::Triangle &triangle);
+    HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax);
+    bool operator==(const HitInfos &hit1, const HitInfos &hit2);
+    bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax);
+
+    struct FlatNodeStorage
+    {
+        inline static constexpr size_t kFloatsPerNode = 2 /*indices*/ + 6 /*bbox*/ + 1 /*flags*/;
+        inline size_t getSizeInBytes() { return kFloatsPerNode * sizeof(float)*nodes.size(); }
+        FlatNodeStorage();
+
+        std::vector<float> nodes;
+        uint32_t rootIndex = sd::invalidIndex;
+    };
+    struct FlatTriangleStorage
+    {
+        inline static constexpr size_t kFloatsPerTriangle = 3 * 3 /*positions*/ + 3 * 3 /*normals*/ + 3 * 2 /*uv*/ + 1 /*mat flag*/;
+        inline size_t getSizeInBytes() { return kFloatsPerTriangle * sizeof(float)*triangles.size(); }
+        FlatTriangleStorage();
+
+        std::vector<float> triangles;
+    };
+    inline constexpr size_t NODESIZESSBO = NODESIZE * FlatNodeStorage::kFloatsPerNode;
+    inline constexpr size_t TRIANGLESIZESSBO = TRIANGLESIZE * FlatTriangleStorage::kFloatsPerTriangle;
+
+    void ConvertNodeToFlatStorage(const NodeStorage &nodeStorage, FlatNodeStorage &flatNodeStorage);
+
+    void ConvertTriangleToFlatStorage(const TriangleStorage &triangleStorage, FlatTriangleStorage &flatTriangleStorage);
+
+    void ConvertToFlatStorage(const DataStorage &dataStorage, FlatNodeStorage &flatNodeStorage, FlatTriangleStorage &flatTriangleStorage);
+
+    Node GetNodeFromFlatStorage(const FlatNodeStorage &flatNodeStorage, size_t index);
+
+    Triangle GetTriangleFromFlatStorage(const FlatTriangleStorage &flatTriangleStorage, size_t index);
 
 }
 namespace sd = SimplifiedData;

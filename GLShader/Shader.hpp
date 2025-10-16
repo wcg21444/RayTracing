@@ -34,7 +34,7 @@ private:
 
 public:
     static std::string LoadShaderFile(const char *shader_path);
-    static void CompileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id);
+    static void CompileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id, const char *path);
     inline static GLenum GetTextureUnitEnum(int textureLocation);
     inline static GLint GetTextureUnitsLimits();
 
@@ -75,6 +75,7 @@ public:
     void setUniform(const std::string &name, const glm::mat4 &mat);
     void setUniform(const std::string &name, float f);
     void setUniform(const std::string &name, int i);
+    void setUniform(const std::string &name, unsigned int i);
 
     void setTextureAuto(GLuint textureID, GLenum textureTarget, int shaderTextureLocation, const std::string &samplerUniformName);
 };

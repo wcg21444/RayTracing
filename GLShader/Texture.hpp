@@ -128,6 +128,7 @@ public:
     ~TextureCube();
 };
 
+
 class Texture2DArray : public GLResource
 {
 public:
@@ -162,4 +163,17 @@ public:
     void setWrapMode(GLenum wrapMode);
 
     ~Texture2DArray();
+};
+
+class SSBO : public GLResource
+{
+public:
+    GLenum Usage; // GL_STATIC_DRAW, GL_DYNAMIC_DRAW
+    size_t Size;  // buffer size in bytes
+    SSBO();
+    SSBO(SSBO &&) noexcept = default;
+    SSBO &operator=(SSBO &&) noexcept = default;
+    void generate(GLsizeiptr size, GLenum usage, void *data = nullptr);
+    void setData(GLintptr offset, GLsizeiptr size, void *data);
+    ~SSBO();
 };

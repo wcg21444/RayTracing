@@ -3,6 +3,10 @@
 #include <exception>
 namespace SimplifiedData
 {
+    TriangleStorage::TriangleStorage()
+        : triangles(TRIANGLESIZE)
+    {
+    }
 
     // TriangleStorage 成员函数定义
     uint32_t TriangleStorage::addTriangle(const sd::Triangle &_triangle)
@@ -34,6 +38,11 @@ namespace SimplifiedData
     }
 
     TriangleStorage::~TriangleStorage()
+    {
+    }
+
+    NodeStorage::NodeStorage()
+        : nodes(NODESIZE) // 全分配,因为BVH构建时需要从后往前添加节点
     {
     }
 
@@ -150,6 +159,100 @@ namespace SimplifiedData
         }
         return true;
     }
+    void ConvertNodeToFlatStorage(const NodeStorage &nodeStorage, FlatNodeStorage &flatNodeStorage)
+    {
+        const auto stride = FlatNodeStorage::kFloatsPerNode;
+        // const auto count = nodeStorage.nodes.size();
+        const auto count = nodeStorage.nextIndex; // 只转换已使用节点
+
+        flatNodeStorage.nodes.resize(count  * stride);
+
+        const auto *src = nodeStorage.nodes.data();
+        float *dst = flatNodeStorage.nodes.data();
+
+        for (size_t i = 0; i < count; ++i, ++src, dst += stride)
+        {
+            dst[0] = glm::uintBitsToFloat(src->left);
+            dst[1] = glm::uintBitsToFloat(src->right);
+            dst[2] = src->box.pMin.x;
+            dst[3] = src->box.pMin.y;
+            dst[4] = src->box.pMin.z;
+            dst[5] = src->box.pMax.x;
+            dst[6] = src->box.pMax.y;
+            dst[7] = src->box.pMax.z;
+            dst[8] = glm::uintBitsToFloat(src->flags);
+        }
+    }
+    void ConvertTriangleToFlatStorage(const TriangleStorage &triangleStorage, FlatTriangleStorage &flatTriangleStorage)
+    {
+        const auto stride = FlatTriangleStorage::kFloatsPerTriangle;
+        // const auto count = triangleStorage.triangles.size();
+        const auto count = triangleStorage.nextIndex; // 只转换已使用三角形
+
+        flatTriangleStorage.triangles.resize(count * stride);
+
+        const auto *src = triangleStorage.triangles.data();
+        float *dst = flatTriangleStorage.triangles.data();
+
+        for (size_t i = 0; i < count; ++i, ++src, dst += stride)
+        {
+            float *vertexDst = dst;
+            for (int v = 0; v < 3; ++v, vertexDst += 8)
+            {
+                const vec3 &pos = src->positions[v];
+                const vec3 &normal = src->normals[v];
+                const vec2 &uv = src->texCoords[v];
+                vertexDst[0] = pos.x;
+                vertexDst[1] = pos.y;
+                vertexDst[2] = pos.z;
+                vertexDst[3] = normal.x;
+                vertexDst[4] = normal.y;
+                vertexDst[5] = normal.z;
+                vertexDst[6] = uv.x;
+                vertexDst[7] = uv.y;
+            }
+
+            dst[24] = glm::uintBitsToFloat(src->matFlags);
+        }
+    }
+    void ConvertToFlatStorage(const DataStorage &dataStorage, FlatNodeStorage &flatNodeStorage, FlatTriangleStorage &flatTriangleStorage)
+    {
+        ConvertNodeToFlatStorage(dataStorage.nodeStorage, flatNodeStorage);
+        ConvertTriangleToFlatStorage(dataStorage.triangleStorage, flatTriangleStorage);
+        flatNodeStorage.rootIndex = dataStorage.rootIndex;
+    }
+    Node GetNodeFromFlatStorage(const FlatNodeStorage &flatNodeStorage, size_t index)
+    {
+        const auto &src = flatNodeStorage.nodes;
+        constexpr size_t stride = FlatNodeStorage::kFloatsPerNode;
+        size_t base = index * stride;
+
+        Node node;
+        node.left = glm::floatBitsToUint(src[base + 0]);
+        node.right = glm::floatBitsToUint(src[base + 1]);
+        node.box.pMin = vec3(src[base + 2], src[base + 3], src[base + 4]);
+        node.box.pMax = vec3(src[base + 5], src[base + 6], src[base + 7]);
+        node.flags = glm::floatBitsToUint(src[base + 8]);
+        return node;
+    }
+    Triangle GetTriangleFromFlatStorage(const FlatTriangleStorage &flatTriangleStorage, size_t index)
+    {
+        const auto &src = flatTriangleStorage.triangles;
+        constexpr size_t stride = FlatTriangleStorage::kFloatsPerTriangle;
+        size_t base = index * stride;
+
+        Triangle tri;
+        for (int v = 0; v < 3; ++v)
+        {
+            size_t offset = base + v * 8;
+            tri.positions[v] = vec3(src[offset + 0], src[offset + 1], src[offset + 2]);
+            tri.normals[v] = vec3(src[offset + 3], src[offset + 4], src[offset + 5]);
+            tri.texCoords[v] = vec2(src[offset + 6], src[offset + 7]);
+        }
+        tri.matFlags = static_cast<uint16_t>(src[base + 24]);
+        return tri;
+    }
+
     bool operator==(const HitInfos &hit1, const HitInfos &hit2)
     {
         bool eq = true;
@@ -233,7 +336,7 @@ namespace SimplifiedData
             BoundingBox box;
             box.pMin = glm::min(leftNode.box.pMin, rightNode.box.pMin);
             box.pMax = glm::max(leftNode.box.pMax, rightNode.box.pMax);
-            return nodeStorage.addNodeBack(
+            return nodeStorage.addNode(
                 Node{
                     .left = leftIndex,
                     .right = rightIndex,
@@ -283,7 +386,7 @@ namespace SimplifiedData
         size_t mid = start + (end - start) / 2;
         uint32_t leftIndex = BuildBVHFromNodes(nodeStorage, nodeIndices, start, mid);
         uint32_t rightIndex = BuildBVHFromNodes(nodeStorage, nodeIndices, mid, end);
-        uint32_t nodeIndex = nodeStorage.addNodeBack(Node{
+        uint32_t nodeIndex = nodeStorage.addNode(Node{
             .left = leftIndex,
             .right = rightIndex,
             .box = nodeBox,
@@ -353,6 +456,16 @@ namespace SimplifiedData
             callStack[top++] = node.right;
         }
         return closestHit;
+    }
+
+    FlatNodeStorage::FlatNodeStorage()
+        : nodes(NODESIZE * kFloatsPerNode)
+    {
+    }
+
+    FlatTriangleStorage::FlatTriangleStorage()
+        : triangles(TRIANGLESIZE * kFloatsPerTriangle)
+    {
     }
 
 } // namespace SimplifiedData

@@ -18,6 +18,13 @@
 const int InitWidth = 640;
 const int InitHeight = 360;
 
+struct Vecs
+{
+    glm::vec3 vec1;
+    glm::vec3 vec2;
+    glm::vec3 vec3;
+};
+
 int main()
 {
     glfwInit();
@@ -25,9 +32,10 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    const char* glsl_version = "#version 460";
-    GLFWwindow* window = glfwCreateWindow(InitWidth, InitHeight, "RayTracing", NULL, NULL);
-    if (window == NULL) {
+    const char *glsl_version = "#version 460";
+    GLFWwindow *window = glfwCreateWindow(InitWidth, InitHeight, "RayTracing", NULL, NULL);
+    if (window == NULL)
+    {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
@@ -36,14 +44,15 @@ int main()
 
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //初始关闭鼠标光标
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
     (void)io;
 
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -75,8 +84,8 @@ int main()
 
     sd::Scene sdscene;
 
-
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window))
+    {
 
         glfwPollEvents();
 
@@ -91,7 +100,8 @@ int main()
 
         ImGui::Begin("RenderUI");
         {
-            if (ImGui::Button("Add Sphere")) {
+            if (ImGui::Button("Add Sphere"))
+            {
                 RenderState::Dirty |= true;
                 RenderState::SceneDirty |= true;
                 scene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
@@ -100,7 +110,7 @@ int main()
             ImGui::End();
         }
         BVHSettings::RenderUI();
-        
+
         // BVHSettings::RenderVisualization(scene.BVHTree.root);
 
         // for (auto&& object : scene.objects) {
@@ -115,8 +125,9 @@ int main()
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            GLFWwindow *backup_current_context = glfwGetCurrentContext();
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_current_context);

@@ -55,7 +55,7 @@ void Renderer::render(const Scene &scene)
     {
         skyTexPass->render(Renderer::Cam.position);
         auto skyTexID = skyTexPass->getCubemap();
-        gpuRayTracer->render(skyTexID);
+        gpuRayTracer->render(skyTexID, 0);
         raytraceResult = gpuRayTracer->getTextures();
     }
     postProcessor->render(raytraceResult);
@@ -98,7 +98,16 @@ void Renderer::render(const sd::Scene &scene)
     {
         skyTexPass->render(Renderer::Cam.position);
         auto skyTexID = skyTexPass->getCubemap();
-        gpuRayTracer->render(skyTexID);
+
+        try
+        {
+            gpuRayTracer->setupSceneBuffers(scene.pDataStorage.get());
+        }
+        catch (std::exception &e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+        gpuRayTracer->render(skyTexID, 0);
         raytraceResult = gpuRayTracer->getTextures();
     }
     postProcessor->render(raytraceResult);

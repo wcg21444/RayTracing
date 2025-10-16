@@ -1,9 +1,10 @@
 #include "Shader.hpp"
 
+#include "Utils.hpp"
 #include <format>
 #include <iostream>
 
-// ���캯��
+
 Shader::Shader() : texLocationID(0), programID(0) {}
 
 Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : Shader()
@@ -21,7 +22,7 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     {
         shader_buf = LoadShaderFile(vs_path);
         const char *vertexShaderSource = shader_buf.c_str();
-        CompileShader(vertexShaderSource, GL_VERTEX_SHADER, vertexShader);
+        CompileShader(vertexShaderSource, GL_VERTEX_SHADER, vertexShader, vs_path);
     }
     catch (const std::exception &e)
     {
@@ -33,7 +34,7 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     {
         shader_buf = LoadShaderFile(fs_path);
         const char *fragmentShaderSource = shader_buf.c_str();
-        CompileShader(fragmentShaderSource, GL_FRAGMENT_SHADER, fragmentShader);
+        CompileShader(fragmentShaderSource, GL_FRAGMENT_SHADER, fragmentShader, fs_path);
     }
     catch (const std::exception &e)
     {
@@ -47,7 +48,7 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
         {
             shader_buf = LoadShaderFile(gs_path);
             const char *geometryShadersource = shader_buf.c_str();
-            CompileShader(geometryShadersource, GL_GEOMETRY_SHADER, geometryShader);
+            CompileShader(geometryShadersource, GL_GEOMETRY_SHADER, geometryShader, gs_path);
         }
         catch (const std::exception &e)
         {
@@ -73,8 +74,7 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
         glGetProgramInfoLog(programID, 512, NULL, infoLog);
         std::cerr << "VS : " << std::string(vs_path) << "FS : " << std::string(fs_path) << std::endl;
         std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
-                  << infoLog << std::endl;
-        throw std::runtime_error("Shader program link failed.");
+                  << infoLog << std::endl;        throw std::runtime_error("Shader program link failed.");
     }
 
     // Delete our used Shaders
@@ -95,12 +95,12 @@ Shader::Shader(Shader &&other) noexcept
     this->gs_path = std::move(other.gs_path);
     this->textureLocationMap = std::move(other.textureLocationMap);
     this->texLocationID = other.texLocationID;
-    other.programID = 0; // �ͷ�Դ������Դ
+    other.programID = 0; 
     other.used = false;
     other.texLocationID = 0;
 }
 
-// ��������
+
 Shader::~Shader()
 {
     if (programID)
@@ -110,7 +110,6 @@ Shader::~Shader()
     }
 }
 
-// �ƶ���ֵ�����
 Shader &Shader::operator=(Shader &&other) noexcept
 {
     if (this != &other)
@@ -127,7 +126,7 @@ Shader &Shader::operator=(Shader &&other) noexcept
         this->gs_path = std::move(other.gs_path);
         this->textureLocationMap = std::move(other.textureLocationMap);
         this->texLocationID = other.texLocationID;
-        other.programID = 0; // �ͷ�Դ������Դ
+        other.programID = 0;
         other.used = false;
         other.texLocationID = 0;
     }
@@ -151,24 +150,14 @@ GLint Shader::getUniformLocationSafe(const std::string &name)
     }
     GLint location = glGetUniformLocation(programID, name.c_str());
     if (location == -1)
-    {
-        /*         if (!warningMsgSet.contains(std::format("{}{}", name, programID)))
-                {
-                    warningMsgSet.insert(std::format("{}{}", name, programID));
-                    std::cout << std::format("Warning: Uniform {} not found in shader program: {} ", name, programID);
-                    std::cout << std::format("   Vertex Shader Path: {} ", vs_path);
-                    std::cout << std::format("   Fragment Shader Path: {} ", fs_path);
-                    if (!(gs_path == ""))
-                    {
-                        std::cout << std::format("   Geometry Shader Path: {} ", gs_path);
-                    }
-                } */
+    { // DO NOTING
     }
     uniformLocationMap.insert({name, location});
     return location;
 }
 
-void Shader::CompileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id)
+// 使原对象失效
+void Shader::CompileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id, const char *path)
 {
     shader_id = glCreateShader(shader_type);
     glShaderSource(shader_id, 1, &shader_source, NULL);
@@ -179,6 +168,7 @@ void Shader::CompileShader(const char *shader_source, GLenum shader_type, unsign
     glGetShaderiv(shader_id, GL_COMPILE_STATUS, &success);
     if (!success)
     {
+        Output::ExportShaderSource("shaderLogs/" + Output::GetFilenameNoExtension(path) + "_shaderDump.glsl", shader_source, true); // Dump 编译失败的着色器文件
         glGetShaderInfoLog(shader_id, 512, NULL, infoLog);
         std::cerr << "ERROR::SHADER::COMPILATION_FAILED (" << shader_type << ")\n"
                   << infoLog << std::endl;
@@ -186,7 +176,7 @@ void Shader::CompileShader(const char *shader_source, GLenum shader_type, unsign
     }
 }
 
-// Uniform ���÷���ʵ��
+// Uniform 设置函数的实现
 void Shader::setUniform4fv(const std::string &name, GLsizei count, const float *value)
 {
     GLint location = getUniformLocationSafe(name);
@@ -300,17 +290,25 @@ void Shader::setUniform(const std::string &name, int i)
     }
 }
 
+void Shader::setUniform(const std::string &name, unsigned int i)
+{
+    GLint location = getUniformLocationSafe(name);
+    if (location != -1)
+    {
+        glUniform1ui(location, i);
+    }
+}
 /**
- * @brief �Զ���������������ɫ����
- * * �˺���ּ�ڼ�����󶨹��̡����ڲ�ά��һ��ӳ��� (textureLocationMap)��
- * ����ɫ���еĲ����� (sampler) ������һ��Ψһ�������Ԫ ID (texLocationID) ����������
- * ���һ���������ǵ�һ�ΰ󶨣����ᱻ����һ���µ������Ԫ��
- * ��󣬺����ἤ���Ӧ�������Ԫ�����������󶨵��õ�Ԫ��
- * ��ͨ�� glUniform1i ���������Ԫ ID ���ݸ���ɫ���е� uniform ������
- * * @param textureID Ҫ�󶨵��������� OpenGL ID��
- * @param textureTarget ����Ŀ�����ͣ����� GL_TEXTURE_2D��GL_TEXTURE_CUBE_MAP �ȡ�
- * @param shaderTextureLocation ռλ��
- * @param samplerUniformName ��ɫ���� sampler uniform ���������ƣ����� "u_AlbedoMap"��
+ * @brief 自动分配纹理单元并绑定到着色器
+ * 该函数用于简化绑定流程。内部维护一个映射 (textureLocationMap)，
+ * 为着色器中的采样器 (sampler) 分配唯一的纹理单元 ID (texLocationID)。
+ * 如果是第一次绑定，则分配一个新的纹理单元。
+ * 之后会将采样器和纹理单元绑定关系写入映射。
+ * 通过 glUniform1i 将纹理单元 ID 传递给着色器中的 uniform 变量。
+ * @param textureID 要绑定的纹理 OpenGL ID
+ * @param textureTarget 纹理目标类型，如 GL_TEXTURE_2D、GL_TEXTURE_CUBE_MAP
+ * @param shaderTextureLocation 着色器纹理单元位置
+ * @param samplerUniformName 着色器采样器 uniform 变量名，如 "u_AlbedoMap"
  */
 void Shader::setTextureAuto(GLuint textureID, GLenum textureTarget, int shaderTextureLocation, const std::string &samplerUniformName)
 {
@@ -390,7 +388,7 @@ ComputeShader::ComputeShader(const char *cs_path)
     {
         shader_buf = LoadShaderFile(cs_path);
         const char *computeShaderSource = shader_buf.c_str();
-        CompileShader(computeShaderSource, GL_COMPUTE_SHADER, computeShader);
+        CompileShader(computeShaderSource, GL_COMPUTE_SHADER, computeShader, cs_path);
     }
     catch (const std::exception &e)
     {

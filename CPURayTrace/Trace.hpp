@@ -9,7 +9,7 @@
 #include <limits>
 namespace SimplifiedData
 {
-    class DataStorage;
+    struct DataStorage;
 }
 namespace Trace
 {

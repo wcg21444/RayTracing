@@ -30,6 +30,13 @@ inline void CheckGLErrors()
     }
 }
 
+inline GLuint GetTextureSizeLimit()
+{
+    GLint limit;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &limit);
+    return limit;
+}
+
 inline vec3 DirectionOf(float x, float y, float z)
 {
     return normalize(vec3(x, y, z));
@@ -43,3 +50,19 @@ inline vec3 DirectionOf(const point3 &end, const point3 &ori)
 {
     return normalize(end - ori);
 }
+
+namespace SimplifiedData
+{
+    void DumpFlatFloatData(const float *data, size_t size, std::string path);
+    std::string DumpFlatFloatDataString(const float *data, size_t size);
+}
+
+namespace Output
+{
+    bool CreateParentDirectories(const std::string &filepath);
+
+    void ExportShaderSource(const std::string &filename, const std::string &source, bool readonly);
+
+    std::string GetFilenameNoExtension(const std::string &path_str);
+
+} // namespace Output
