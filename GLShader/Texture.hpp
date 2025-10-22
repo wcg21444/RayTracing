@@ -14,23 +14,23 @@
 #include "GLResource.hpp"
 
 using TextureID = unsigned int;
-/// @brief ¹ÜÀíGL Texture×ÊÔ´
+/// @brief ç®¡ç†GL Textureèµ„æº
 class Texture2D : public GLResource
 {
 public:
-    GLenum Target;         // ÎÆÀíÀàĞÍ£¬Èç GL_TEXTURE_2D¡¢GL_TEXTURE_3D µÈ
-    GLenum InternalFormat; // ÎÆÀíÔÚ GPU ÖĞ´æ´¢µÄÄÚ²¿¸ñÊ½£¨ÀıÈç£ºGL_RGBA8£©
-    GLenum Format;         // ÎÆÀíÔÚ CPU ÖĞ´æ´¢µÄ¸ñÊ½£¨ÀıÈç£ºGL_RGBA£©
-    GLenum Type;           // ÎÆËØÊı¾İµÄÊı¾İÀàĞÍ£¨ÀıÈç£ºGL_UNSIGNED_BYTE£©
-    GLenum FilterMin;      // ÎÆÀíËõĞ¡Ê±Ê¹ÓÃµÄ¹ıÂË·½Ê½
-    GLenum FilterMax;      // ÎÆÀí·Å´óÊ±Ê¹ÓÃµÄ¹ıÂË·½Ê½
-    GLenum WrapS;          // S Öá£¨Ë®Æ½£©µÄÎÆÀí»·ÈÆ·½Ê½
-    GLenum WrapT;          // T Öá£¨´¹Ö±£©µÄÎÆÀí»·ÈÆ·½Ê½
-    GLenum WrapR;          // R Öá£¨Éî¶È£©µÄÎÆÀí»·ÈÆ·½Ê½£¬Ö÷ÒªÓÃÓÚ 3D ÎÆÀí
-    bool Mipmapping;       // ÊÇ·ñÆôÓÃ¶à¼¶½¥Ô¶ÎÆÀí£¨Mipmapping£©
+    GLenum Target;         // çº¹ç†ç±»å‹ï¼Œå¦‚ GL_TEXTURE_2Dã€GL_TEXTURE_3D ç­‰
+    GLenum InternalFormat; // çº¹ç†åœ¨ GPU ä¸­å­˜å‚¨çš„å†…éƒ¨æ ¼å¼ï¼ˆä¾‹å¦‚ï¼šGL_RGBA8ï¼‰
+    GLenum Format;         // çº¹ç†åœ¨ CPU ä¸­å­˜å‚¨çš„æ ¼å¼ï¼ˆä¾‹å¦‚ï¼šGL_RGBAï¼‰
+    GLenum Type;           // çº¹ç´ æ•°æ®çš„æ•°æ®ç±»å‹ï¼ˆä¾‹å¦‚ï¼šGL_UNSIGNED_BYTEï¼‰
+    GLenum FilterMin;      // çº¹ç†ç¼©å°æ—¶ä½¿ç”¨çš„è¿‡æ»¤æ–¹å¼
+    GLenum FilterMax;      // çº¹ç†æ”¾å¤§æ—¶ä½¿ç”¨çš„è¿‡æ»¤æ–¹å¼
+    GLenum WrapS;          // S è½´ï¼ˆæ°´å¹³ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼
+    GLenum WrapT;          // T è½´ï¼ˆå‚ç›´ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼
+    GLenum WrapR;          // R è½´ï¼ˆæ·±åº¦ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼ï¼Œä¸»è¦ç”¨äº 3D çº¹ç†
+    bool Mipmapping;       // æ˜¯å¦å¯ç”¨å¤šçº§æ¸è¿œçº¹ç†ï¼ˆMipmappingï¼‰
 
-    unsigned int Width;  // ÎÆÀíµÄ¿í¶È£¨ÒÔÏñËØÎªµ¥Î»£©
-    unsigned int Height; // ÎÆÀíµÄ¸ß¶È£¨ÒÔÏñËØÎªµ¥Î»£©
+    unsigned int Width;  // çº¹ç†çš„å®½åº¦ï¼ˆä»¥åƒç´ ä¸ºå•ä½ï¼‰
+    unsigned int Height; // çº¹ç†çš„é«˜åº¦ï¼ˆä»¥åƒç´ ä¸ºå•ä½ï¼‰
 
     Texture2D();
     Texture2D(Texture2D &&) noexcept = default;
@@ -52,13 +52,13 @@ public:
     ~Texture2D();
 };
 
-// TextureÊÇ¶ÔTexture GL¶ÔÏóµÄ·â×°
-// GL¶ÔÏó °üÀ¨ ¶ÔÏóID ÄÚ²¿¸ñÊ½ ¸ñÊ½ Êı¾İÀàĞÍ ÕâĞ©³õÊ¼»¯ÊôĞÔ; ÒÔ¼°×´Ì¬ÊôĞÔ,Filter,WrapÊÇ¶ÔÊ¹ÓÃ·½¿ª·ÅµÄ.
-//  ·½·¨ Éú³ÉTexture : ³õÊ¼»¯×ÊÔ´
-//       ÉèÖÃ×´Ì¬
-//       ÉèÖÃÊı¾İ
-//       µ÷Õû´óĞ¡
-/// @brief ¹ÜÀíGL CubeTexture×ÊÔ´
+// Textureæ˜¯å¯¹Texture GLå¯¹è±¡çš„å°è£…
+// GLå¯¹è±¡ åŒ…æ‹¬ å¯¹è±¡ID å†…éƒ¨æ ¼å¼ æ ¼å¼ æ•°æ®ç±»å‹ è¿™äº›åˆå§‹åŒ–å±æ€§; ä»¥åŠçŠ¶æ€å±æ€§,Filter,Wrapæ˜¯å¯¹ä½¿ç”¨æ–¹å¼€æ”¾çš„.
+//  æ–¹æ³• ç”ŸæˆTexture : åˆå§‹åŒ–èµ„æº
+//       è®¾ç½®çŠ¶æ€
+//       è®¾ç½®æ•°æ®
+//       è°ƒæ•´å¤§å°
+/// @brief ç®¡ç†GL CubeTextureèµ„æº
 class TextureCube : public GLResource
 {
 public:
@@ -93,21 +93,21 @@ public:
     }
 
 private:
-    GLenum Target;         // ÎÆÀíÀàĞÍ
-    GLenum InternalFormat; // ÎÆÀíÔÚ GPU ÖĞ´æ´¢µÄÄÚ²¿¸ñÊ½£¨ÀıÈç£ºGL_RGBA8£©
-    GLenum Format;         // ÎÆÀíÔÚ CPU ÖĞ´æ´¢µÄ¸ñÊ½£¨ÀıÈç£ºGL_RGBA£©
-    GLenum Type;           // ÎÆËØÊı¾İµÄÊı¾İÀàĞÍ£¨ÀıÈç£ºGL_UNSIGNED_BYTE£©
-    GLenum FilterMin;      // ÎÆÀíËõĞ¡Ê±Ê¹ÓÃµÄ¹ıÂË·½Ê½
-    GLenum FilterMax;      // ÎÆÀí·Å´óÊ±Ê¹ÓÃµÄ¹ıÂË·½Ê½
-    GLenum WrapS;          // S Öá£¨Ë®Æ½£©µÄÎÆÀí»·ÈÆ·½Ê½
-    GLenum WrapT;          // T Öá£¨´¹Ö±£©µÄÎÆÀí»·ÈÆ·½Ê½
-    GLenum WrapR;          // R Öá£¨Éî¶È£©µÄÎÆÀí»·ÈÆ·½Ê½£¬Ö÷ÒªÓÃÓÚ 3D ÎÆÀí
-    bool Mipmapping;       // ÊÇ·ñÆôÓÃ¶à¼¶½¥Ô¶ÎÆÀí£¨Mipmapping£©
+    GLenum Target;         // çº¹ç†ç±»å‹
+    GLenum InternalFormat; // çº¹ç†åœ¨ GPU ä¸­å­˜å‚¨çš„å†…éƒ¨æ ¼å¼ï¼ˆä¾‹å¦‚ï¼šGL_RGBA8ï¼‰
+    GLenum Format;         // çº¹ç†åœ¨ CPU ä¸­å­˜å‚¨çš„æ ¼å¼ï¼ˆä¾‹å¦‚ï¼šGL_RGBAï¼‰
+    GLenum Type;           // çº¹ç´ æ•°æ®çš„æ•°æ®ç±»å‹ï¼ˆä¾‹å¦‚ï¼šGL_UNSIGNED_BYTEï¼‰
+    GLenum FilterMin;      // çº¹ç†ç¼©å°æ—¶ä½¿ç”¨çš„è¿‡æ»¤æ–¹å¼
+    GLenum FilterMax;      // çº¹ç†æ”¾å¤§æ—¶ä½¿ç”¨çš„è¿‡æ»¤æ–¹å¼
+    GLenum WrapS;          // S è½´ï¼ˆæ°´å¹³ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼
+    GLenum WrapT;          // T è½´ï¼ˆå‚ç›´ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼
+    GLenum WrapR;          // R è½´ï¼ˆæ·±åº¦ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼ï¼Œä¸»è¦ç”¨äº 3D çº¹ç†
+    bool Mipmapping;       // æ˜¯å¦å¯ç”¨å¤šçº§æ¸è¿œçº¹ç†ï¼ˆMipmappingï¼‰
 public:
-    TextureID ID; // ÎÆÀí¶ÔÏóµÄ ID£¬ÓÉ OpenGL ·ÖÅä
+    TextureID ID; // çº¹ç†å¯¹è±¡çš„ IDï¼Œç”± OpenGL åˆ†é…
 
-    unsigned int Width;  // Õı·½ĞÎÎÆÀíµÄ¿í¶È£¨ÒÔÏñËØÎªµ¥Î»£©
-    unsigned int Height; // Õı·½ĞÎÎÆÀíµÄ¸ß¶È£¨ÒÔÏñËØÎªµ¥Î»£©
+    unsigned int Width;  // æ­£æ–¹å½¢çº¹ç†çš„å®½åº¦ï¼ˆä»¥åƒç´ ä¸ºå•ä½ï¼‰
+    unsigned int Height; // æ­£æ–¹å½¢çº¹ç†çš„é«˜åº¦ï¼ˆä»¥åƒç´ ä¸ºå•ä½ï¼‰
 
     TextureCube();
     TextureCube(TextureCube &&) noexcept = default;
@@ -132,20 +132,20 @@ public:
 class Texture2DArray : public GLResource
 {
 public:
-    GLenum Target;         // ÎÆÀíÀàĞÍ£¬Èç GL_TEXTURE_2D¡¢GL_TEXTURE_3D µÈ
-    GLenum InternalFormat; // ÎÆÀíÔÚ GPU ÖĞ´æ´¢µÄÄÚ²¿¸ñÊ½£¨ÀıÈç£ºGL_RGBA8£©
-    GLenum Format;         // ÎÆÀíÔÚ CPU ÖĞ´æ´¢µÄ¸ñÊ½£¨ÀıÈç£ºGL_RGBA£©
-    GLenum Type;           // ÎÆËØÊı¾İµÄÊı¾İÀàĞÍ£¨ÀıÈç£ºGL_UNSIGNED_BYTE£©
-    GLenum FilterMin;      // ÎÆÀíËõĞ¡Ê±Ê¹ÓÃµÄ¹ıÂË·½Ê½
-    GLenum FilterMax;      // ÎÆÀí·Å´óÊ±Ê¹ÓÃµÄ¹ıÂË·½Ê½
-    GLenum WrapS;          // S Öá£¨Ë®Æ½£©µÄÎÆÀí»·ÈÆ·½Ê½
-    GLenum WrapT;          // T Öá£¨´¹Ö±£©µÄÎÆÀí»·ÈÆ·½Ê½
-    GLenum WrapR;          // R Öá£¨Éî¶È£©µÄÎÆÀí»·ÈÆ·½Ê½£¬Ö÷ÒªÓÃÓÚ 3D ÎÆÀí
-    bool Mipmapping;       // ÊÇ·ñÆôÓÃ¶à¼¶½¥Ô¶ÎÆÀí£¨Mipmapping£©
+    GLenum Target;         // çº¹ç†ç±»å‹ï¼Œå¦‚ GL_TEXTURE_2Dã€GL_TEXTURE_3D ç­‰
+    GLenum InternalFormat; // çº¹ç†åœ¨ GPU ä¸­å­˜å‚¨çš„å†…éƒ¨æ ¼å¼ï¼ˆä¾‹å¦‚ï¼šGL_RGBA8ï¼‰
+    GLenum Format;         // çº¹ç†åœ¨ CPU ä¸­å­˜å‚¨çš„æ ¼å¼ï¼ˆä¾‹å¦‚ï¼šGL_RGBAï¼‰
+    GLenum Type;           // çº¹ç´ æ•°æ®çš„æ•°æ®ç±»å‹ï¼ˆä¾‹å¦‚ï¼šGL_UNSIGNED_BYTEï¼‰
+    GLenum FilterMin;      // çº¹ç†ç¼©å°æ—¶ä½¿ç”¨çš„è¿‡æ»¤æ–¹å¼
+    GLenum FilterMax;      // çº¹ç†æ”¾å¤§æ—¶ä½¿ç”¨çš„è¿‡æ»¤æ–¹å¼
+    GLenum WrapS;          // S è½´ï¼ˆæ°´å¹³ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼
+    GLenum WrapT;          // T è½´ï¼ˆå‚ç›´ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼
+    GLenum WrapR;          // R è½´ï¼ˆæ·±åº¦ï¼‰çš„çº¹ç†ç¯ç»•æ–¹å¼ï¼Œä¸»è¦ç”¨äº 3D çº¹ç†
+    bool Mipmapping;       // æ˜¯å¦å¯ç”¨å¤šçº§æ¸è¿œçº¹ç†ï¼ˆMipmappingï¼‰
 
-    unsigned int Width;  // ÎÆÀíµÄ¿í¶È£¨ÒÔÏñËØÎªµ¥Î»£©
-    unsigned int Height; // ÎÆÀíµÄ¸ß¶È£¨ÒÔÏñËØÎªµ¥Î»£©
-    unsigned int Depth;  // ÎÆÀí²ãÊı
+    unsigned int Width;  // çº¹ç†çš„å®½åº¦ï¼ˆä»¥åƒç´ ä¸ºå•ä½ï¼‰
+    unsigned int Height; // çº¹ç†çš„é«˜åº¦ï¼ˆä»¥åƒç´ ä¸ºå•ä½ï¼‰
+    unsigned int Depth;  // çº¹ç†å±‚æ•°
 
     Texture2DArray();
     Texture2DArray(Texture2DArray &&) noexcept = default;

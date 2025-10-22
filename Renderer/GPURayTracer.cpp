@@ -6,6 +6,7 @@
 #include "Random.hpp"
 #include "SimplifiedData.hpp"
 #include "Utils.hpp"
+#include "UI.hpp"
 
 // Implementations for GPURayTracer methods
 
@@ -33,7 +34,7 @@ void GPURayTracer::initializeGLResources()
 GPURayTracer::GPURayTracer() {}
 
 GPURayTracer::GPURayTracer(int _vp_width, int _vp_height, std::string _vs_path,
-                           std::string _fs_path) : Pass(_vp_width, _vp_height, _vs_path, _fs_path)
+    std::string _fs_path) : Pass(_vp_width, _vp_height, _vs_path, _fs_path)
 {
     initializeGLResources();
     contextSetup();
@@ -91,10 +92,21 @@ unsigned int GPURayTracer::getTextures()
 
 void GPURayTracer::render(TextureID skyTexID, TextureID sceneDataID)
 {
+    glViewport(0, 0, vp_width, vp_height);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO1); // Ping 着色
+    shaders.use();
+    shaders.setTextureAuto(raytraceSamplesTex2.ID, GL_TEXTURE_2D, 0, "lastSample");
+    shade(skyTexID, sceneDataID);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO2); // Pong 着色
+    shaders.setTextureAuto(raytraceSamplesTex1.ID, GL_TEXTURE_2D, 0, "lastSample");
+    shade(skyTexID, sceneDataID);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void GPURayTracer::renderUI()
+{
     static int toggleGammaCorrection = 1;
     static float gamma = 2.2f;
-    const bool CHANGED = true;
-
     ImGui::Begin("RenderUI");
     {
         RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(Renderer::Cam.position), 0.01f);
@@ -106,17 +118,9 @@ void GPURayTracer::render(TextureID skyTexID, TextureID sceneDataID)
 
         ImGui::End();
     }
+    SkySettings::RenderUI();
     DebugObjectRenderer::SetCamera(&Renderer::Cam);
 
-    glViewport(0, 0, vp_width, vp_height);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO1); // Ping 着色
-    shaders.use();
-    shaders.setTextureAuto(raytraceSamplesTex2.ID, GL_TEXTURE_2D, 0, "lastSample");
-    shade(skyTexID, sceneDataID);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO2); // Pong 着色
-    shaders.setTextureAuto(raytraceSamplesTex1.ID, GL_TEXTURE_2D, 0, "lastSample");
-    shade(skyTexID, sceneDataID);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void GPURayTracer::shade(TextureID skyTexID, TextureID sceneDataID)
@@ -147,25 +151,16 @@ void GPURayTracer::shade(TextureID skyTexID, TextureID sceneDataID)
     samplesCount++;
 }
 
-void GPURayTracer::setupSceneBuffers(SimplifiedData::DataStorage *dataStorage)
+//只读取就绪时的CPU场景数据，转换为GPU可用的格式并上传
+void GPURayTracer::setupSceneBuffers(SimplifiedData::DataStorage* dataStorage)
 {
     static std::unique_ptr<sd::FlatNodeStorage> flatNodeStorage = std::make_unique<sd::FlatNodeStorage>();
     static std::unique_ptr<sd::FlatTriangleStorage> flatTriangleStorage = std::make_unique<sd::FlatTriangleStorage>();
 
     sd::ConvertToFlatStorage(*dataStorage, *flatNodeStorage.get(), *flatTriangleStorage.get());
 
-    // static bool dumped = false;
-    // if (!dumped)
-    // {
-    //     auto dump = sd::DumpFlatFloatDataString(flatNodeStorage->nodes.data(), flatNodeStorage->nodes.size());
-    //     std::cout << dump << std::endl;
-    //     sd::DumpFlatFloatData(flatNodeStorage->nodes.data(), flatNodeStorage->nodes.size(), "./dump/nodesFlatData");
-    //     std::cout << "Node Size: " << flatNodeStorage->nodes.size() << std::endl;
-    //     sd::DumpFlatFloatData(flatTriangleStorage->triangles.data(), flatTriangleStorage->triangles.size(), "./dump/trianglesFlatData");
-    //     std::cout << "Triangle Size:" << flatTriangleStorage->triangles.size() << std::endl;
-    //     std::cout << "Flat Root:" << dataStorage->rootIndex << std::endl;
-    //     dumped = true;
-    // }
+
+    //设置纹理,也就是GPU数据存储
     // 纹理高度不为1
     if (nodeStorageTex.Width * nodeStorageTex.Height != flatNodeStorage->getSizeInBytes())
     {
@@ -192,6 +187,34 @@ void GPURayTracer::setupSceneBuffers(SimplifiedData::DataStorage *dataStorage)
 
     sceneRootIndex = dataStorage->rootIndex;
 
-    // nodeStorageBuf.setData(0, sd::NODESIZESSBO * sizeof(float), flatNodeStorage->nodes.data());
-    // triangleStorageBuf.setData(0, sd::TRIANGLESIZESSBO * sizeof(float), flatTriangleStorage->triangles.data());
+}
+
+void GPURayTracer::setupSceneBuffers(sd::FlatNodeStorage* flatNodeStorage, sd::FlatTriangleStorage* flatTriangleStorage, size_t rootIndex)
+{
+    //设置纹理,也就是GPU数据存储
+// 纹理高度不为1
+    if (nodeStorageTex.Width * nodeStorageTex.Height != flatNodeStorage->getSizeInBytes())
+    {
+        if (flatNodeStorage->getSizeInBytes() > GetTextureSizeLimit() * GetTextureSizeLimit())
+        {
+            throw(std::runtime_error(std::format("Storage Texture width beyond Limit: {} > {}", flatNodeStorage->getSizeInBytes(), GetTextureSizeLimit() * GetTextureSizeLimit())));
+        }
+        int newWidth = GetTextureSizeLimit();
+        int newHeight = static_cast<int>(flatNodeStorage->getSizeInBytes()) / newWidth;
+        nodeStorageTex.resize(newWidth, newHeight);
+    }
+    if (triangleStorageTex.Width * triangleStorageTex.Height != flatTriangleStorage->getSizeInBytes())
+    {
+        if (flatTriangleStorage->getSizeInBytes() > GetTextureSizeLimit() * GetTextureSizeLimit())
+        {
+            throw(std::runtime_error(std::format("Storage Texture width beyond Limit: {} > {}", flatTriangleStorage->getSizeInBytes(), GetTextureSizeLimit() * GetTextureSizeLimit())));
+        }
+        int newWidth = GetTextureSizeLimit();
+        int newHeight = static_cast<int>(flatTriangleStorage->getSizeInBytes()) / newWidth;
+        triangleStorageTex.resize(newWidth, newHeight);
+    }
+    nodeStorageTex.setData(flatNodeStorage->nodes.data());
+    triangleStorageTex.setData(flatTriangleStorage->triangles.data());
+
+    sceneRootIndex = rootIndex;
 }

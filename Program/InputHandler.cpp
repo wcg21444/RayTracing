@@ -4,7 +4,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 // 内部逻辑实现
-void InputHandler::ToggleControlMode(GLFWwindow *window)
+void InputHandler::ToggleControlMode(GLFWwindow* window)
 {
     if (currentMode == APP_CONTROL) // APP TO UI
     {
@@ -13,7 +13,7 @@ void InputHandler::ToggleControlMode(GLFWwindow *window)
         // 恢复 UI 模式的鼠标位置
         glfwSetCursorPos(window, mouseState.uiX, mouseState.uiY);
         // ImGui接管输入
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
         currentMode = UI_CONTROL;
     }
@@ -24,13 +24,13 @@ void InputHandler::ToggleControlMode(GLFWwindow *window)
         // 恢复 APP 模式的虚拟鼠标位置
         glfwSetCursorPos(window, mouseState.appX, mouseState.appY);
         // ImGui忽略输入
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
         currentMode = APP_CONTROL;
     }
 }
 
-void InputHandler::WindowResizeCallback(GLFWwindow *window, int resizeWidth, int resizeHeight)
+void InputHandler::WindowResizeCallback(GLFWwindow* window, int resizeWidth, int resizeHeight)
 {
     DebugObjectRenderer::Resize(resizeWidth, resizeHeight);
     if (pRenderer)
@@ -43,7 +43,7 @@ void InputHandler::WindowResizeCallback(GLFWwindow *window, int resizeWidth, int
     }
 }
 
-void InputHandler::KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+void InputHandler::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_F2 && action == GLFW_PRESS)
     {
@@ -60,7 +60,7 @@ void InputHandler::KeyCallback(GLFWwindow *window, int key, int scancode, int ac
     }
 }
 
-void InputHandler::MouseCallback(GLFWwindow *window, double xpos, double ypos)
+void InputHandler::MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
     if (currentMode == UI_CONTROL)
     {
@@ -74,7 +74,7 @@ void InputHandler::MouseCallback(GLFWwindow *window, double xpos, double ypos)
     }
 }
 
-void InputHandler::ScrollCallback(GLFWwindow *window, double xoffset, double yoffset)
+void InputHandler::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     if (currentMode == UI_CONTROL)
     {
@@ -87,7 +87,7 @@ void InputHandler::ScrollCallback(GLFWwindow *window, double xoffset, double yof
     }
 }
 
-void InputHandler::MouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
+void InputHandler::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
     if (currentMode == UI_CONTROL)
     {
@@ -97,13 +97,13 @@ void InputHandler::MouseButtonCallback(GLFWwindow *window, int button, int actio
     {
         // 处理程序的鼠标按钮输入
         // ...
-        mouseButtonState = {button, action, mods};
+        mouseButtonState = { button, action, mods };
     }
 }
 
-void InputHandler::BindWindow(GLFWwindow *window)
+void InputHandler::BindWindow(GLFWwindow* window)
 {
-    glfwMakeContextCurrent(window);
+
     glfwSetKeyCallback(window, KeyCallback);
     glfwSetCursorPosCallback(window, MouseCallback);
     glfwSetMouseButtonCallback(window, MouseButtonCallback);

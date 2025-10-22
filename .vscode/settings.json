@@ -99,9 +99,25 @@
         "cassert": "cpp",
         "source_location": "cpp",
         "stack": "cpp",
-        "scenetex,glsl": "cpp"
+        "scenetex,glsl": "cpp",
+        "coroutine": "cpp",
+        "resumable": "cpp",
+        "shared_mutex": "cpp"
     },
     // "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.compilerPath": "cl.exe",
+    "C_Cpp.intelliSenseEngine": "default",
+    "python.analysis.inlayHints.callArgumentNames": "partial",
+    "C_Cpp.inlayHints.referenceOperator.showSpace": true,
+    "editor.inlayHints.enabled": "offUnlessPressed",
+    "C_Cpp.inlayHints.autoDeclarationTypes.enabled": true,
+    "C_Cpp.inlayHints.autoDeclarationTypes.showOnLeft": true,
+    "C_Cpp.inlayHints.parameterNames.enabled": true,
+    "C_Cpp.inlayHints.referenceOperator.enabled": true,
+    "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
+    "C_Cpp.clang_format_style": "Visual Studio",
+    "C_Cpp.formatting": "vcFormat",
+    "C_Cpp.vcFormat.indent.accessSpecifiers": false
     // "C_Cpp.formatting": "clangFormat"
 }

@@ -55,7 +55,7 @@ void SkyTexPass::render(const glm::vec3 & camPos)
     /****************************************方向光源输入**************************************************/
 
     shaders.setUniform3fv("dirLightPos", SkySettings::sunlightDir);
-    shaders.setUniform3fv("dirLightIntensity", SkySettings::sunlightIntensity);
+    shaders.setUniform3fv("dirLightIntensity", SkySettings::sunlightColor*SkySettings::sunlightIntensity);
 
     cubemapParam->update(camPos);
     for (unsigned int i = 0; i < 6; ++i)

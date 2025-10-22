@@ -1,11 +1,14 @@
 #include <fstream>
 #include <iomanip>
 #include <filesystem>
+#include <chrono>
+#include <unordered_map>
 
 #include <Windows.h>
+#include "UICommon.hpp"
 
 #include "Utils.hpp"
-void SimplifiedData::DumpFlatFloatData(const float *data, size_t size, std::string path)
+void SimplifiedData::DumpFlatFloatData(const float* data, size_t size, std::string path)
 {
     std::ofstream outfile;
     outfile.open(path);
@@ -25,7 +28,7 @@ void SimplifiedData::DumpFlatFloatData(const float *data, size_t size, std::stri
     outfile.close();
 }
 
-std::string SimplifiedData::DumpFlatFloatDataString(const float *data, size_t size)
+std::string SimplifiedData::DumpFlatFloatDataString(const float* data, size_t size)
 {
     std::stringstream outString;
     // 0th 不换行. 输出位数对齐
@@ -44,7 +47,7 @@ std::string SimplifiedData::DumpFlatFloatDataString(const float *data, size_t si
     return outString.str();
 }
 
-bool Output::CreateParentDirectories(const std::string &filepath)
+bool Output::CreateParentDirectories(const std::string& filepath)
 {
     std::filesystem::path p(filepath);
     std::filesystem::path parent_dir = p.parent_path();
@@ -57,7 +60,7 @@ bool Output::CreateParentDirectories(const std::string &filepath)
             // std::cerr << "Created directory: " << parent_dir << std::endl;
             return true;
         }
-        catch (const std::filesystem::filesystem_error &e)
+        catch (const std::filesystem::filesystem_error& e)
         {
             std::cerr << "Failed to create directory " << parent_dir << ": " << e.what() << std::endl;
             return false;
@@ -66,7 +69,7 @@ bool Output::CreateParentDirectories(const std::string &filepath)
     return true; // 目录已存在或路径无父目录
 }
 
-void Output::ExportShaderSource(const std::string &filename, const std::string &source, bool readonly = true)
+void Output::ExportShaderSource(const std::string& filename, const std::string& source, bool readonly = true)
 {
     // 尝试创建父目录。如果失败，立即返回。
     if (!Output::CreateParentDirectories(filename))
@@ -110,8 +113,38 @@ void Output::ExportShaderSource(const std::string &filename, const std::string &
     }
 }
 
-std::string Output::GetFilenameNoExtension(const std::string &path_str)
+std::string Output::GetFilenameNoExtension(const std::string& path_str)
 {
     std::filesystem::path p(path_str);
     return p.stem().string();
 }
+
+namespace Profiler
+{
+    // 用两个方法, 划分开始结束区间 , 监测区间内代码耗时,每个区间用户自定义名字
+
+    std::unordered_map<std::string, TimeBeginEnd> TimeBlocks;
+
+    void Profiler::BeginTimeBlock(const std::string& name)
+    {
+        TimeBlocks[name].startTime = high_resolution_clock::now();
+    }
+
+    void Profiler::EndTimeBlock(const std::string& name)
+    {
+        TimeBlocks[name].endTime = high_resolution_clock::now();
+    }
+
+    void RenderUI()
+    {
+        ImGui::Begin("Profiler");
+        for (const auto& [name, timeBlock] : TimeBlocks)
+        {
+            auto duration = duration_cast<milliseconds>(timeBlock.endTime - timeBlock.startTime).count();
+            ImGui::Text("%s: %lld ms", name.c_str(), duration);
+        }
+        ImGui::End();
+    }
+
+}
+

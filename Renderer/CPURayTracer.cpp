@@ -3,6 +3,7 @@
 #include <chrono>
 #include "Random.hpp"
 #include "SimplifiedData.hpp"
+#include "RenderState.hpp"
 CPURayTracer::~CPURayTracer()
 {
 }
@@ -63,13 +64,13 @@ void CPURayTracer::shutdown()
     syncBlocking();
 }
 
-void CPURayTracer::setScene(const Scene &sceneInput)
+void CPURayTracer::setScene(const Scene& sceneInput)
 {
     pNewScene = &sceneInput;
     usingSdScene = false;
 }
 
-void CPURayTracer::setSdScene(const sd::Scene &sceneInput)
+void CPURayTracer::setSdScene(const sd::Scene& sceneInput)
 {
     pNewSdScene = &sceneInput;
     usingSdScene = true;
@@ -83,7 +84,7 @@ bool CPURayTracer::queryShadingTasksAllDone()
         return true;
     }
     bool allDone = true;
-    for (auto &future : shadingFutures)
+    for (auto& future : shadingFutures)
     {
         if (future.valid() && future.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
         {
@@ -106,7 +107,7 @@ void CPURayTracer::syncBlocking()
     //  将会同步渲染结果
     if (!shadingFutures.empty())
     {
-        for (auto &future : shadingFutures)
+        for (auto& future : shadingFutures)
         {
             future.get(); // 如果有未完成future,将阻塞线程
         }
@@ -149,14 +150,14 @@ void CPURayTracer::shadeAsync(int numThreads)
             int startY = i * rowsPerThread;
             int endY = (i == numThreads - 1) ? height : startY + rowsPerThread;
             this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
-                                                      {
-            for (int y = startY; y < endY; ++y)
-            {
-                for (int x = 0; x < width; ++x)
                 {
-                    tracer.shade(x, y);
-                }
-            } }));
+                    for (int y = startY; y < endY; ++y)
+                    {
+                        for (int x = 0; x < width; ++x)
+                        {
+                            tracer.shade(x, y);
+                        }
+                    } }));
         }
     }
 }
@@ -180,15 +181,17 @@ void CPURayTracer::sdShadeAsync(int numThreads)
         {
             int startY = i * rowsPerThread;
             int endY = (i == numThreads - 1) ? height : startY + rowsPerThread;
-            this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY]()
-                                                      {
-            for (int y = startY; y < endY; ++y)
-            {
-                for (int x = 0; x < width; ++x)
-                {
-                    tracer.sdShade(x, y);
-                }
-            } }));
+            this->shadingFutures.push_back(
+                std::async(std::launch::async, [this, startY, endY]()
+                    {
+                        for (int y = startY; y < endY; ++y)
+                        {
+                            for (int x = 0; x < width; ++x)
+                            {
+                                tracer.sdShade(x, y);
+                            }
+                        }
+                    }));
         }
     }
 }
@@ -202,9 +205,9 @@ void CPURayTracer::interact()
         RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &Renderer::Cam.focalLength, 0.01f);
         RenderState::Dirty |= ImGui::DragFloat("PerturbStrength", &tracer.perturbStrength, 1e-4f);
 
-        ImGui::Text(std::format("HFov: {}", Renderer::Cam.getHorizontalFOV()).c_str());
-        ImGui::Text(std::format("Count of Samples: {}", tracer.sampleCounts).c_str());
-        ImGui::Text(std::format("Seconds per Sample: {}", secPerSample).c_str());
+        ImGui::Text("HFov: %f", Renderer::Cam.getHorizontalFOV());
+        ImGui::Text("Count of Samples: %llu", tracer.sampleCounts);
+        ImGui::Text("Seconds per Sample: %f", secPerSample);
 
         ImGui::End();
     }

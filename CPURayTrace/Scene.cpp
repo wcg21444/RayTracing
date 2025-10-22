@@ -161,7 +161,6 @@ void Scene::initialize()
     //         },
     //         LightEmit(color4(8.f, 6.f, 5.f, 1.f))));
 
-    ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj", *this);
 }
 
 namespace SimplifiedData
@@ -200,8 +199,8 @@ namespace SimplifiedData
             // root = sd::ModelLoader::LoadModelFileSync("Resources/Sphere.obj");
             // sceneIndices.push_back(root);
             // root = sd::ModelLoader::LoadModelFileSync("Resources/brizzareTri.obj");
-            root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj");
-            sceneIndices.push_back(root);
+            // root = sd::ModelLoader::LoadModelFileSync("Resources/dragon/dragon.obj");//Read access violation
+            // sceneIndices.push_back(root);
             root = sd::ModelLoader::LoadModelFileSync("Resources/MultiHighCube.obj");
             sceneIndices.push_back(root);
 
@@ -211,7 +210,7 @@ namespace SimplifiedData
         catch (std::exception &e)
         {
             std::cout << e.what() << std::endl;
-            std::abort(); // 临时措施,直接终止
+            // std::abort(); // 临时措施,直接终止
         }
     }
 }

@@ -1,16 +1,15 @@
 #pragma once
 
-#include "Shader.hpp"
+#include <thread>
+// #include "Shader.hpp"
 
 #include "Pass.hpp"
 #include "Utils.hpp"
 #include "Camera.hpp"
-#include "UI.hpp"
+// #include "UI.hpp"
 #include "DebugObjectRenderer.hpp"
-#include "RenderState.hpp"
+// #include "RenderState.hpp"
 
-#include <thread>
-#include <future>
 
 class ScreenPass;
 class PostProcessor;
@@ -35,7 +34,7 @@ private:
     int CPUThreads = 14;
 
 private:
-    bool useGPU = false;
+    bool useGPU = false;    
 
 public:
     std::unique_ptr<ScreenPass> screenPass;
@@ -57,4 +56,6 @@ public:
     void resize(int newWidth, int newHeight);
     void resetSamples();
     void shutdown();
+    private:
+    void renderUI();
 };

@@ -41,7 +41,7 @@ uniform vec3 sunlightDir;
 uniform vec4 sunlightIntensity;
 uniform Camera cam;
 
-const int bounceLimit = 10;
+const int bounceLimit =10;
 Sphere spheres[3];
 vec3 viewDir;
 vec2 uv;
@@ -236,6 +236,9 @@ vec4 hitSky(vec3 ori, vec3 dir)
     vec4 skyResult = vec4(0.0f);
 
     skyResult += texture(skybox, dir);
+    // if(skyResult.r<1.0f||skyResult.g<1.0f||skyResult.b<1.0f){
+    //     return vec4(0.1f);
+    // }
     return skyResult;
     /*     vec4 skyResult = vec4(0.0f);
         float camHeight = length(ori - earthCenter) - earthRadius;
@@ -316,18 +319,19 @@ vec4 castRay(in Ray ray, int traceDepth,uint rootIndex)
         if (closestHit.t != invalidT)
         {
             // color+= lambertianIrradiance(closestHit);
-            throughout *= vec3(0.9f,0.5f,0.4f);
+            throughout *= vec3(1.0f);
             vec3 rndDir = sampleCosineHemisphere(closestHit.normal, TexCoord * (rand + 1.f));
-            vec3 bias = closestHit.normal*1e-3;
-            tracingRay = Ray(closestHit.pos+bias, rndDir/10.f+closestHit.normal*4.f);
+            vec3 bias = closestHit.normal*1e-4;
+            // tracingRay = Ray(closestHit.pos+bias, rndDir/2.f+closestHit.normal*1.f);
+            tracingRay = Ray(closestHit.pos+bias, rndDir);
             // color = vec4(1.0f,0.0f,0.0f,0.0f);
             continue;
         }
+
         // 未命中
         color.rgb += throughout * hitSky(tracingRay.ori, tracingRay.dir).rgb;
         break;
     }
-    color.rgb += generateSunDisk(tracingRay.ori, tracingRay.dir, sunDir, dirLightIntensity, 1e-3);
 
     return color;
 }

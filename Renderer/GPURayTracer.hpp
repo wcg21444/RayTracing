@@ -9,6 +9,8 @@
 namespace SimplifiedData
 {
     struct DataStorage;
+    struct FlatNodeStorage;
+    struct FlatTriangleStorage;
 }
 
 class GPURayTracer : public Pass
@@ -32,6 +34,7 @@ private:
 
 private:
     void initializeGLResources();
+    void shade(TextureID skyTexID, TextureID sceneDataID);
 
 public:
     GPURayTracer();
@@ -44,7 +47,9 @@ public:
     void resetSamples();
     unsigned int getTextures();
     void render(TextureID skyTexID, TextureID sceneDataID);
-    void shade(TextureID skyTexID, TextureID sceneDataID);
+    void renderUI();
 
     void setupSceneBuffers(SimplifiedData::DataStorage *dataStorage);
+    
+    void setupSceneBuffers(SimplifiedData::FlatNodeStorage *flatNodeStorage, SimplifiedData::FlatTriangleStorage *flatTriangleStorage,size_t rootIndex);
 };

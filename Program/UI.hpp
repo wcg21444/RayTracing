@@ -20,7 +20,8 @@ public:
     inline static glm::vec4 betaMie = glm::vec4(21e-6, 21e-6, 21e-6, 1.0f);
     inline static int maxStep = 32;
     inline static glm::vec3 sunlightDir = glm::vec3(1.0f, 0.3f, 0.4f);
-    inline static glm::vec4 sunlightIntensity = glm::vec4(1.0f);
+    inline static glm::vec4 sunlightColor = glm::vec4(1.0f);
+    inline static float sunlightIntensity = 1.0f;
 
     inline static void RenderUI()
     {
@@ -50,7 +51,8 @@ public:
             ImGui::PopItemWidth();
 
             RenderState::Dirty |= ImGui::DragFloat3("SunlightDir", glm::value_ptr(sunlightDir));
-            RenderState::Dirty |= ImGui::ColorPicker4("SunlightIntensity", glm::value_ptr(sunlightIntensity));
+            RenderState::Dirty |= ImGui::DragFloat("SunlightIntensity", &sunlightIntensity);
+            RenderState::Dirty |= ImGui::ColorPicker4("SunlightColor", glm::value_ptr(sunlightColor));
         }
         ImGui::End();
     }
@@ -70,6 +72,6 @@ public:
         shaders.setFloat("MieIntensity", SkySettings::MieIntensity);
         shaders.setUniform("betaMie", SkySettings::betaMie);
         shaders.setUniform("sunlightDir", SkySettings::sunlightDir);
-        shaders.setUniform("sunlightIntensity", SkySettings::sunlightIntensity);
+        shaders.setUniform("sunlightColor", SkySettings::sunlightColor*SkySettings::sunlightIntensity);
     }
 };

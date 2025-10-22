@@ -87,7 +87,7 @@ namespace SimplifiedData
         uint16_t matFlags;
     };
 
-    inline constexpr uint32_t TRIANGLESIZE = 1 << 20;          // 2^20 = 1048576 个三角形  不要用一个数组分配太大内存 否则 bad alloc
+    inline constexpr uint32_t TRIANGLESIZE = 1 << 21;          // 2^21 = 2097152 个三角形  不要用一个数组分配太大内存 否则 bad alloc
     inline constexpr uint32_t NODESIZE = TRIANGLESIZE * 2 - 1; // 完全二叉树节点数 = 2*n-1,也就是最大节点数
 
     class TriangleStorage

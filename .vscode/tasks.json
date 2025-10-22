@@ -1,25 +1,7 @@
 {
     "version": "2.0.0",
     "tasks": [
-        {
-            "label": "CMake Configure",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "-S",
-                "${workspaceFolder}",
-                "-B",
-                "${workspaceFolder}/build",
-                "-DCMAKE_BUILD_TYPE=Debug",
-                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                "-j=16"
-            ],
-            "group": "build",
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "detail": "配置 CMake 项目"
-        },
+        
         {
             "label": "CMake Build",
             "type": "shell",
@@ -38,16 +20,6 @@
                 "$msCompile"
             ],
             "detail": "构建 CMake 项目"
-        },
-        {
-            "label": "Run Executable",
-            "type": "shell",
-            "command": "${workspaceFolder}/build/Debug/OpenGL_Play.exe", // 修改为你的可执行文件路径
-            "dependsOn": [
-                "CMake Build"
-            ], // 依赖 CMake Build 任务
-            "group": "test",
-            "detail": "运行生成的可执行文件"
         }
     ]
 }

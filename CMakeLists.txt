@@ -10,6 +10,9 @@ project(RayTracing)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+message(STATUS "CMAKE_RUNTIME_OUTPUT_DIRECTORY = ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+
 
 set(IMGUI 
 imgui
@@ -47,6 +50,8 @@ include_directories("Program")
 include_directories("CPURayTrace")
 include_directories("Include")
 
+
+
 add_executable(${PROJECT_NAME}
 "main.cpp"
 ${IMGUI_SRC}
@@ -56,6 +61,9 @@ ${RENDERER_SRC}
 ${PROGRAM_SRC}
 ${CPURAYTRACE_SRC}
        )
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
 
 find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
