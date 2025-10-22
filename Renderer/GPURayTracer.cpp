@@ -7,6 +7,7 @@
 #include "SimplifiedData.hpp"
 #include "Utils.hpp"
 #include "UI.hpp"
+#include "Storage.hpp"
 
 // Implementations for GPURayTracer methods
 
@@ -17,15 +18,6 @@ void GPURayTracer::initializeGLResources()
     raytraceSamplesTex1.generate(vp_width, vp_height, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
     raytraceSamplesTex2.generate(vp_width, vp_height, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
 
-    nodeStorageTex.setFilterMax(GL_NEAREST);
-    nodeStorageTex.setFilterMin(GL_NEAREST);
-    nodeStorageTex.setWrapMode(GL_CLAMP_TO_EDGE);
-    triangleStorageTex.setFilterMax(GL_NEAREST);
-    triangleStorageTex.setFilterMin(GL_NEAREST);
-    triangleStorageTex.setWrapMode(GL_CLAMP_TO_EDGE);
-    nodeStorageTex.generate(1, 1, GL_R32F, GL_RED, GL_FLOAT, NULL, false);
-    triangleStorageTex.generate(1, 1, GL_R32F, GL_RED, GL_FLOAT, NULL, false);
-
     // SSBO Initialization
     // nodeStorageBuf.generate(sd::NODESIZESSBO, GL_DYNAMIC_DRAW);
     // triangleStorageBuf.generate(sd::TRIANGLESIZESSBO, GL_DYNAMIC_DRAW);
@@ -34,7 +26,7 @@ void GPURayTracer::initializeGLResources()
 GPURayTracer::GPURayTracer() {}
 
 GPURayTracer::GPURayTracer(int _vp_width, int _vp_height, std::string _vs_path,
-    std::string _fs_path) : Pass(_vp_width, _vp_height, _vs_path, _fs_path)
+                           std::string _fs_path) : Pass(_vp_width, _vp_height, _vs_path, _fs_path)
 {
     initializeGLResources();
     contextSetup();
@@ -85,7 +77,7 @@ void GPURayTracer::resetSamples()
     samplesCount = 1;
 }
 
-unsigned int GPURayTracer::getTextures()
+unsigned int GPURayTracer::getTraceResult()
 {
     return raytraceSamplesTex1.ID;
 }
@@ -115,12 +107,22 @@ void GPURayTracer::renderUI()
 
         ImGui::Text(std::format("HFov: {}", Renderer::Cam.getHorizontalFOV()).c_str());
         ImGui::Text(std::format("SamplesCount: {}", samplesCount).c_str());
-
+        ImGui::Text(std::format("RenderingNodeStorageID: {}", Storage::SceneBundleRendering.nodeStorageTex.ID).c_str());
+        ImGui::Text(std::format("RenderingRootIndex: {}", Storage::SceneBundleRendering.sceneRootIndex).c_str());
+        if (ImGui::Button("Debug Swap Scene"))
+        {
+            RenderState::Dirty |= true;
+            Storage::SdSceneLoader.swapTextures();
+        }
+        if (ImGui::Button("Debug Upload Scene"))
+        {
+            RenderState::Dirty |= true;
+            Storage::SdSceneLoader.upload();
+        }
         ImGui::End();
     }
     SkySettings::RenderUI();
     DebugObjectRenderer::SetCamera(&Renderer::Cam);
-
 }
 
 void GPURayTracer::shade(TextureID skyTexID, TextureID sceneDataID)
@@ -139,82 +141,22 @@ void GPURayTracer::shade(TextureID skyTexID, TextureID sceneDataID)
     // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, nodeStorage.ID);
     // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, triangleStorage.ID);
 
-    shaders.setTextureAuto(nodeStorageTex.ID, GL_TEXTURE_2D, 0, "nodeStorageTex");
-    shaders.setTextureAuto(triangleStorageTex.ID, GL_TEXTURE_2D, 0, "triangleStorageTex");
-    shaders.setUniform("sceneRootIndex", static_cast<unsigned int>(sceneRootIndex));
+    // shaders.setTextureAuto(nodeStorageTex.ID, GL_TEXTURE_2D, 0, "nodeStorageTex");
+    // shaders.setTextureAuto(triangleStorageTex.ID, GL_TEXTURE_2D, 0, "triangleStorageTex");
+    // shaders.setUniform("sceneRootIndex", static_cast<unsigned int>(sceneRootIndex));
 
-    /****************************************天空设置*****************************************************/
-    SkySettings::SetShaderUniforms(shaders);
-    shaders.setTextureAuto(skyTexID, GL_TEXTURE_CUBE_MAP, 0, "skybox");
+    {
+        std::shared_lock<std::shared_mutex> sceneLock(Storage::SceneBundleRenderingMutex);
+        auto &[NodeStorageTexRendering, TriangleStorageTexRendering, SceneRootIndexRendering] = Storage::SceneBundleRendering;
+        shaders.setTextureAuto(NodeStorageTexRendering.ID, GL_TEXTURE_2D, 0, "nodeStorageTex");
+        shaders.setTextureAuto(TriangleStorageTexRendering.ID, GL_TEXTURE_2D, 0, "triangleStorageTex");
+        shaders.setUniform("sceneRootIndex", static_cast<unsigned int>(SceneRootIndexRendering));
 
-    DrawQuad();
+        /****************************************天空设置*****************************************************/
+        SkySettings::SetShaderUniforms(shaders);
+        shaders.setTextureAuto(skyTexID, GL_TEXTURE_CUBE_MAP, 0, "skybox");
+
+        DrawQuad();
+    }
     samplesCount++;
-}
-
-//只读取就绪时的CPU场景数据，转换为GPU可用的格式并上传
-void GPURayTracer::setupSceneBuffers(SimplifiedData::DataStorage* dataStorage)
-{
-    static std::unique_ptr<sd::FlatNodeStorage> flatNodeStorage = std::make_unique<sd::FlatNodeStorage>();
-    static std::unique_ptr<sd::FlatTriangleStorage> flatTriangleStorage = std::make_unique<sd::FlatTriangleStorage>();
-
-    sd::ConvertToFlatStorage(*dataStorage, *flatNodeStorage.get(), *flatTriangleStorage.get());
-
-
-    //设置纹理,也就是GPU数据存储
-    // 纹理高度不为1
-    if (nodeStorageTex.Width * nodeStorageTex.Height != flatNodeStorage->getSizeInBytes())
-    {
-        if (flatNodeStorage->getSizeInBytes() > GetTextureSizeLimit() * GetTextureSizeLimit())
-        {
-            throw(std::runtime_error(std::format("Storage Texture width beyond Limit: {} > {}", flatNodeStorage->getSizeInBytes(), GetTextureSizeLimit() * GetTextureSizeLimit())));
-        }
-        int newWidth = GetTextureSizeLimit();
-        int newHeight = static_cast<int>(flatNodeStorage->getSizeInBytes()) / newWidth;
-        nodeStorageTex.resize(newWidth, newHeight);
-    }
-    if (triangleStorageTex.Width * triangleStorageTex.Height != flatTriangleStorage->getSizeInBytes())
-    {
-        if (flatTriangleStorage->getSizeInBytes() > GetTextureSizeLimit() * GetTextureSizeLimit())
-        {
-            throw(std::runtime_error(std::format("Storage Texture width beyond Limit: {} > {}", flatTriangleStorage->getSizeInBytes(), GetTextureSizeLimit() * GetTextureSizeLimit())));
-        }
-        int newWidth = GetTextureSizeLimit();
-        int newHeight = static_cast<int>(flatTriangleStorage->getSizeInBytes()) / newWidth;
-        triangleStorageTex.resize(newWidth, newHeight);
-    }
-    nodeStorageTex.setData(flatNodeStorage->nodes.data());
-    triangleStorageTex.setData(flatTriangleStorage->triangles.data());
-
-    sceneRootIndex = dataStorage->rootIndex;
-
-}
-
-void GPURayTracer::setupSceneBuffers(sd::FlatNodeStorage* flatNodeStorage, sd::FlatTriangleStorage* flatTriangleStorage, size_t rootIndex)
-{
-    //设置纹理,也就是GPU数据存储
-// 纹理高度不为1
-    if (nodeStorageTex.Width * nodeStorageTex.Height != flatNodeStorage->getSizeInBytes())
-    {
-        if (flatNodeStorage->getSizeInBytes() > GetTextureSizeLimit() * GetTextureSizeLimit())
-        {
-            throw(std::runtime_error(std::format("Storage Texture width beyond Limit: {} > {}", flatNodeStorage->getSizeInBytes(), GetTextureSizeLimit() * GetTextureSizeLimit())));
-        }
-        int newWidth = GetTextureSizeLimit();
-        int newHeight = static_cast<int>(flatNodeStorage->getSizeInBytes()) / newWidth;
-        nodeStorageTex.resize(newWidth, newHeight);
-    }
-    if (triangleStorageTex.Width * triangleStorageTex.Height != flatTriangleStorage->getSizeInBytes())
-    {
-        if (flatTriangleStorage->getSizeInBytes() > GetTextureSizeLimit() * GetTextureSizeLimit())
-        {
-            throw(std::runtime_error(std::format("Storage Texture width beyond Limit: {} > {}", flatTriangleStorage->getSizeInBytes(), GetTextureSizeLimit() * GetTextureSizeLimit())));
-        }
-        int newWidth = GetTextureSizeLimit();
-        int newHeight = static_cast<int>(flatTriangleStorage->getSizeInBytes()) / newWidth;
-        triangleStorageTex.resize(newWidth, newHeight);
-    }
-    nodeStorageTex.setData(flatNodeStorage->nodes.data());
-    triangleStorageTex.setData(flatTriangleStorage->triangles.data());
-
-    sceneRootIndex = rootIndex;
 }

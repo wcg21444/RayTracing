@@ -110,6 +110,6 @@ namespace SimplifiedData
         Scene &operator=(const Scene &other);
         
 
-        void initialize(); // 布置场景
+        void initialize(); // 布置场景 延迟初始化
     };
 }

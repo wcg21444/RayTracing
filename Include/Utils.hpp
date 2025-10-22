@@ -54,6 +54,9 @@ inline vec3 DirectionOf(const point3& end, const point3& ori)
     return normalize(end - ori);
 }
 
+std::string GetCurrentWorkingDirectory();
+
+
 namespace SimplifiedData
 {
     void DumpFlatFloatData(const float* data, size_t size, std::string path);
@@ -70,6 +73,7 @@ namespace Output
 
 } // namespace Output
 
+//线程安全吗?
 namespace Profiler
 {
     // 用两个方法, 划分开始结束区间 , 监测区间内代码耗时,每个区间用户自定义名字

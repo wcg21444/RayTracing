@@ -160,7 +160,6 @@ void Scene::initialize()
     //             20,
     //         },
     //         LightEmit(color4(8.f, 6.f, 5.f, 1.f))));
-
 }
 
 namespace SimplifiedData
@@ -168,14 +167,12 @@ namespace SimplifiedData
     Scene::Scene()
     {
         pDataStorage = std::make_unique<sd::DataStorage>();
-
-        initialize();
     }
 
     Scene::Scene(const Scene &other)
     {
-
         pDataStorage = std::make_unique<sd::DataStorage>(*other.pDataStorage.get());
+        pDataStorage->rootIndex = other.pDataStorage->rootIndex;
     }
 
     Scene &Scene::operator=(const Scene &other)
@@ -202,6 +199,8 @@ namespace SimplifiedData
             // root = sd::ModelLoader::LoadModelFileSync("Resources/dragon/dragon.obj");//Read access violation
             // sceneIndices.push_back(root);
             root = sd::ModelLoader::LoadModelFileSync("Resources/MultiHighCube.obj");
+            // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj");
+            // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon18520.obj");
             sceneIndices.push_back(root);
 
             auto sceneRoot = sd::BVH::BuildBVHFromNodes(pDataStorage->nodeStorage, sceneIndices.data(), 0, sceneIndices.size());
@@ -210,7 +209,8 @@ namespace SimplifiedData
         catch (std::exception &e)
         {
             std::cout << e.what() << std::endl;
-            // std::abort(); // 临时措施,直接终止
+            std::abort(); // 临时措施,直接终止
         }
     }
+
 }

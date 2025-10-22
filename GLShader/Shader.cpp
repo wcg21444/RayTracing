@@ -74,7 +74,9 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
         glGetProgramInfoLog(programID, 512, NULL, infoLog);
         std::cerr << "VS : " << std::string(vs_path) << "FS : " << std::string(fs_path) << std::endl;
         std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
-                  << infoLog << std::endl;        throw std::runtime_error("Shader program link failed.");
+                  << infoLog << std::endl;        
+		std::cerr << "Current Dir:" << GetCurrentWorkingDirectory() << std::endl;
+        throw std::runtime_error("Shader program link failed.");
     }
 
     // Delete our used Shaders

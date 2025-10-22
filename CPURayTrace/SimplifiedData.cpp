@@ -165,7 +165,7 @@ namespace SimplifiedData
         // const auto count = nodeStorage.nodes.size();
         const auto count = nodeStorage.nextIndex; // 只转换已使用节点
 
-        flatNodeStorage.nodes.resize(count  * stride);
+        flatNodeStorage.nodes.resize(count * stride);
 
         const auto *src = nodeStorage.nodes.data();
         float *dst = flatNodeStorage.nodes.data();
@@ -311,8 +311,11 @@ namespace SimplifiedData
         BoundingBox box;
         box.pMin = glm::min(triangle.positions[0], glm::min(triangle.positions[1], triangle.positions[2]));
         box.pMax = glm::max(triangle.positions[0], glm::max(triangle.positions[1], triangle.positions[2]));
-        box.pMin -= vec3(1e-6f);
-        box.pMax += vec3(1e-6f);
+
+        // 缓解浮点数精度导致无法命中包围盒问题
+        const vec3 bias = vec3(1e-5f);
+        box.pMin -= bias;
+        box.pMax += bias;
         return box;
     }
 

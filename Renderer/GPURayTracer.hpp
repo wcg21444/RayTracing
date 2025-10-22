@@ -19,14 +19,11 @@ private:
     unsigned int FBO1;
     unsigned int FBO2;
 
-    Texture2D raytraceSamplesTex1;
+    Texture2D raytraceSamplesTex1; // Output
     Texture2D raytraceSamplesTex2;
 
     SSBO nodeStorageBuf;
     SSBO triangleStorageBuf;
-
-    Texture2D nodeStorageTex;
-    Texture2D triangleStorageTex;
 
     size_t sceneRootIndex = 0;
 
@@ -45,11 +42,8 @@ public:
     void contextSetup() override;
     void resize(int _width, int _height);
     void resetSamples();
-    unsigned int getTextures();
+    TextureID getTraceResult();
     void render(TextureID skyTexID, TextureID sceneDataID);
     void renderUI();
 
-    void setupSceneBuffers(SimplifiedData::DataStorage *dataStorage);
-    
-    void setupSceneBuffers(SimplifiedData::FlatNodeStorage *flatNodeStorage, SimplifiedData::FlatTriangleStorage *flatTriangleStorage,size_t rootIndex);
 };

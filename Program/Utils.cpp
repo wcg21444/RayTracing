@@ -5,6 +5,8 @@
 #include <unordered_map>
 
 #include <Windows.h>
+#include <crtdbg.h>
+
 #include "UICommon.hpp"
 
 #include "Utils.hpp"
@@ -128,6 +130,7 @@ namespace Profiler
     void Profiler::BeginTimeBlock(const std::string& name)
     {
         TimeBlocks[name].startTime = high_resolution_clock::now();
+        TimeBlocks[name].endTime = TimeBlocks[name].startTime;
     }
 
     void Profiler::EndTimeBlock(const std::string& name)
@@ -148,3 +151,7 @@ namespace Profiler
 
 }
 
+std::string GetCurrentWorkingDirectory()
+{
+    return std::filesystem::current_path().string();
+}

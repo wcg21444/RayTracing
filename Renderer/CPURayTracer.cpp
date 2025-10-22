@@ -11,14 +11,14 @@ CPURayTracer::~CPURayTracer()
 CPURayTracer::CPURayTracer(int _width, int _height)
     : width(_width), height(_height), tracer(_width, _height)
 {
-    this->imageTexture.generate(_width, _height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
-    this->imageTexture.setFilterMax(GL_NEAREST);
-    this->imageTexture.setFilterMin(GL_NEAREST);
+    this->traceResultTexture.generate(_width, _height, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL);
+    this->traceResultTexture.setFilterMax(GL_NEAREST);
+    this->traceResultTexture.setFilterMin(GL_NEAREST);
 }
 
-unsigned int CPURayTracer::getGLTextureID()
+unsigned int CPURayTracer::getTraceResult()
 {
-    return imageTexture.ID;
+    return traceResultTexture.ID;
 }
 
 void CPURayTracer::resize(int newWidth, int newHeight)
@@ -29,7 +29,7 @@ void CPURayTracer::resize(int newWidth, int newHeight)
         {
             this->width = newWidth;
             this->height = newHeight;
-            this->imageTexture.resize(newWidth, newHeight);
+            this->traceResultTexture.resize(newWidth, newHeight);
             this->tracer.resize(newWidth, newHeight);
             // this->imageData.resize(newWidth * newHeight, color4(0.0f));
         });
@@ -115,7 +115,7 @@ void CPURayTracer::syncBlocking()
 
         // 上传图像
         tracer.sampleCounts++;
-        this->imageTexture.setData(tracer.getImageData().data());
+        this->traceResultTexture.setData(tracer.getImageData().data());
 
         // 同步操作
         syncCallbackScheduler.executeAll();

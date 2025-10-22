@@ -4,15 +4,14 @@
 #include "CPURayTracer.hpp"
 #include "SkyTexPass.hpp"
 #include "RenderState.hpp"
-
+#include "Storage.hpp"
 
 Renderer::Renderer()
-    :
-    screenPass(std::make_unique<ScreenPass>(width, height, "GLSL/screenQuad.vs", "GLSL/screenOutput.fs")),
-    postProcessor(std::make_unique<PostProcessor>(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
-    gpuRayTracer(std::make_unique<GPURayTracer>(width, height, "GLSL/screenQuad.vs", "GLSL/simpleRayTrace.fs")),
-    skyTexPass(std::make_unique<SkyTexPass>("GLSL/cubemapSphere.vs", "GLSL/skyTex.fs", 256)),
-    cpuRayTracer(std::make_unique<CPURayTracer>(width, height))
+    : screenPass(std::make_unique<ScreenPass>(width, height, "GLSL/screenQuad.vs", "GLSL/screenOutput.fs")),
+      postProcessor(std::make_unique<PostProcessor>(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
+      gpuRayTracer(std::make_unique<GPURayTracer>(width, height, "GLSL/screenQuad.vs", "GLSL/simpleRayTrace.fs")),
+      skyTexPass(std::make_unique<SkyTexPass>("GLSL/cubemapSphere.vs", "GLSL/skyTex.fs", 256)),
+      cpuRayTracer(std::make_unique<CPURayTracer>(width, height))
 {
 
     skyTexPass->contextSetup();
@@ -24,7 +23,7 @@ Renderer::~Renderer()
 {
 }
 
-void Renderer::render(const Scene& scene)
+void Renderer::render(const Scene &scene)
 {
     renderUI();
 
@@ -38,14 +37,14 @@ void Renderer::render(const Scene& scene)
     {
         cpuRayTracer->setScene(scene);
         cpuRayTracer->draw(CPUThreads);
-        raytraceResult = cpuRayTracer->getGLTextureID();
+        raytraceResult = cpuRayTracer->getTraceResult();
     }
     else
     {
         skyTexPass->render(Renderer::Cam.position);
         auto skyTexID = skyTexPass->getCubemap();
         gpuRayTracer->render(skyTexID, 0);
-        raytraceResult = gpuRayTracer->getTextures();
+        raytraceResult = gpuRayTracer->getTraceResult();
     }
     postProcessor->render(raytraceResult);
     auto postProcessed = postProcessor->getTextures();
@@ -54,8 +53,9 @@ void Renderer::render(const Scene& scene)
 
     screenPass->render(postProcessed, debugRendererOutput);
 }
-void Renderer::render(const sd::Scene& scene)
+void Renderer::render(const sd::Scene &scene)
 {
+
     renderUI();
 
     if (RenderState::Dirty)
@@ -64,43 +64,42 @@ void Renderer::render(const sd::Scene& scene)
     }
 
     TextureID raytraceResult;
+
+    // TODO 使用策略模式或桥接器模式重构
     if (!useGPU)
     {
         if (RenderState::SceneDirty)
         {
-            cpuRayTracer->setSdScene(scene);
+            cpuRayTracer->setSdScene(Storage::SdScene);
+            RenderState::SceneDirty = false;
         }
         cpuRayTracer->draw(CPUThreads);
-        raytraceResult = cpuRayTracer->getGLTextureID();
+        raytraceResult = cpuRayTracer->getTraceResult();
     }
     else
     {
+
         skyTexPass->render(Renderer::Cam.position);
         auto skyTexID = skyTexPass->getCubemap();
 
         gpuRayTracer->renderUI();
+
         try
         {
             if (RenderState::SceneDirty)
             {
-                // auto setupFuture = std::async(std::launch::async, [&]()
-                //     {
-                           // glfwMakeContextCurrent(loadingContext);
-                //         //sceneLoader.loadScene(scene);
-                //         //swap Texture1, Texture2
-                           // glfwMakeContextCurrent(NULL);
-                //     });
-                gpuRayTracer->setupSceneBuffers(scene.pDataStorage.get());
+                Storage::SdSceneLoader.upload();
+
                 RenderState::SceneDirty = false;
             }
         }
-        catch (std::exception& e)
+        catch (std::exception &e)
         {
             std::cerr << e.what() << std::endl;
         }
         gpuRayTracer->render(skyTexID, 0);
 
-        raytraceResult = gpuRayTracer->getTextures();
+        raytraceResult = gpuRayTracer->getTraceResult();
     }
     postProcessor->render(raytraceResult);
     auto postProcessed = postProcessor->getTextures();
@@ -150,7 +149,8 @@ void Renderer::renderUI()
     ImGui::Begin("RenderUI");
     {
         // Toggle GPU/CPU Raytracing
-        if (ImGui::Checkbox("UseGPU", &useGPU)) {
+        if (ImGui::Checkbox("UseGPU", &useGPU))
+        {
             RenderState::Dirty = true;
             RenderState::SceneDirty = true;
         }

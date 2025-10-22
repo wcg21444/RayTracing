@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include "BVHUI.hpp"
-#include "CPURayTrace/Scene.hpp"
+#include "Scene.hpp"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/imgui.h"
@@ -13,6 +13,7 @@
 #include "Materials/Lambertian.hpp"
 #include "ModelLoader.hpp"
 #include "Renderer.hpp"
+#include "Storage.hpp"
 
 const int InitWidth = 640;
 const int InitHeight = 360;
@@ -31,8 +32,8 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    const char* glsl_version = "#version 460";
-    GLFWwindow* window = glfwCreateWindow(InitWidth, InitHeight, "RayTracing", NULL, NULL);
+    const char *glsl_version = "#version 460";
+    GLFWwindow *window = glfwCreateWindow(InitWidth, InitHeight, "RayTracing", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -54,7 +55,7 @@ int main()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
     (void)io;
 
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -84,7 +85,15 @@ int main()
     ModelLoader::Run(scene);
     scene.update();
 
-    sd::Scene sdscene;
+    // sd::Scene sdscene;
+
+    Storage::SdScene.initialize();
+    Storage::InitializeSceneRendering();
+
+    if (Storage::SdSceneLoader.running == false)
+    {
+        Storage::SdSceneLoader.run(glfwGetCurrentContext()); // running at mainContext
+    }
 
     while (!glfwWindowShouldClose(window))
     {
@@ -97,8 +106,9 @@ int main()
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
+        Profiler::RenderUI();
         // RTRenderer->render(scene);
-        RTRenderer->render(sdscene);
+        RTRenderer->render(Storage::SdScene);
 
         ImGui::Begin("RenderUI");
         {
@@ -108,6 +118,7 @@ int main()
                 RenderState::SceneDirty |= true;
                 scene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
                 scene.update();
+                
             }
             ImGui::End();
         }
@@ -121,7 +132,7 @@ int main()
         //     }
         // }
 
-        BVHSettings::RenderVisualization(*sdscene.pDataStorage);
+        BVHSettings::RenderVisualization(*Storage::SdScene.pDataStorage);
 
         DebugObjectRenderer::Render();
 
@@ -129,7 +140,7 @@ int main()
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+            GLFWwindow *backup_current_context = glfwGetCurrentContext();
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_current_context);

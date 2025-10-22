@@ -3,14 +3,14 @@
 #include "UICommon.hpp"
 #include "RenderState.hpp"
 #include "DebugObjectRenderer.hpp"
-#include "../CPURayTrace/Scene.hpp"
+#include "Scene.hpp"
 #include "SimplifiedData.hpp"
 class BVHSettings
 {
 public:
     inline static int maxDepth = 40;
     inline static int minDepth = 0;
-    inline static bool toggleVisualizeBVH = true;
+    inline static bool toggleVisualizeBVH = false;
     inline static bool toggleBVHAccel = true;
     inline static bool showLeafAABB = false;
 

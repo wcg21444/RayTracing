@@ -117,7 +117,7 @@
     "C_Cpp.inlayHints.referenceOperator.enabled": true,
     "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
     "C_Cpp.clang_format_style": "Visual Studio",
-    "C_Cpp.formatting": "vcFormat",
+    "C_Cpp.formatting": "default",
     "C_Cpp.vcFormat.indent.accessSpecifiers": false
     // "C_Cpp.formatting": "clangFormat"
 }

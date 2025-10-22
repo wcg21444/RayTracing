@@ -66,9 +66,9 @@ private:
 
     bool usingSdScene = true;
 
+    Texture2D traceResultTexture;// Output
 private:
     Tracer tracer;
-    Texture2D imageTexture;
     std::vector<std::future<void>> shadingFutures;
     float perturbStrength = 1e-3f;
     float secPerSample = 0.f;
@@ -83,7 +83,7 @@ private:
 public:
     CPURayTracer(int _width, int _height);
     ~CPURayTracer();
-    unsigned int getGLTextureID();
+    TextureID getTraceResult();
     void resize(int newWidth, int newHeight);
     void resetSamples();
     void draw(int numThreads);

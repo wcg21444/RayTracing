@@ -64,5 +64,5 @@ public:
         return pSceneTracing != nullptr;
     }
 
-    std::vector<vec4> getImageData();
+    std::vector<vec4> getImageData();   
 };
