@@ -2,13 +2,10 @@
 #include "Utils.hpp"
 namespace Storage
 {
-    bool NeedUpload = true;
     SceneBundle SceneBundleRendering;
     std::shared_mutex SceneBundleRenderingMutex;
     sd::Scene SdScene;
     std::shared_mutex SdSceneMutex;
-    std::mutex MutexNeedUpload;
-    std::condition_variable CondNeedUpload;
 
     SceneLoader SdSceneLoader;
 
