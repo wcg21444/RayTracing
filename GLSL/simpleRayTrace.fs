@@ -236,44 +236,9 @@ vec4 hitSky(vec3 ori, vec3 dir)
     vec4 skyResult = vec4(0.0f);
 
     skyResult += texture(skybox, dir);
-    // if(skyResult.r<1.0f||skyResult.g<1.0f||skyResult.b<1.0f){
-    //     return vec4(0.1f);
-    // }
+
     return skyResult;
-    /*     vec4 skyResult = vec4(0.0f);
-        float camHeight = length(ori - earthCenter) - earthRadius;
 
-        vec3 camEarthIntersection = intersectEarth(ori, dir);
-        if (camEarthIntersection != vec3(0.0f))
-        {
-
-            // 击中地球,渲染大气透视
-            skyResult = computeAerialPerspective(camEarthIntersection);
-
-            vec4 t1 = transmittance(ori, camEarthIntersection, 1.0f);
-
-            // 渲染地面
-            vec3 normal = normalize(camEarthIntersection - earthCenter);
-            vec3 lighting = dirLightDiffuse(camEarthIntersection, normal);
-            vec3 earthBaseColor = vec3(0.3, 0.3f, 0.34f); // 地面颜色
-            skyResult.rgb += lighting * earthBaseColor * t1.rgb;
-        }
-        else
-        {
-            if (camHeight > skyHeight)
-            {
-                // 摄像机在大气层外
-            }
-            else
-            {
-                // skyResult += computeSkyColor(ori, dir);
-                skyResult = texture(skybox, dir);
-            }
-        }
-        // skyResult.rgb = clamp(skyResult.rgb, vec3(0.0f), vec3(1.0f));
-
-        skyResult.rgb = clamp(skyResult.rgb, vec3(0.0f), vec3(1.0f));
-        return skyResult; */
 }
 
 void hitScene(in Ray tracingRay, out HitInfos hitInfos)
@@ -346,28 +311,11 @@ void initializeScene()
 void initialize()
 {
     uv = TexCoord;
-    // cam.focalLength = 1.0f;
-    // cam.lookAtCenter = vec3(0.0f);
-    // cam.position = vec3(0.0f, 7.f, -8.f);
-    // cam.aspectRatio = width/float(height);
 
-    // cam.width = 2.f;
-    // cam.height =  cam.width/cam.aspectRatio;
-    // viewDir = vec3(
-    //     -(uv.x * cam.width - cam.width / 2.f),
-    //     (uv.y * cam.height - cam.height / 2.f),
-    //     cam.focalLength);
     viewDir = vec3(
         ((uv.x - 0.5f) * cam.width),
         (uv.y - 0.5f) * cam.height,
         -cam.focalLength);
-
-    // vec3 absY = vec3(0.f, 1.f, 0.f);
-    // vec3 z = normalize(cam.lookAtCenter - cam.position);
-    // vec3 x = normalize(cross(absY, z));
-    // vec3 y = cross(z, x);
-    // mat3 rotation = mat3(x, y, z);
-
 
     viewDir = inverse(mat3(cam.view))*normalize(viewDir);
     camRayDir = viewDir;
@@ -389,11 +337,4 @@ void main()
     FragColor = (texture(lastSample, TexCoord) * float(samplesCount - 1.f) +
                  castRay(ray, 0,sceneRootIndex)) /
                 float(samplesCount);
-
-    // int nSamples = 16;
-    // for(int i=0;i<nSamples;++i) {
-    //     FragColor += castRay(ray,0)/float(nSamples);
-    // }
-
-    // FragColor.rgb = getBackgroundColor(viewDir).rgb;
 }

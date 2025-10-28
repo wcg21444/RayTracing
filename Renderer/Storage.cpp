@@ -174,4 +174,16 @@ namespace Storage
         nodeStorageTexRendering.generate(1, 1, GL_R32F, GL_RED, GL_FLOAT, NULL, false);
         triangleStorageTexRendering.generate(1, 1, GL_R32F, GL_RED, GL_FLOAT, NULL, false);
     }
+    void InitializeSceneBundle(SceneBundle &sceneBundle)
+    {
+        auto &[nodeStorageTex, triangleStorageTex, sceneRootIndex] = sceneBundle;
+        nodeStorageTex.setFilterMax(GL_NEAREST);
+        nodeStorageTex.setFilterMin(GL_NEAREST);
+        nodeStorageTex.setWrapMode(GL_CLAMP_TO_EDGE);
+        triangleStorageTex.setFilterMax(GL_NEAREST);
+        triangleStorageTex.setFilterMin(GL_NEAREST);
+        triangleStorageTex.setWrapMode(GL_CLAMP_TO_EDGE);
+        nodeStorageTex.generate(GetTextureSizeLimit(), 1, GL_R32F, GL_RED, GL_FLOAT, NULL, false);
+        triangleStorageTex.generate(GetTextureSizeLimit(), 1, GL_R32F, GL_RED, GL_FLOAT, NULL, false);
+    }
 }

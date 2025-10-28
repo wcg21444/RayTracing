@@ -62,6 +62,10 @@ public:
 
     glm::mat4 getViewMatrix() const
     {
+        if(position==lookAtCenter)
+        {
+            return glm::mat4(1.0f);
+		}
         return glm::lookAt(position, lookAtCenter, vec3(0.0f, 1.0f, 0.0f));
     }
 

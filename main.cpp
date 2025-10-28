@@ -14,6 +14,8 @@
 #include "ModelLoader.hpp"
 #include "Renderer.hpp"
 #include "Storage.hpp"
+#include "UI.hpp"
+#include "NewRenderer.hpp"
 
 const int InitWidth = 640;
 const int InitHeight = 360;
@@ -33,7 +35,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     const char *glsl_version = "#version 460";
-    GLFWwindow *window = glfwCreateWindow(InitWidth, InitHeight, "RayTracing", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(InitWidth, InitHeight, "TRayTracing", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -79,6 +81,9 @@ int main()
     std::shared_ptr<Renderer> RTRenderer = std::make_shared<Renderer>();
     RTRenderer->resize(InitWidth, InitHeight);
 
+    std::shared_ptr<NewRenderer> newRenderer = std::make_shared<NewRenderer>();
+    newRenderer->resize(InitWidth, InitHeight);
+
     InputHandler::BindApplication(RTRenderer);
 
     Scene scene;
@@ -108,7 +113,9 @@ int main()
 
         Profiler::RenderUI();
         // RTRenderer->render(scene);
-        RTRenderer->render(Storage::SdScene);
+        // RTRenderer->render(Storage::SdScene);
+
+        newRenderer->render();
 
         ImGui::Begin("RenderUI");
         {
@@ -118,7 +125,6 @@ int main()
                 RenderState::SceneDirty |= true;
                 scene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
                 scene.update();
-                
             }
             ImGui::End();
         }
@@ -133,7 +139,9 @@ int main()
         // }
 
         BVHSettings::RenderVisualization(*Storage::SdScene.pDataStorage);
+        SkySettings::RenderUI();
 
+        DebugObjectRenderer::SetCamera(&newRenderer->cam);
         DebugObjectRenderer::Render();
 
         ImGui::Render();

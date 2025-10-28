@@ -153,6 +153,8 @@ void Texture2D::setFilterMax(GLenum filter)
 
 void Texture2D::resize(int ResizeWidth, int ResizeHeight)
 {
+    if (ResizeHeight == Width && ResizeHeight == Height)
+        return;
     ResizeWidth = (ResizeWidth <= 0) ? 1 : ResizeWidth;
     ResizeHeight = (ResizeHeight <= 0) ? 1 : ResizeHeight;
 

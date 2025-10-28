@@ -163,5 +163,5 @@ void Renderer::renderUI()
             RenderState::Dirty |= true;
         }
         ImGui::End();
-    }
+}
 }

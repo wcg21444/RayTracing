@@ -123,9 +123,9 @@ void DebugObjectPass::render(std::queue<DebugObjectDrawCall>& drawQueue, Camera&
     renderTarget->clearBuffer(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, glm::vec4(0.0f));
     shaders.use();
 
+
     shaders.setUniform("view", cam.getViewMatrix());
     shaders.setUniform("projection", cam.getProjectionMatrix());
-
     while (!drawQueue.empty()) {
         auto& drawCall = drawQueue.front();
         drawCall(shaders);

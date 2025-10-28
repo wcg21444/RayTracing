@@ -30,6 +30,8 @@ namespace Storage
 
     void InitializeSceneRendering();
 
+    void InitializeSceneBundle(SceneBundle &sceneBundle);
+
     class SceneLoader
     {
     private:

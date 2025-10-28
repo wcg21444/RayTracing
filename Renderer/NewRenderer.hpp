@@ -35,7 +35,7 @@ enum class RenderMode
     CPU_Scene,
     CPU_SdScene
 };
-//TODO 改造原来的Renderer类
+// TODO 改造原来的Renderer类
 class NewRenderer
 {
 private:
@@ -52,14 +52,18 @@ public:
 
     std::unique_ptr<ITracer> tracer;
     std::unique_ptr<IUpLoader> uploader;
+    std::unique_ptr<IRenderPipeline> currentPipeline;
 
-    inline static Camera Cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
+    Camera cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
     Texture2D screenTexture;
+    TextureID skyboxTextureID;
 
     NewRenderer();
     NewRenderer(const NewRenderer &) = delete;
     NewRenderer &operator=(const NewRenderer &) = delete;
     ~NewRenderer();
+
+    void changeMode(RenderMode newMode);
     void render();
     void resize(int newWidth, int newHeight);
     void shutdown();

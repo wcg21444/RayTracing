@@ -65,7 +65,7 @@ namespace SimplifiedData
     {
         vec3 pMin = vec3(FLT_MAX);
         vec3 pMax = vec3(FLT_MIN);
-        BoundingBox& operator=(const BoundingBox& other);
+        BoundingBox &operator=(const BoundingBox &other);
     };
     // flag 决定跳转到 NodeStorage 还是 TriangleStorage
     struct Node
@@ -97,8 +97,8 @@ namespace SimplifiedData
 
         std::vector<Triangle> triangles;
         uint32_t nextIndex = 0;
-        uint32_t addTriangle(const sd::Triangle& triangle);
-        uint32_t addTriangleArray(std::vector<sd::Triangle>& triangles);
+        uint32_t addTriangle(const sd::Triangle &triangle);
+        uint32_t addTriangleArray(std::vector<sd::Triangle> &triangles);
 
         ~TriangleStorage();
     };
@@ -113,9 +113,9 @@ namespace SimplifiedData
         std::vector<Node> nodes;
         uint32_t nextIndex = 0;
         uint32_t nextIndexBack = NODESIZE - 1;
-        uint32_t addNode(const sd::Node& node);
-        uint32_t addNodeBack(const sd::Node& node);
-        uint32_t addLeafNodeArray(const std::vector<sd::Node>& nodes);
+        uint32_t addNode(const sd::Node &node);
+        uint32_t addNodeBack(const sd::Node &node);
+        uint32_t addLeafNodeArray(const std::vector<sd::Node> &nodes);
 
         ~NodeStorage();
     };
@@ -135,7 +135,7 @@ namespace SimplifiedData
         uint32_t offsetIndexTriangles = invalidIndex;
         uint32_t offsetIndexNodes = invalidIndex;
         uint32_t meshNodeIndex = invalidIndex;
-        Mesh(DataStorage& dataStroage, const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const Material& _material);
+        Mesh(DataStorage &dataStroage, const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices, const Material &_material);
     };
 
     class BVH
@@ -143,21 +143,21 @@ namespace SimplifiedData
     public:
         // 收集所有网格节点 拷贝, 然后排序 划分 最终还是指向存储中的索引[start, end)
         /// nodes: ... ... |TN2|TN1| SceneRoot|...|SI3|SI2|SI1|... ...|*Mesh2|M2I1|M2I2...|*Mesh1|M1I1|M1I2...|
-        static uint32_t BuildBVHFromNodes(NodeStorage& nodeStorage, uint32_t* nodeIndices, size_t start, size_t end);
-        static HitInfos Intersect(DataStorage& dataStorage, const Ray& ray);
-        static HitInfos IntersectLoop(DataStorage& dataStorage, const Ray& ray);
+        static uint32_t BuildBVHFromNodes(NodeStorage &nodeStorage, uint32_t *nodeIndices, size_t start, size_t end);
+        static HitInfos Intersect(DataStorage &dataStorage, const Ray &ray);
+        static HitInfos IntersectLoop(DataStorage &dataStorage, const Ray &ray);
     };
 
-    sd::BoundingBox GetBoundingBox(const sd::Triangle& triangle);
-    HitInfos IntersectTriangle(const Triangle& tri, const Ray& ray, float tMin, float tMax);
-    bool operator==(const HitInfos& hit1, const HitInfos& hit2);
-    bool IntersectBoundingBox(const BoundingBox& box, const Ray& ray, float tMin, float tMax);
+    sd::BoundingBox GetBoundingBox(const sd::Triangle &triangle);
+    HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax);
+    bool operator==(const HitInfos &hit1, const HitInfos &hit2);
+    bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax);
 
     struct FlatNodeStorage
     {
         inline static constexpr size_t kFloatsPerNode = 2 /*indices*/ + 6 /*bbox*/ + 1 /*flags*/;
-        inline size_t getSizeInBytes() { return kFloatsPerNode * sizeof(float) * nodes.size(); }
-        inline size_t getSizeInFloats() { return  nodes.size(); }
+        inline size_t getSizeInBytes() const { return kFloatsPerNode * sizeof(float) * nodes.size(); }
+        inline size_t getSizeInFloats() const { return nodes.size(); }
         FlatNodeStorage();
 
         std::vector<float> nodes;
@@ -166,8 +166,8 @@ namespace SimplifiedData
     struct FlatTriangleStorage
     {
         inline static constexpr size_t kFloatsPerTriangle = 3 * 3 /*positions*/ + 3 * 3 /*normals*/ + 3 * 2 /*uv*/ + 1 /*mat flag*/;
-        inline size_t getSizeInBytes() { return kFloatsPerTriangle * sizeof(float) * triangles.size(); }
-        inline size_t getSizeInFloats() { return triangles.size(); }
+        inline size_t getSizeInBytes() const { return kFloatsPerTriangle * sizeof(float) * triangles.size(); }
+        inline size_t getSizeInFloats() const { return triangles.size(); }
         FlatTriangleStorage();
 
         std::vector<float> triangles;
@@ -175,15 +175,15 @@ namespace SimplifiedData
     inline constexpr size_t NODESIZESSBO = NODESIZE * FlatNodeStorage::kFloatsPerNode;
     inline constexpr size_t TRIANGLESIZESSBO = TRIANGLESIZE * FlatTriangleStorage::kFloatsPerTriangle;
 
-    void ConvertNodeToFlatStorage(const NodeStorage& nodeStorage, FlatNodeStorage& flatNodeStorage);
+    void ConvertNodeToFlatStorage(const NodeStorage &nodeStorage, FlatNodeStorage &flatNodeStorage);
 
-    void ConvertTriangleToFlatStorage(const TriangleStorage& triangleStorage, FlatTriangleStorage& flatTriangleStorage);
+    void ConvertTriangleToFlatStorage(const TriangleStorage &triangleStorage, FlatTriangleStorage &flatTriangleStorage);
 
-    void ConvertToFlatStorage(const DataStorage& dataStorage, FlatNodeStorage& flatNodeStorage, FlatTriangleStorage& flatTriangleStorage);
+    void ConvertToFlatStorage(const DataStorage &dataStorage, FlatNodeStorage &flatNodeStorage, FlatTriangleStorage &flatTriangleStorage);
 
-    Node GetNodeFromFlatStorage(const FlatNodeStorage& flatNodeStorage, size_t index);
+    Node GetNodeFromFlatStorage(const FlatNodeStorage &flatNodeStorage, size_t index);
 
-    Triangle GetTriangleFromFlatStorage(const FlatTriangleStorage& flatTriangleStorage, size_t index);
+    Triangle GetTriangleFromFlatStorage(const FlatTriangleStorage &flatTriangleStorage, size_t index);
 
 }
 namespace sd = SimplifiedData;
