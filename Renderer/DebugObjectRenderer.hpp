@@ -7,6 +7,7 @@
 #include <memory>
 #include <queue>
 
+using ResizeCallback = std::function<void(int, int)>;
 using DebugObjectDrawCall = std::function<void(Shader& debugObjectShaders)>;
 class RenderTarget;
 class Texture2D;
@@ -44,6 +45,8 @@ private:
     inline static std::unique_ptr<DebugObjectPass> debugObjectPass;
 
 public:
+    inline static std::shared_ptr<ResizeCallback> onResize = nullptr;
+
     static void AddDrawCall(const DebugObjectDrawCall& drawCall);
     static void Initialize();
     static void Resize(int _width, int _height);

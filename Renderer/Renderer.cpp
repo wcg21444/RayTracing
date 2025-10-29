@@ -156,10 +156,11 @@ void Renderer::renderUI()
         }
         if ((ImGui::Button("Reload")))
         {
-            gpuRayTracer->reloadCurrentShaders();
-            postProcessor->reloadCurrentShaders();
-            skyTexPass->reloadCurrentShaders();
-            DebugObjectRenderer::ReloadCurrentShaders();
+            // gpuRayTracer->reloadCurrentShaders();
+            // postProcessor->reloadCurrentShaders();
+            // skyTexPass->reloadCurrentShaders();
+            // DebugObjectRenderer::ReloadCurrentShaders();
+            Shader::ReloadAll();
             RenderState::Dirty |= true;
         }
         ImGui::End();

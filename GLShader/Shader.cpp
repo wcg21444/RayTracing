@@ -4,8 +4,10 @@
 #include <format>
 #include <iostream>
 
-
-Shader::Shader() : texLocationID(0), programID(0) {}
+Shader::Shader() : texLocationID(0), programID(0) {
+    //我也要加入注册表!!!
+    ShaderRegistry.insert(this);
+}
 
 Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : Shader()
 {
@@ -74,10 +76,12 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
         glGetProgramInfoLog(programID, 512, NULL, infoLog);
         std::cerr << "VS : " << std::string(vs_path) << "FS : " << std::string(fs_path) << std::endl;
         std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
-                  << infoLog << std::endl;        
-		std::cerr << "Current Dir:" << GetCurrentWorkingDirectory() << std::endl;
+                  << infoLog << std::endl;
+        std::cerr << "Current Dir:" << GetCurrentWorkingDirectory() << std::endl;
         throw std::runtime_error("Shader program link failed.");
     }
+
+    // ShaderRegistry.insert(this);
 
     // Delete our used Shaders
     glDeleteShader(vertexShader);
@@ -88,7 +92,7 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     }
 }
 
-Shader::Shader(Shader &&other) noexcept
+Shader::Shader(Shader &&other) noexcept : Shader()
 {
     this->programID = other.programID;
     this->used = other.used;
@@ -97,11 +101,10 @@ Shader::Shader(Shader &&other) noexcept
     this->gs_path = std::move(other.gs_path);
     this->textureLocationMap = std::move(other.textureLocationMap);
     this->texLocationID = other.texLocationID;
-    other.programID = 0; 
+    other.programID = 0;
     other.used = false;
     other.texLocationID = 0;
 }
-
 
 Shader::~Shader()
 {
@@ -110,6 +113,7 @@ Shader::~Shader()
         std::cout << std::format("Shader Program ID:{} Was Deleted~\n", programID);
         glDeleteProgram(programID);
     }
+    ShaderRegistry.erase(this);
 }
 
 Shader &Shader::operator=(Shader &&other) noexcept
@@ -176,6 +180,11 @@ void Shader::CompileShader(const char *shader_source, GLenum shader_type, unsign
                   << infoLog << std::endl;
         throw std::runtime_error("Failed to compile shader.");
     }
+}
+
+void Shader::reload()
+{
+    *this = Shader(vs_path.c_str(), fs_path.c_str(), gs_path.empty() ? nullptr : gs_path.c_str());
 }
 
 // Uniform 设置函数的实现
@@ -371,6 +380,19 @@ inline GLint Shader::GetTextureUnitsLimits()
         }
     }
     return s_maxTextureUnits;
+}
+
+void Shader::ReloadAll()
+{
+    auto tempRegistry = ShaderRegistry; // Make a copy to avoid iterator invalidation
+    for (auto const &shaderPtr : tempRegistry)
+    {
+        shaderPtr->reload(); // UB
+    }
+    // for (auto shaderPtr : ShaderRegistry)
+    // {
+    //     shaderPtr->reload(); // UB
+    // }
 }
 
 ComputeShader::ComputeShader()

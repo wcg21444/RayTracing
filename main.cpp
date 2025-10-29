@@ -84,8 +84,6 @@ int main()
     std::shared_ptr<NewRenderer> newRenderer = std::make_shared<NewRenderer>();
     newRenderer->resize(InitWidth, InitHeight);
 
-    InputHandler::BindApplication(RTRenderer);
-
     Scene scene;
     ModelLoader::Run(scene);
     scene.update();
@@ -99,6 +97,9 @@ int main()
     {
         Storage::SdSceneLoader.run(glfwGetCurrentContext()); // running at mainContext
     }
+
+    InputHandler::BindToWindowResizeCallback(window, newRenderer->onResize);
+    InputHandler::BindToWindowResizeCallback(window, DebugObjectRenderer::onResize);
 
     while (!glfwWindowShouldClose(window))
     {

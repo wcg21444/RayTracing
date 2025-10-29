@@ -25,6 +25,7 @@ Texture2D::Texture2D()
 ///@param type 纹理源数据的每个颜色分量的数据类型（例如 GL_UNSIGNED_BYTE, GL_FLOAT）。
 ///@param data 指向纹理像素数据的指针。如果为 NULL，则只分配内存。
 /// 在initializeGLResources() 调用
+/// 使用两段式构造的理由: 延迟初始化, 分配TextureID 必须等到Context创建
 void Texture2D::generate(unsigned int width, unsigned int height, GLenum internalFormat, GLenum format, GLenum type, void *data, bool mipMapping)
 {
     if (ID != 0)

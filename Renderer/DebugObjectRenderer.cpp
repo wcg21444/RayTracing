@@ -13,6 +13,11 @@ void DebugObjectRenderer::Initialize()
     if (debugObjectPass)
         throw(std::runtime_error("DebugObjectRenderer already initialized."));
     debugObjectPass = std::make_unique<DebugObjectPass>(width, height, "GLSL/debugRenderer.vs", "GLSL/debugRenderer.fs");
+    onResize = std::make_shared<ResizeCallback>(
+        [](int newWidth, int newHeight)
+        {
+            DebugObjectRenderer::Resize(newWidth, newHeight);
+        });
 }
 
 void DebugObjectRenderer::Resize(int _width, int _height)

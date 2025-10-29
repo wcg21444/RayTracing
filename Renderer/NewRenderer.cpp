@@ -15,7 +15,12 @@ NewRenderer::NewRenderer()
       postProcessor(std::make_unique<PostProcessor>(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
       skyTexPass(std::make_unique<SkyTexPass>("GLSL/cubemapSphere.vs", "GLSL/skyTex.fs", 256)),
       tracer(std::make_unique<TracerAsync>(width, height)),
-      uploader(std::make_unique<SceneUploader>())
+      uploader(std::make_unique<SceneUploader>()),
+      onResize(std::make_shared<ResizeCallback>(
+          [this](int newWidth, int newHeight)
+          {
+              this->resize(newWidth, newHeight);
+          }))
 {
     changeMode(RenderMode::GPU_SdScene);
 }
@@ -68,7 +73,7 @@ void NewRenderer::render()
         uploader->upload(*loadMethod);
         RenderState::SceneDirty = false;
     }
-    if(RenderState::Dirty)
+    if (RenderState::Dirty)
     {
         tracer->resetSamples();
         RenderState::Dirty = false;
@@ -120,9 +125,10 @@ void NewRenderer::renderUI()
         // }
         if ((ImGui::Button("Reload")))
         {
-            postProcessor->reloadCurrentShaders();
-            skyTexPass->reloadCurrentShaders();
-            DebugObjectRenderer::ReloadCurrentShaders();
+            // postProcessor->reloadCurrentShaders();
+            // skyTexPass->reloadCurrentShaders();
+            // DebugObjectRenderer::ReloadCurrentShaders();
+            Shader::ReloadAll();
             RenderState::Dirty |= true;
         }
         RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(cam.position), 0.01f);

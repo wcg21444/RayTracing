@@ -158,9 +158,10 @@ public:
     Pass(int _vp_width = 0, int _vp_height = 0, std::string _vs_path = "",
          std::string _fs_path = "",
          std::string _gs_path = "")
-        : vp_width(_vp_width), vp_height(_vp_height), vs_path(_vs_path), fs_path(_fs_path), gs_path(_gs_path)
+        : vp_width(_vp_width), vp_height(_vp_height), vs_path(_vs_path), fs_path(_fs_path), gs_path(_gs_path),
+          shaders(_vs_path.c_str(), _fs_path.c_str(), _gs_path.c_str())
     {
-        shaders = Shader(vs_path.c_str(), fs_path.c_str(), gs_path.c_str());
+        // shaders = Shader(vs_path.c_str(), fs_path.c_str(), gs_path.c_str());
     }
     virtual void reloadCurrentShaders()
     {

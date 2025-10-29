@@ -18,6 +18,8 @@ class SkyTexPass;
 class CPURayTracer;
 class Scene;
 
+using ResizeCallback = std::function<void(int, int)>;
+
 namespace Storage
 {
     class SceneLoader;
@@ -53,6 +55,8 @@ public:
     std::unique_ptr<ITracer> tracer;
     std::unique_ptr<IUpLoader> uploader;
     std::unique_ptr<IRenderPipeline> currentPipeline;
+
+    std::shared_ptr<ResizeCallback> onResize;
 
     Camera cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
     Texture2D screenTexture;

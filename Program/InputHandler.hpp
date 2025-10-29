@@ -5,10 +5,13 @@
 #include "backends/imgui_impl_opengl3.h"
 
 #include <memory>
+#include <vector>
+#include <functional>
+#include <atomic>
 
 class Camera;
 class Renderer;
-
+using ResizeCallback = std::function<void(int, int)>;
 class InputHandler
 {
     // 内部状态
@@ -39,12 +42,14 @@ private:
         int mods;
     };
 
+    inline static std::vector<std::weak_ptr<ResizeCallback>> windowResizeCallbacks;
+
     inline static MouseButtonState mouseButtonState{};
     inline static MouseState mouseState{};
     inline static ScrollState scrollState{};
     inline static ControlMode currentMode = APP_CONTROL;
 
-    inline static std::shared_ptr<Renderer> pRenderer = nullptr;
+    // inline static std::shared_ptr<Renderer> pRenderer = nullptr;//InputHandler是更底层的交互模块,不应当依赖上层的渲染模块
 
 private:
     InputHandler() {}
@@ -57,6 +62,8 @@ private:
 
 public:
     static void BindWindow(GLFWwindow *window);
-    static void BindApplication(std::shared_ptr<Renderer> pRenderer);
+    
+    // 绑定窗口缩放时的回调对象,回调对象应该由缩放入口模块持有.
+    static void BindToWindowResizeCallback(GLFWwindow *window, std::shared_ptr<ResizeCallback> callback);
     static void ResetInputState();
 };

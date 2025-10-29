@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
 #include <iostream>
 
 #include "ShaderIncludes.hpp"
@@ -28,6 +29,7 @@ public:
     std::unordered_map<std::string, int> uniformLocationMap;
     std::unordered_set<std::string> warningMsgSet;
     int texLocationID;
+    inline static std::unordered_set<Shader *> ShaderRegistry;
 
 private:
     GLint getUniformLocationSafe(const std::string &name);
@@ -35,12 +37,14 @@ private:
 public:
     static std::string LoadShaderFile(const char *shader_path);
     static void CompileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id, const char *path);
-    inline static GLenum GetTextureUnitEnum(int textureLocation);
-    inline static GLint GetTextureUnitsLimits();
+    static GLenum GetTextureUnitEnum(int textureLocation);
+    static GLint GetTextureUnitsLimits();
+    static void ReloadAll();
 
-public:
+protected:
     // 构造函数
     Shader();
+public:
     Shader(const char *vs_path, const char *fs_path, const char *gs_path = nullptr);
     Shader(const Shader &) = delete;
     Shader(Shader &&other) noexcept;
@@ -59,6 +63,8 @@ public:
         glUseProgram(programID);
         used = true;
     }
+
+    void reload();
 
     // Uniform 设置方法
     void setUniform4fv(const std::string &name, GLsizei count, const float *value);
