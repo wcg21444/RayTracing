@@ -54,6 +54,7 @@ void NewRenderer::changeMode(RenderMode newMode)
     default:
         assert(false && "Unknown RenderMode");
     }
+    RenderState::Dirty |= true;
 }
 
 void NewRenderer::render()
@@ -122,24 +123,57 @@ void NewRenderer::renderUI()
 {
     ImGui::Begin("RenderUI");
     {
-        // Toggle GPU/CPU Raytracing
-        // if (ImGui::Checkbox("UseGPU", &useGPU))
-        // {
-        //     RenderState::Dirty = true;
-        //     RenderState::SceneDirty = true;
-        // }
         if ((ImGui::Button("Reload")))
         {
-            // postProcessor->reloadCurrentShaders();
-            // skyTexPass->reloadCurrentShaders();
-            // DebugObjectRenderer::ReloadCurrentShaders();
             Shader::ReloadAll();
             RenderState::Dirty |= true;
         }
-        RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(cam.position), 0.01f);
-        RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(cam.lookAtCenter), 0.01f);
-        RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &cam.focalLength, 0.01f);
-        ImGui::Text(std::format("HFov: {}", cam.getHorizontalFOV()).c_str());
+        
+        // Render mode selection (checkbox style, mutually exclusive)
+        {
+            struct ModeItem
+            {
+                const char *label;
+                RenderMode mode;
+            };
+            static const ModeItem modeItems[] = {
+                {"CPU SD Scene", RenderMode::CPU_SdScene},
+                {"GPU SD Scene", RenderMode::GPU_SdScene}};
+            static int selectedMode = 0; // 选中状态
+            for (int i = 0; i < std::size(modeItems); ++i)
+            {
+                if (renderMode == modeItems[i].mode)
+                    selectedMode = i; // 初始化
+            }
+            if (ImGui::BeginListBox("Select Mode"))
+            {
+                for (int i = 0; i < std::size(modeItems); ++i)
+                {
+                    bool checked = (selectedMode == i);                // 渲染checkbox checked状态
+                    if (ImGui::Checkbox(modeItems[i].label, &checked)) // 用户输入将改变checked状态
+                    {
+                        if (checked && selectedMode != i)
+                        {
+                            selectedMode = i; // 状态切换
+                            if (renderMode != modeItems[i].mode)
+                            {
+                                changeMode(modeItems[i].mode); // 状态切换响应?
+                                RenderState::Dirty = true;
+                                RenderState::SceneDirty = true;
+                            }
+                        }
+                    }
+                }
+                ImGui::EndListBox();
+            }
+        }
+
+        {
+            RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(cam.position), 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(cam.lookAtCenter), 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &cam.focalLength, 0.01f);
+            ImGui::Text(std::format("HFov: {}", cam.getHorizontalFOV()).c_str());
+        }
         ImGui::End();
     }
 }

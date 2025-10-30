@@ -65,12 +65,12 @@ class CPUImageData
 {
     std::vector<glm::vec4> pixels; // RGBA format
 public:
-    int width;
-    int height;
-    inline void setPixel(int x, int y, glm::vec4 &value) { this->pixels[y * width + x] = value; }
-    inline glm::vec4 &pixelAt(int x, int y) { return pixels[y * width + x]; }
-    inline glm::vec2 uvAt(int x, int y) { return glm::vec2(x / float(width), y / float(height)); }
-    inline void resize(int w, int h)
+    size_t width;
+    size_t height;
+    inline void setPixel(size_t x, size_t y, glm::vec4 &value) { this->pixels[y * width + x] = value; }
+    inline glm::vec4 &pixelAt(size_t x, size_t y) { return pixels[y * width + x]; }
+    inline glm::vec2 uvAt(size_t x, size_t y) { return glm::vec2(x / float(width), y / float(height)); }
+    inline void resize(size_t w, size_t h)
     {
         width = w;
         height = h;
@@ -98,7 +98,7 @@ public:
     {
         traceImageData.resize(traceInput.Width, traceInput.Height);
 
-        auto shade = [this, sampleCount](CPUImageData &imageData, int x, int y)
+        auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y)
         {
             const float perturbStrength = 0.001f; // Placeholder
             auto &pixelColor = imageData.pixelAt(x, y);
