@@ -22,7 +22,7 @@ NewRenderer::NewRenderer()
               this->resize(newWidth, newHeight);
           }))
 {
-    changeMode(RenderMode::GPU_SdScene);
+    changeMode(RenderMode::CPU_SdScene);
 }
 
 NewRenderer::~NewRenderer()
@@ -43,6 +43,11 @@ void NewRenderer::changeMode(RenderMode newMode)
         currentPipeline = std::make_unique<RenderPipeline<SdSceneGPUContext, LoadSdSceneGPU, TraceSdSceneGPU>>(
             SdSceneGPUContext{
                 skyboxTextureID,
+                cam});
+        break;
+    case RenderMode::CPU_SdScene:
+        currentPipeline = std::make_unique<RenderPipeline<SdSceneCPUContext, LoadSdSceneCPU, TraceSdSceneCPU>>(
+            SdSceneCPUContext{
                 cam});
         break;
 

@@ -1,6 +1,9 @@
 #pragma once
 #include "RenderInterfaces.hpp"
 #include "RenderContexts.hpp"
+
+//[全局变量访问]: Storage::SdScene.pDataStorage
+//               Storage::SdSceneMutex
 class LoadSdSceneGPU : public ILoadMethod // 产生对应Context的引用依赖
 {
     SdSceneGPUContext &DIContext; // DI 必须
@@ -74,6 +77,27 @@ private:
             std::cout << std::format("Resized {} Storage Texture to: {}x{} (Capacity: {})",
                                      storageName, texLoading.Width, texLoading.Height, (size_t)texLoading.Width * (size_t)texLoading.Height)
                       << std::endl;
+        }
+    }
+};
+
+//[全局变量访问]: Storage::SdScene.pDataStorage
+
+class LoadSdSceneCPU : public ILoadMethod
+{
+    SdSceneCPUContext &DIContext;
+
+public:
+    LoadSdSceneCPU(SdSceneCPUContext &context)
+        : DIContext(context)
+    {
+    }
+
+    void load() override
+    {
+        {
+            std::unique_lock<std::shared_mutex> sceneLock(*DIContext.sceneRenderingMutex); // write lock
+            DIContext.sceneRendering = std::make_unique<sd::Scene>(Storage::SdScene);      // 拷贝上传数据
         }
     }
 };

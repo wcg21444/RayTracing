@@ -5,6 +5,8 @@
 class ITraceMethod
 {
 public:
+    /// trace可能在任意线程被调用.因此必须保证线程安全
+    /// trace在外部视角是同步的
     virtual void trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount) = 0;
     virtual ~ITraceMethod() {}
 };
@@ -13,6 +15,8 @@ public:
 class ILoadMethod
 {
 public:
+    /// load可能在任意线程被调用.因此必须保证线程安全
+    /// load在外部视角是同步的
     virtual void load() = 0;
     virtual ~ILoadMethod() {}
 };
