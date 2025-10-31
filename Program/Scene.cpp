@@ -17,7 +17,6 @@
 
 void Scene::initialize()
 {
-
     /*     objects.push_back(
             std::make_shared<Sphere>(
                 point3(2.0f, 0.0f, 2.f),
@@ -69,16 +68,16 @@ void Scene::initialize()
                     std::make_shared<Metal>(color4((Random::RandomVector(0.7f) + 1.0f) / 2.f, 1.0f), 0.9f)));
         } */
 
-    // for (size_t i = 0; i < 50; i++)
-    // {
-    //     point3 center = point3(Random::RandomVector(10.f));
-    //     center.y = glm::length(center) / 10.f - 0.5f;
-    //     objects.push_back(
-    //         std::make_shared<Sphere>(
-    //             center,
-    //             0.4f,
-    //             Metal(color4((Random::RandomVector(0.7f) + 1.0f) / 2.f, 1.0f), 0.9f)));
-    // }
+     //for (size_t i = 0; i < 50; i++)
+     //{
+     //    point3 center = point3(Random::RandomVector(10.f));
+     //    center.y = glm::length(center) / 10.f - 0.5f;
+     //    objects.push_back(
+     //        std::make_shared<Sphere>(
+     //            center,
+     //            0.4f,
+     //            Metal(color4((Random::RandomVector(0.7f) + 1.0f) / 2.f, 1.0f), 0.9f)));
+     //}
 
     // 搭建立方体（每个面4个顶点，共24个顶点，保证法线与UV正确）
     // objects.push_back(

@@ -96,8 +96,32 @@ public:
     void load() override
     {
         {
-            std::unique_lock<std::shared_mutex> sceneLock(*DIContext.sceneRenderingMutex); // write lock
+            std::unique_lock<std::shared_mutex> sceneWriteLock(*DIContext.sceneRenderingMutex); // write lock
+			std::shared_lock<std::shared_mutex> sceneReadLock(Storage::SdSceneMutex); // read lock
             DIContext.sceneRendering = std::make_unique<sd::Scene>(Storage::SdScene);      // 拷贝上传数据
+        }
+    }
+};
+class LoadSceneCPU : public ILoadMethod
+{
+    SceneCPUContext &DIContext;
+
+public:
+    LoadSceneCPU(SceneCPUContext &context)
+        : DIContext(context)
+    {
+    }
+
+    void load() override
+    {
+        try
+        {
+            std::unique_lock<std::shared_mutex> sceneWriteLock(*DIContext.sceneRenderingMutex); // write lock
+			std::shared_lock<std::shared_mutex> sceneReadLock(Storage::OldSceneMutex); // read lock
+            DIContext.sceneRendering = std::make_unique<Scene>(Storage::OldScene);      // 拷贝上传数据
+        }
+        catch (std::exception& e) {
+			std::cerr << "Error loading Old Scene: " << e.what() << std::endl;
         }
     }
 };

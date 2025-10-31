@@ -77,6 +77,11 @@ public:
     // 拷贝构造
     inline BVH(const BVH &other)
     {
+        if(other.root == nullptr)
+        {
+            root = nullptr;
+            return;
+		}
         root = new BVHNode(*other.root);
         auto copy = [](auto &&copySelf, BVHNode *copyNode, BVHNode *otherNode)
         {

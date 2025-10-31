@@ -45,3 +45,20 @@ struct SdSceneCPUContext // 将被移动注入
     }
 };
 
+struct SceneCPUContext // 将被移动注入
+{
+    std::unique_ptr<Scene> sceneRendering; // CPU Context Loader 上传目标, Trace 读取目标
+    std::unique_ptr<std::shared_mutex> sceneRenderingMutex; // 必须是指针，不能移动锁
+
+    Camera &cam;
+
+    // 通过构造函数区别注入的依赖和内部创建的依赖
+    SceneCPUContext(
+        Camera &_cam)
+        : sceneRendering(std::make_unique<Scene>()),
+          sceneRenderingMutex(std::make_unique<std::shared_mutex>()),
+          cam(_cam)
+    {
+    }
+};
+

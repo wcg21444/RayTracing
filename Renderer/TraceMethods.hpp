@@ -145,3 +145,70 @@ public:
         traceOutput.setData(traceImageData.data());
     }
 };
+
+class TraceSceneCPU : public ITraceMethod
+{
+    SceneCPUContext &DIContext;
+
+    CPUImageData traceImageData;
+
+    size_t numThreads = 16;
+    std::vector<std::future<void>> shadingFutures;
+
+public:
+    TraceSceneCPU(SceneCPUContext &context)
+        : DIContext(context)
+    {
+    }
+
+    void trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount) override
+    {
+        traceImageData.resize(traceInput.Width, traceInput.Height);
+
+        auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y)
+        {
+            const float perturbStrength = 0.001f; // Placeholder
+            auto &pixelColor = imageData.pixelAt(x, y);
+            auto uv = imageData.uvAt(x, y);
+            Ray ray(
+                DIContext.cam.position,
+                DIContext.cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
+            if (!DIContext.sceneRendering)
+            {
+                throw std::runtime_error("Scene is not loaded.");
+            }
+            std::shared_lock<std::shared_mutex> sceneLock(*DIContext.sceneRenderingMutex);
+            {
+                auto newColor = Trace::CastRay(ray, 0, *DIContext.sceneRendering);
+                pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
+            }
+        };
+
+        size_t rowsPerThread = traceImageData.height / numThreads;
+        for (int i = 0; i < numThreads; ++i)
+        {
+            size_t startY = i * rowsPerThread;
+            size_t endY = (i == numThreads - 1) ? traceImageData.height : startY + rowsPerThread;
+            this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]()
+                                                      { 
+                    for (size_t y = startY; y < endY; ++y)
+                    {
+                        for (size_t x = 0; x < traceImageData.width; ++x)
+                        {
+                            shade(this->traceImageData, x, y);
+                        }
+                    } }));
+        }
+
+        // 等待所有线程完成
+        if (!shadingFutures.empty())
+        {
+            for (auto &future : shadingFutures)
+            {
+                future.get(); // 如果有未完成future,将阻塞线程
+            }
+            this->shadingFutures.clear();
+        }
+        traceOutput.setData(traceImageData.data());
+    }
+};

@@ -50,6 +50,11 @@ void NewRenderer::changeMode(RenderMode newMode)
             SdSceneCPUContext{
                 cam});
         break;
+    case RenderMode::CPU_Scene:
+        currentPipeline = std::make_unique<RenderPipeline<SceneCPUContext, LoadSceneCPU, TraceSceneCPU>>(
+            SceneCPUContext{
+                cam});
+        break;
 
     default:
         assert(false && "Unknown RenderMode");
@@ -128,7 +133,7 @@ void NewRenderer::renderUI()
             Shader::ReloadAll();
             RenderState::Dirty |= true;
         }
-        
+
         // Render mode selection (checkbox style, mutually exclusive)
         {
             struct ModeItem
@@ -138,7 +143,8 @@ void NewRenderer::renderUI()
             };
             static const ModeItem modeItems[] = {
                 {"CPU SD Scene", RenderMode::CPU_SdScene},
-                {"GPU SD Scene", RenderMode::GPU_SdScene}};
+                {"GPU SD Scene", RenderMode::GPU_SdScene},
+                {"CPU Old Scene", RenderMode::CPU_Scene}};
             static int selectedMode = 0; // 选中状态
             for (int i = 0; i < std::size(modeItems); ++i)
             {

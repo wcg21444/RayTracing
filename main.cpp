@@ -84,9 +84,8 @@ int main()
     std::shared_ptr<NewRenderer> newRenderer = std::make_shared<NewRenderer>();
     newRenderer->resize(InitWidth, InitHeight);
 
-    Scene scene;
-    ModelLoader::Run(scene);
-    scene.update();
+    Storage::OldScene.update();
+    ModelLoader::Run(Storage::OldScene);
 
     // sd::Scene sdscene;
 
@@ -124,8 +123,12 @@ int main()
             {
                 RenderState::Dirty |= true;
                 RenderState::SceneDirty |= true;
-                scene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
-                scene.update();
+
+                {
+                    std::unique_lock<std::shared_mutex> lock(Storage::OldSceneMutex);
+                    Storage::OldScene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
+                    Storage::OldScene.update();
+                }
             }
             ImGui::End();
         }

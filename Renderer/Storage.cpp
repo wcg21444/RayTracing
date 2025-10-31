@@ -6,6 +6,8 @@ namespace Storage
     std::shared_mutex SceneBundleRenderingMutex;
     sd::Scene SdScene;
     std::shared_mutex SdSceneMutex;
+    Scene OldScene;    
+    std::shared_mutex OldSceneMutex;
 
     SceneLoader SdSceneLoader;
 
