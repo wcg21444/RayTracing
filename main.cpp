@@ -12,10 +12,9 @@
 #include "InputHandler.hpp"
 #include "Materials/Lambertian.hpp"
 #include "ModelLoader.hpp"
-#include "Renderer.hpp"
 #include "Storage.hpp"
 #include "UI.hpp"
-#include "NewRenderer.hpp"
+#include "Renderer.hpp"
 
 const int InitWidth = 640;
 const int InitHeight = 360;
@@ -78,11 +77,9 @@ int main()
 
     DebugObjectRenderer::Initialize();
     DebugObjectRenderer::Resize(InitWidth, InitHeight);
-    std::shared_ptr<Renderer> RTRenderer = std::make_shared<Renderer>();
-    RTRenderer->resize(InitWidth, InitHeight);
 
-    std::shared_ptr<NewRenderer> newRenderer = std::make_shared<NewRenderer>();
-    newRenderer->resize(InitWidth, InitHeight);
+    std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>();
+    renderer->resize(InitWidth, InitHeight);
 
     Storage::OldScene.update();
     ModelLoader::Run(Storage::OldScene);
@@ -92,12 +89,7 @@ int main()
     Storage::SdScene.initialize();
     Storage::InitializeSceneRendering();
 
-    if (Storage::SdSceneLoader.running == false)
-    {
-        Storage::SdSceneLoader.run(glfwGetCurrentContext()); // running at mainContext
-    }
-
-    InputHandler::BindToWindowResizeCallback(window, newRenderer->onResize);
+    InputHandler::BindToWindowResizeCallback(window, renderer->onResize);
     InputHandler::BindToWindowResizeCallback(window, DebugObjectRenderer::onResize);
 
     while (!glfwWindowShouldClose(window))
@@ -112,10 +104,8 @@ int main()
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
         Profiler::RenderUI();
-        // RTRenderer->render(scene);
-        // RTRenderer->render(Storage::SdScene);
 
-        newRenderer->render();
+        renderer->render();
 
         ImGui::Begin("RenderUI");
         {
@@ -123,7 +113,6 @@ int main()
             {
                 RenderState::Dirty |= true;
                 RenderState::SceneDirty |= true;
-
                 {
                     std::unique_lock<std::shared_mutex> lock(Storage::OldSceneMutex);
                     Storage::OldScene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
@@ -145,7 +134,7 @@ int main()
         BVHSettings::RenderVisualization(*Storage::SdScene.pDataStorage);
         SkySettings::RenderUI();
 
-        DebugObjectRenderer::SetCamera(&newRenderer->cam);
+        DebugObjectRenderer::SetCamera(&renderer->cam);
         DebugObjectRenderer::Render();
 
         ImGui::Render();
@@ -160,8 +149,7 @@ int main()
         glfwSwapBuffers(window);
     }
 
-    // Cleanup
-    RTRenderer->shutdown();
+    renderer->shutdown();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

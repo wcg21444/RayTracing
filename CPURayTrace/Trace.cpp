@@ -12,7 +12,6 @@
 #include "Trace.hpp"
 #include "SimplifiedData.hpp"
 #include <limits>
-#include "Renderer.hpp"
 
 color4 Trace::CastRayDirectionLight(const Ray &ray, const color4 &light, const Scene &scene)
 {
@@ -96,83 +95,3 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStora
     return color;
 }
 
-void Tracer::shade(int x, int y)
-{
-    vec2 uv = uvAt(x, y);
-    vec4 &pixelColor = pixelAt(x, y);
-    Ray ray(
-        Renderer::Cam.position,
-        Renderer::Cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
-    if (!pSceneTracing)
-    {
-        throw std::runtime_error("Scene is not loaded.");
-    }
-    auto newColor = Trace::CastRay(ray, 0, *pSceneTracing);
-    pixelColor = (pixelColor * static_cast<float>(sampleCounts - 1.f) + newColor) / static_cast<float>(sampleCounts);
-}
-
-void Tracer::sdShade(int x, int y)
-{
-    vec2 uv = uvAt(x, y);
-    vec4 &pixelColor = pixelAt(x, y);
-    Ray ray(
-        Renderer::Cam.position,
-        Renderer::Cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
-    if (!pSdSceneTracing)
-    {
-        throw std::runtime_error("Scene is not loaded.");
-    }
-    auto newColor = Trace::CastRay(ray, 0, *pSdSceneTracing->pDataStorage);
-    pixelColor = (pixelColor * static_cast<float>(sampleCounts - 1.f) + newColor) / static_cast<float>(sampleCounts);
-}
-
-void Tracer::uploadSdScene(SimplifiedData::Scene *sceneTracing)
-{
-    this->pSdSceneTracing = sceneTracing;
-}
-
-void Tracer::uploadScene(Scene *sceneTracing)
-{
-    this->pSceneTracing = sceneTracing;
-}
-std::vector<vec4> Tracer::getImageData()
-{
-    return imageData;
-}
-
-void Tracer::setPixel(int x, int y, vec4 &value)
-{
-    this->imageData[y * width + x] = value;
-}
-
-vec4 &Tracer::pixelAt(int x, int y)
-{
-    return imageData[y * width + x];
-}
-
-vec2 Tracer::uvAt(int x, int y)
-{
-    return vec2(x / float(width), y / float(height));
-}
-
-Tracer::Tracer(int _width, int _height) : width(_width),
-                                          height(_height)
-{
-    resize(width, height);
-}
-
-void Tracer::resize(int newWidth, int newHeight)
-{
-    width = newWidth;
-    height = newHeight;
-    imageData.resize(newWidth * newHeight);
-}
-
-void Tracer::resetSamples()
-{
-    this->sampleCounts = 1;
-    for (auto &pixel : imageData)
-    {
-        pixel = color4(0.0f);
-    }
-}

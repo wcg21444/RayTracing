@@ -7,77 +7,14 @@
 class LoadSdSceneGPU : public ILoadMethod // 产生对应Context的引用依赖
 {
     SdSceneGPUContext &DIContext; // DI 必须
-
-    std::unique_ptr<sd::FlatNodeStorage> flatNodeStorage = nullptr;
-    std::unique_ptr<sd::FlatTriangleStorage> flatTriangleStorage = nullptr;
-
+    std::unique_ptr<sd::FlatNodeStorage> flatNodeStorage;
+    std::unique_ptr<sd::FlatTriangleStorage> flatTriangleStorage;
 public:
-    LoadSdSceneGPU(SdSceneGPUContext &context)
-        : DIContext(context),
-          flatNodeStorage(std::make_unique<sd::FlatNodeStorage>()),
-          flatTriangleStorage(std::make_unique<sd::FlatTriangleStorage>())
-    {
-    }
-
-    void load() override
-    {
-        uint32_t rootIndex = 0;
-        {
-            std::shared_lock<std::shared_mutex> sdSceneLock(Storage::SdSceneMutex); // read lock
-            sd::ConvertToFlatStorage(*Storage::SdScene.pDataStorage, *flatNodeStorage.get(), *flatTriangleStorage.get());
-            rootIndex = Storage::SdScene.pDataStorage->rootIndex;
-        }
-
-        {
-            std::unique_lock<std::shared_mutex> sceneRenderingLock(*DIContext.sceneBundleRenderingMutex); // write lock
-            auto &[NodeStorageTexRendering, TriangleStorageTexRendering, SceneRootIndexRendering] = *DIContext.sceneBundleRendering;
-
-            if (NodeStorageTexRendering.ID == 0 || TriangleStorageTexRendering.ID == 0)
-            {
-                throw std::runtime_error("Error: SceneBundleRendering Textures not initialized!");
-            }
-
-            resizeTextureStroage(TriangleStorageTexRendering, *flatTriangleStorage.get(), "Triangle");
-            resizeTextureStroage(NodeStorageTexRendering, *flatNodeStorage.get(), "Node");
-            TriangleStorageTexRendering.setData(flatTriangleStorage->triangles.data());
-            NodeStorageTexRendering.setData(flatNodeStorage->nodes.data());
-            SceneRootIndexRendering = rootIndex;
-        }
-    }
-
+    LoadSdSceneGPU(SdSceneGPUContext &context);
+    void load() override;
 private:
     template <typename TextureStorage, typename FlatStorage>
-    void resizeTextureStroage(TextureStorage &texLoading, const FlatStorage &flatStorage, const std::string &storageName)
-    {
-        // 获取所需最小的浮点数总数
-        size_t requiredSize = flatStorage.getSizeInFloats();
-        size_t currentCapacity = (size_t)texLoading.Width * (size_t)texLoading.Height;
-        size_t limit = (size_t)GetTextureSizeLimit() * (size_t)GetTextureSizeLimit();
-
-        // 检查是否需要调整大小
-        if (currentCapacity < requiredSize)
-        {
-            // 检查是否超出纹理大小限制
-            if (requiredSize > limit)
-            {
-                throw std::runtime_error(std::format("{} Storage Texture width beyond Limit: {} > {}", storageName, requiredSize, limit));
-            }
-
-            // 重新计算新的高度，确保上取整： (a + b - 1) / b
-            int newWidth = GetTextureSizeLimit();
-            // C++中整数除法默认截断，使用 (requiredSize + newWidth - 1) / newWidth 实现上取整
-            int newHeight = static_cast<int>((requiredSize + newWidth - 1) / newWidth);
-
-            // 确保新高度至少为 1
-            newHeight = std::max(1, newHeight);
-
-            texLoading.resize(newWidth, newHeight);
-
-            // std::cout << std::format("Resized {} Storage Texture to: {}x{} (Capacity: {})",
-            //                          storageName, texLoading.Width, texLoading.Height, (size_t)texLoading.Width * (size_t)texLoading.Height)
-            //           << std::endl;
-        }
-    }
+    void resizeTextureStroage(TextureStorage &texLoading, const FlatStorage &flatStorage, const std::string &storageName);
 };
 
 //[全局变量访问]: Storage::SdScene.pDataStorage
@@ -85,43 +22,14 @@ private:
 class LoadSdSceneCPU : public ILoadMethod
 {
     SdSceneCPUContext &DIContext;
-
 public:
-    LoadSdSceneCPU(SdSceneCPUContext &context)
-        : DIContext(context)
-    {
-    }
-
-    void load() override
-    {
-        {
-            std::unique_lock<std::shared_mutex> sceneWriteLock(*DIContext.sceneRenderingMutex); // write lock
-            std::shared_lock<std::shared_mutex> sceneReadLock(Storage::SdSceneMutex);           // read lock
-            DIContext.sceneRendering = std::make_unique<sd::Scene>(Storage::SdScene);           // 拷贝上传数据
-        }
-    }
+    LoadSdSceneCPU(SdSceneCPUContext &context);
+    void load() override;
 };
 class LoadSceneCPU : public ILoadMethod
 {
     SceneCPUContext &DIContext;
-
 public:
-    LoadSceneCPU(SceneCPUContext &context)
-        : DIContext(context)
-    {
-    }
-
-    void load() override
-    {
-        try
-        {
-            std::unique_lock<std::shared_mutex> sceneWriteLock(*DIContext.sceneRenderingMutex); // write lock
-            std::shared_lock<std::shared_mutex> sceneReadLock(Storage::OldSceneMutex);          // read lock
-            DIContext.sceneRendering = std::make_unique<Scene>(Storage::OldScene);              // 拷贝上传数据
-        }
-        catch (std::exception &e)
-        {
-            std::cerr << "Error loading Old Scene: " << e.what() << std::endl;
-        }
-    }
+    LoadSceneCPU(SceneCPUContext &context);
+    void load() override;
 };

@@ -9,7 +9,7 @@
 // #include "UI.hpp"
 #include "DebugObjectRenderer.hpp"
 // #include "RenderState.hpp"
-
+#include "RenderInterfaces.hpp"
 
 class ScreenPass;
 class PostProcessor;
@@ -18,7 +18,10 @@ class SkyTexPass;
 class CPURayTracer;
 class Scene;
 
-namespace Storage {
+using ResizeCallback = std::function<void(int, int)>;
+
+namespace Storage
+{
     class SceneLoader;
 }
 
@@ -27,41 +30,48 @@ namespace SimplifiedData
     class Scene;
 }
 
+enum class RenderMode
+{
+    GPU_SdScene,
+    GPU_Scene,
+    CPU_Scene,
+    CPU_SdScene
+};
+// TODO 改造原来的Renderer类
 class Renderer
 {
 private:
     int width = 1600;
     int height = 900;
 
-    Texture2D screenTexture;
-
-    int CPUThreads = 14;
-
 private:
-    bool useGPU = false;
+    RenderMode renderMode = RenderMode::GPU_SdScene;
 
 public:
     std::unique_ptr<ScreenPass> screenPass;
     std::unique_ptr<PostProcessor> postProcessor;
-    std::unique_ptr<GPURayTracer> gpuRayTracer;
     std::unique_ptr<SkyTexPass> skyTexPass;
-    std::unique_ptr<CPURayTracer> cpuRayTracer;
-    inline static Camera Cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
 
+    std::unique_ptr<ITracer> tracer;
+    std::unique_ptr<IUpLoader> uploader;
+    std::unique_ptr<IRenderPipeline> currentPipeline;
 
-    // Camera camera;
-    // Scene
+    std::shared_ptr<ResizeCallback> onResize;
+
+    Camera cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
+    Texture2D screenTexture;
+    TextureID skyboxTextureID;
 
     Renderer();
-    Renderer(const Renderer&) = delete;
-    Renderer& operator=(const Renderer&) = delete;
+    Renderer(const Renderer &) = delete;
+    Renderer &operator=(const Renderer &) = delete;
     ~Renderer();
-    void render(const Scene& scene);
-    void render(const SimplifiedData::Scene& scene);
+
+    void changeMode(RenderMode newMode);
+    void render();
     void resize(int newWidth, int newHeight);
-    void resetSamples();
     void shutdown();
+
 private:
     void renderUI();
 };
-

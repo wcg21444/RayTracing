@@ -1,112 +1,104 @@
 #include "Renderer.hpp"
-#include "GPURayTracer.hpp"
+#include "TracerImpl.hpp"
+#include "LoaderImpl.hpp"
 #include "PostProcessor.hpp"
-#include "CPURayTracer.hpp"
 #include "SkyTexPass.hpp"
 #include "RenderState.hpp"
 #include "Storage.hpp"
+#include "RenderContexts.hpp"
+#include "LoadMethods.hpp"
+#include "TraceMethods.hpp"
 
 Renderer::Renderer()
     : screenPass(std::make_unique<ScreenPass>(width, height, "GLSL/screenQuad.vs", "GLSL/screenOutput.fs")),
       postProcessor(std::make_unique<PostProcessor>(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
-      gpuRayTracer(std::make_unique<GPURayTracer>(width, height, "GLSL/screenQuad.vs", "GLSL/simpleRayTrace.fs")),
       skyTexPass(std::make_unique<SkyTexPass>("GLSL/cubemapSphere.vs", "GLSL/skyTex.fs", 256)),
-      cpuRayTracer(std::make_unique<CPURayTracer>(width, height))
+      tracer(std::make_unique<TracerAsync>(width, height)),
+      uploader(std::make_unique<SceneAsyncLoader>()),
+      onResize(std::make_shared<ResizeCallback>(
+          [this](int newWidth, int newHeight)
+          {
+              this->resize(newWidth, newHeight);
+          }))
 {
-
-    skyTexPass->contextSetup();
-    gpuRayTracer->contextSetup();
-    postProcessor->contextSetup();
+    changeMode(RenderMode::CPU_SdScene);
 }
 
 Renderer::~Renderer()
 {
 }
 
-void Renderer::render(const Scene &scene)
+void Renderer::changeMode(RenderMode newMode)
 {
-    renderUI();
-
-    if (RenderState::Dirty)
+    renderMode = newMode;
+    // tracer->wait(); //确保上一次渲染完成
+    // sceneLoader->wait(); //确保上一次上传完成
+    tracer->waitForCompletion();
+    uploader->waitForCompletion();
+    tracer->resetSamples();
+    switch (renderMode)
     {
-        resetSamples();
-    }
+    case RenderMode::GPU_SdScene:
+        currentPipeline = std::make_unique<RenderPipeline<SdSceneGPUContext, LoadSdSceneGPU, TraceSdSceneGPU>>(
+            SdSceneGPUContext{
+                skyboxTextureID,
+                cam});
+        break;
+    case RenderMode::CPU_SdScene:
+        currentPipeline = std::make_unique<RenderPipeline<SdSceneCPUContext, LoadSdSceneCPU, TraceSdSceneCPU>>(
+            SdSceneCPUContext{
+                cam});
+        break;
+    case RenderMode::CPU_Scene:
+        currentPipeline = std::make_unique<RenderPipeline<SceneCPUContext, LoadSceneCPU, TraceSceneCPU>>(
+            SceneCPUContext{
+                cam});
+        break;
 
-    TextureID raytraceResult;
-    if (!useGPU)
-    {
-        cpuRayTracer->setScene(scene);
-        cpuRayTracer->draw(CPUThreads);
-        raytraceResult = cpuRayTracer->getTraceResult();
+    default:
+        assert(false && "Unknown RenderMode");
     }
-    else
-    {
-        skyTexPass->render(Renderer::Cam.position);
-        auto skyTexID = skyTexPass->getCubemap();
-        gpuRayTracer->render(skyTexID, 0);
-        raytraceResult = gpuRayTracer->getTraceResult();
-    }
-    postProcessor->render(raytraceResult);
-    auto postProcessed = postProcessor->getTextures();
-
-    auto debugRendererOutput = DebugObjectRenderer::GetRenderOutput();
-
-    screenPass->render(postProcessed, debugRendererOutput);
+    RenderState::Dirty |= true;
 }
-void Renderer::render(const sd::Scene &scene)
+
+void Renderer::render()
 {
+    assert(currentPipeline && "RenderPipeline not set in Renderer::render");
+    // 对pipeline context的绑定修改不需要同步?句柄引用?
+    tracer->waitForCompletion(); // 帧同步
+    uploader->waitForCompletion();
+    // Preprocessing
+    skyTexPass->render(cam.position);
+    skyboxTextureID = skyTexPass->getCubemap();
+    // 需要注入到GPU渲染管线
 
-    renderUI();
+    auto loadMethod = currentPipeline->getLoadMethod();
+    auto traceMethod = currentPipeline->getTraceMethod();
+    assert(loadMethod && "ILoadMethod not set in Renderer::render");
+    assert(traceMethod && "ITraceMethod not set in Renderer::render");
 
+    if (RenderState::SceneDirty)
+    {
+        tracer->resetSamples();
+        uploader->upload(*loadMethod);
+        RenderState::SceneDirty = false;
+    }
     if (RenderState::Dirty)
     {
-        resetSamples();
+        tracer->resetSamples();
+        RenderState::Dirty = false;
     }
-
-    TextureID raytraceResult;
-
-    // TODO 使用策略模式或桥接器模式重构
-    if (!useGPU)
-    {
-        if (RenderState::SceneDirty)
-        {
-            cpuRayTracer->setSdScene(Storage::SdScene);
-            RenderState::SceneDirty = false;
-        }
-        cpuRayTracer->draw(CPUThreads);
-        raytraceResult = cpuRayTracer->getTraceResult();
-    }
-    else
-    {
-
-        skyTexPass->render(Renderer::Cam.position);
-        auto skyTexID = skyTexPass->getCubemap();
-
-        gpuRayTracer->renderUI();
-
-        try
-        {
-            if (RenderState::SceneDirty)
-            {
-                Storage::SdSceneLoader.upload();
-
-                RenderState::SceneDirty = false;
-            }
-        }
-        catch (std::exception &e)
-        {
-            std::cerr << e.what() << std::endl;
-        }
-        gpuRayTracer->render(skyTexID, 0);
-
-        raytraceResult = gpuRayTracer->getTraceResult();
-    }
-    postProcessor->render(raytraceResult);
+    tracer->render(*traceMethod);
+    // postprocessing
+    auto raytraceResultID = tracer->getTraceOutputTextureID();
+    postProcessor->render(raytraceResultID);
     auto postProcessed = postProcessor->getTextures();
 
     auto debugRendererOutput = DebugObjectRenderer::GetRenderOutput();
 
     screenPass->render(postProcessed, debugRendererOutput);
+
+    renderUI();
 }
 
 void Renderer::resize(int newWidth, int newHeight)
@@ -114,55 +106,79 @@ void Renderer::resize(int newWidth, int newHeight)
     width = newWidth;
     height = newHeight;
 
-    cpuRayTracer->resize(width, height);
-    gpuRayTracer->resize(width, height);
     screenPass->resize(width, height);
     postProcessor->resize(width, height);
+    if (tracer)
+    {
+        tracer->resize(width, height);
+    }
 
     RenderState::Dirty |= true;
 }
 
-void Renderer::resetSamples()
-{
-    if (!useGPU)
-    {
-        cpuRayTracer->resetSamples();
-    }
-    else
-    {
-        gpuRayTracer->resetSamples();
-    }
-    RenderState::Dirty &= false;
-}
-
 void Renderer::shutdown()
 {
-    if (!useGPU)
-    {
-        cpuRayTracer->shutdown();
-    }
+    // 同步等待所有任务完成
+    tracer->waitForCompletion();
+    uploader->waitForCompletion();
 }
 
 void Renderer::renderUI()
 {
-
     ImGui::Begin("RenderUI");
     {
-        // Toggle GPU/CPU Raytracing
-        if (ImGui::Checkbox("UseGPU", &useGPU))
-        {
-            RenderState::Dirty = true;
-            RenderState::SceneDirty = true;
-        }
         if ((ImGui::Button("Reload")))
         {
-            // gpuRayTracer->reloadCurrentShaders();
-            // postProcessor->reloadCurrentShaders();
-            // skyTexPass->reloadCurrentShaders();
-            // DebugObjectRenderer::ReloadCurrentShaders();
             Shader::ReloadAll();
             RenderState::Dirty |= true;
         }
+
+        // Render mode selection (checkbox style, mutually exclusive)
+        {
+            struct ModeItem
+            {
+                const char *label;
+                RenderMode mode;
+            };
+            static const ModeItem modeItems[] = {
+                {"CPU SD Scene", RenderMode::CPU_SdScene},
+                {"GPU SD Scene", RenderMode::GPU_SdScene},
+                {"CPU Old Scene", RenderMode::CPU_Scene}};
+            static int selectedMode = 0; // 选中状态
+            for (int i = 0; i < std::size(modeItems); ++i)
+            {
+                if (renderMode == modeItems[i].mode)
+                    selectedMode = i; // 初始化
+            }
+            if (ImGui::BeginListBox("Select Mode"))
+            {
+                for (int i = 0; i < std::size(modeItems); ++i)
+                {
+                    bool checked = (selectedMode == i);                // 渲染checkbox checked状态
+                    if (ImGui::Checkbox(modeItems[i].label, &checked)) // 用户输入将改变checked状态
+                    {
+                        if (checked && selectedMode != i)
+                        {
+                            selectedMode = i; // 状态切换
+                            if (renderMode != modeItems[i].mode)
+                            {
+                                changeMode(modeItems[i].mode); // 状态切换响应?
+                                RenderState::Dirty = true;
+                                RenderState::SceneDirty = true;
+                            }
+                        }
+                    }
+                }
+                ImGui::EndListBox();
+            }
+        }
+
+        {
+            RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(cam.position), 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(cam.lookAtCenter), 0.01f);
+            RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &cam.focalLength, 0.01f);
+            ImGui::Text(std::format("HFov: {}", cam.getHorizontalFOV()).c_str());
+        }
         ImGui::End();
-}
+    }
 }

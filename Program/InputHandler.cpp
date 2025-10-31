@@ -1,5 +1,4 @@
 #include "InputHandler.hpp"
-#include "Renderer.hpp"
 #include "DebugObjectRenderer.hpp"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
