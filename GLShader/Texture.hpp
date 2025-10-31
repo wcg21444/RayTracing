@@ -49,6 +49,12 @@ public:
 
     void setWrapMode(GLenum wrapMode);
 
+    void swap(Texture2D &other);
+
+    inline friend void swap(Texture2D &a, Texture2D &b)
+    {
+        a.swap(b);
+    }
     ~Texture2D();
 };
 
@@ -127,7 +133,6 @@ public:
 
     ~TextureCube();
 };
-
 
 class Texture2DArray : public GLResource
 {

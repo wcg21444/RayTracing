@@ -20,6 +20,17 @@ namespace Storage
         Texture2D nodeStorageTex;
         Texture2D triangleStorageTex;
         uint32_t sceneRootIndex = 0;
+
+        void swap(SceneBundle &other)
+        {
+            std::swap(nodeStorageTex, other.nodeStorageTex);
+            std::swap(triangleStorageTex, other.triangleStorageTex);
+            std::swap(sceneRootIndex, other.sceneRootIndex);
+        }
+        friend void swap(SceneBundle &a, SceneBundle &b)
+        {
+            a.swap(b);
+        }
     };
 
     extern SceneBundle SceneBundleRendering;

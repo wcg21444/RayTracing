@@ -8,41 +8,40 @@ class LoadSdSceneGPU : public ILoadMethod // 产生对应Context的引用依赖
 {
     SdSceneGPUContext &DIContext; // DI 必须
 
-    Storage::SceneBundle sceneBundleLoading;
     std::unique_ptr<sd::FlatNodeStorage> flatNodeStorage = nullptr;
     std::unique_ptr<sd::FlatTriangleStorage> flatTriangleStorage = nullptr;
 
 public:
-    LoadSdSceneGPU(SdSceneGPUContext &context) : DIContext(context)
+    LoadSdSceneGPU(SdSceneGPUContext &context)
+        : DIContext(context),
+          flatNodeStorage(std::make_unique<sd::FlatNodeStorage>()),
+          flatTriangleStorage(std::make_unique<sd::FlatTriangleStorage>())
     {
-        Storage::InitializeSceneBundle(sceneBundleLoading);
-        flatNodeStorage = std::make_unique<sd::FlatNodeStorage>();
-        flatTriangleStorage = std::make_unique<sd::FlatTriangleStorage>();
     }
 
     void load() override
     {
-        auto &[nodeStorageTexLoading, triangleStorageTexLoading, rootIndex] = sceneBundleLoading;
+        uint32_t rootIndex = 0;
         {
             std::shared_lock<std::shared_mutex> sdSceneLock(Storage::SdSceneMutex); // read lock
             sd::ConvertToFlatStorage(*Storage::SdScene.pDataStorage, *flatNodeStorage.get(), *flatTriangleStorage.get());
             rootIndex = Storage::SdScene.pDataStorage->rootIndex;
         }
 
-        resizeTextureStroage(nodeStorageTexLoading, *flatNodeStorage.get(), "Node");
-        resizeTextureStroage(triangleStorageTexLoading, *flatTriangleStorage.get(), "Triangle");
-
-        nodeStorageTexLoading.setData(flatNodeStorage->nodes.data());
-        triangleStorageTexLoading.setData(flatTriangleStorage->triangles.data());
-
         {
             std::unique_lock<std::shared_mutex> sceneRenderingLock(*DIContext.sceneBundleRenderingMutex); // write lock
             auto &[NodeStorageTexRendering, TriangleStorageTexRendering, SceneRootIndexRendering] = *DIContext.sceneBundleRendering;
 
-            TriangleStorageTexRendering.resize(triangleStorageTexLoading.Width, triangleStorageTexLoading.Height);
-            NodeStorageTexRendering.resize(nodeStorageTexLoading.Width, nodeStorageTexLoading.Height);
+            if (NodeStorageTexRendering.ID == 0 || TriangleStorageTexRendering.ID == 0)
+            {
+                throw std::runtime_error("Error: SceneBundleRendering Textures not initialized!");
+            }
 
-            std::swap(this->sceneBundleLoading, *DIContext.sceneBundleRendering);
+            resizeTextureStroage(TriangleStorageTexRendering, *flatTriangleStorage.get(), "Triangle");
+            resizeTextureStroage(NodeStorageTexRendering, *flatNodeStorage.get(), "Node");
+            TriangleStorageTexRendering.setData(flatTriangleStorage->triangles.data());
+            NodeStorageTexRendering.setData(flatNodeStorage->nodes.data());
+            SceneRootIndexRendering = rootIndex;
         }
     }
 
@@ -74,9 +73,9 @@ private:
 
             texLoading.resize(newWidth, newHeight);
 
-            std::cout << std::format("Resized {} Storage Texture to: {}x{} (Capacity: {})",
-                                     storageName, texLoading.Width, texLoading.Height, (size_t)texLoading.Width * (size_t)texLoading.Height)
-                      << std::endl;
+            // std::cout << std::format("Resized {} Storage Texture to: {}x{} (Capacity: {})",
+            //                          storageName, texLoading.Width, texLoading.Height, (size_t)texLoading.Width * (size_t)texLoading.Height)
+            //           << std::endl;
         }
     }
 };
@@ -97,8 +96,8 @@ public:
     {
         {
             std::unique_lock<std::shared_mutex> sceneWriteLock(*DIContext.sceneRenderingMutex); // write lock
-			std::shared_lock<std::shared_mutex> sceneReadLock(Storage::SdSceneMutex); // read lock
-            DIContext.sceneRendering = std::make_unique<sd::Scene>(Storage::SdScene);      // 拷贝上传数据
+            std::shared_lock<std::shared_mutex> sceneReadLock(Storage::SdSceneMutex);           // read lock
+            DIContext.sceneRendering = std::make_unique<sd::Scene>(Storage::SdScene);           // 拷贝上传数据
         }
     }
 };
@@ -117,11 +116,12 @@ public:
         try
         {
             std::unique_lock<std::shared_mutex> sceneWriteLock(*DIContext.sceneRenderingMutex); // write lock
-			std::shared_lock<std::shared_mutex> sceneReadLock(Storage::OldSceneMutex); // read lock
-            DIContext.sceneRendering = std::make_unique<Scene>(Storage::OldScene);      // 拷贝上传数据
+            std::shared_lock<std::shared_mutex> sceneReadLock(Storage::OldSceneMutex);          // read lock
+            DIContext.sceneRendering = std::make_unique<Scene>(Storage::OldScene);              // 拷贝上传数据
         }
-        catch (std::exception& e) {
-			std::cerr << "Error loading Old Scene: " << e.what() << std::endl;
+        catch (std::exception &e)
+        {
+            std::cerr << "Error loading Old Scene: " << e.what() << std::endl;
         }
     }
 };

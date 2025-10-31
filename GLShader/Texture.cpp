@@ -115,6 +115,23 @@ void Texture2D::setWrapMode(GLenum wrapMode)
     glBindTexture(Target, 0);
 }
 
+void Texture2D::swap(Texture2D &other)
+{
+    std::swap(ID, other.ID);
+    std::swap(Target, other.Target);
+    std::swap(InternalFormat, other.InternalFormat);
+    std::swap(Format, other.Format);
+    std::swap(Type, other.Type);
+    std::swap(FilterMin, other.FilterMin);
+    std::swap(FilterMax, other.FilterMax);
+    std::swap(WrapS, other.WrapS);
+    std::swap(WrapT, other.WrapT);
+    std::swap(WrapR, other.WrapR);
+    std::swap(Mipmapping, other.Mipmapping);
+    std::swap(Width, other.Width);
+    std::swap(Height, other.Height);
+}
+
 /**
  * @brief 设置纹理的缩小过滤模式。
  * @param filter 用于缩小过滤的 OpenGL 枚举值。

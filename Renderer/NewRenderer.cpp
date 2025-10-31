@@ -15,7 +15,7 @@ NewRenderer::NewRenderer()
       postProcessor(std::make_unique<PostProcessor>(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
       skyTexPass(std::make_unique<SkyTexPass>("GLSL/cubemapSphere.vs", "GLSL/skyTex.fs", 256)),
       tracer(std::make_unique<TracerAsync>(width, height)),
-      uploader(std::make_unique<SceneUploader>()),
+      uploader(std::make_unique<SceneAsyncLoader>()),
       onResize(std::make_shared<ResizeCallback>(
           [this](int newWidth, int newHeight)
           {
