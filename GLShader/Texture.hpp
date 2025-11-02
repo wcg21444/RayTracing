@@ -51,6 +51,10 @@ public:
 
     void swap(Texture2D &other);
 
+    Texture2D clone();
+
+    void copyDataTo(Texture2D &dest);
+
     inline friend void swap(Texture2D &a, Texture2D &b)
     {
         a.swap(b);
@@ -110,7 +114,7 @@ private:
     GLenum WrapR;          // R 轴（深度）的纹理环绕方式，主要用于 3D 纹理
     bool Mipmapping;       // 是否启用多级渐远纹理（Mipmapping）
 public:
-    TextureID ID; // 纹理对象的 ID，由 OpenGL 分配
+    //  TextureID ID; // 纹理对象的 ID，由 OpenGL 分配
 
     unsigned int Width;  // 正方形纹理的宽度（以像素为单位）
     unsigned int Height; // 正方形纹理的高度（以像素为单位）
@@ -130,6 +134,10 @@ public:
     void resize(int ResizeWidth, int ResizeHeight);
 
     void setWrapMode(GLenum wrapMode);
+
+    TextureCube clone();
+
+    void copyDataTo(TextureCube &dest);
 
     ~TextureCube();
 };
@@ -166,6 +174,10 @@ public:
     void resize(int ResizeWidth, int ResizeHeight);
 
     void setWrapMode(GLenum wrapMode);
+
+    void copyDataTo(Texture2DArray &dest);
+
+    Texture2DArray clone();
 
     ~Texture2DArray();
 };

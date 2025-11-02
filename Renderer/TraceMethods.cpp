@@ -13,7 +13,10 @@ TraceSdSceneGPU::TraceSdSceneGPU(SdSceneGPUContext &context)
       traceRenderTarget(1, 1),
       traceShader("GLSL/screenQuad.vs", "GLSL/simpleRayTrace.fs") {}
 
-void TraceSdSceneGPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount) {
+void TraceSdSceneGPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount)
+{
+    std::shared_lock<std::shared_mutex> contextLock(*DIContext.snapshotMutex); // read lock
+
     traceRenderTarget.bind();
     traceRenderTarget.attachColorTexture2D(traceOutput.ID, GL_COLOR_ATTACHMENT0);
     traceRenderTarget.enableColorAttachments();
@@ -26,7 +29,8 @@ void TraceSdSceneGPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
     float rand = Random::randomFloats(Random::generator);
     traceShader.setUniform("rand", rand);
     traceShader.setUniform("samplesCount", sampleCount);
-    DIContext.cam.setToFragShader(traceShader, "cam");
+    DIContext.camSnapshot->setToFragShader(traceShader, "cam");
+    // DIContext.cameraRef.setToFragShader(traceShader, "cam");
     {
         std::shared_lock<std::shared_mutex> sceneLock(*DIContext.sceneBundleRenderingMutex);
         auto &[NodeStorageTexRendering, TriangleStorageTexRendering, SceneRootIndexRendering] = *DIContext.sceneBundleRendering;
@@ -34,7 +38,8 @@ void TraceSdSceneGPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
         traceShader.setTextureAuto(TriangleStorageTexRendering.ID, GL_TEXTURE_2D, 0, "triangleStorageTex");
         traceShader.setUniform("sceneRootIndex", static_cast<unsigned int>(SceneRootIndexRendering));
         SkySettings::SetShaderUniforms(traceShader);
-        traceShader.setTextureAuto(DIContext.skyboxTextureID, GL_TEXTURE_CUBE_MAP, 0, "skybox");
+        traceShader.setTextureAuto(DIContext.skyboxSnapShot->ID, GL_TEXTURE_CUBE_MAP, 0, "skybox");
+        // traceShader.setTextureAuto(DIContext.skyboxCubemapRef.ID, GL_TEXTURE_CUBE_MAP, 0, "skybox");
         DrawQuad();
     }
     traceRenderTarget.unbind();
@@ -42,16 +47,19 @@ void TraceSdSceneGPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
 
 // TraceSdSceneCPU
 TraceSdSceneCPU::TraceSdSceneCPU(SdSceneCPUContext &context) : DIContext(context) {}
-void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount) {
+void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount)
+{
     traceImageData.resize(traceInput.Width, traceInput.Height);
-    auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y) {
+    auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y)
+    {
         const float perturbStrength = 0.001f;
         auto &pixelColor = imageData.pixelAt(x, y);
         auto uv = imageData.uvAt(x, y);
         Ray ray(
-            DIContext.cam.position,
-            DIContext.cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
-        if (!DIContext.sceneRendering) {
+            DIContext.cameraRef.position,
+            DIContext.cameraRef.getRayDirction(uv) + Random::RandomVector(perturbStrength));
+        if (!DIContext.sceneRendering)
+        {
             throw std::runtime_error("Scene is not loaded.");
         }
         std::shared_lock<std::shared_mutex> sceneLock(*DIContext.sceneRenderingMutex);
@@ -59,19 +67,22 @@ void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
         pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
     };
     size_t rowsPerThread = traceImageData.height / numThreads;
-    for (int i = 0; i < numThreads; ++i) {
+    for (int i = 0; i < numThreads; ++i)
+    {
         size_t startY = i * rowsPerThread;
         size_t endY = (i == numThreads - 1) ? traceImageData.height : startY + rowsPerThread;
-        this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]() {
+        this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]()
+                                                  {
             for (size_t y = startY; y < endY; ++y) {
                 for (size_t x = 0; x < traceImageData.width; ++x) {
                     shade(this->traceImageData, x, y);
                 }
-            }
-        }));
+            } }));
     }
-    if (!shadingFutures.empty()) {
-        for (auto &future : shadingFutures) {
+    if (!shadingFutures.empty())
+    {
+        for (auto &future : shadingFutures)
+        {
             future.get();
         }
         this->shadingFutures.clear();
@@ -81,16 +92,19 @@ void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
 
 // TraceSceneCPU
 TraceSceneCPU::TraceSceneCPU(SceneCPUContext &context) : DIContext(context) {}
-void TraceSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount) {
+void TraceSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount)
+{
     traceImageData.resize(traceInput.Width, traceInput.Height);
-    auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y) {
+    auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y)
+    {
         const float perturbStrength = 0.001f;
         auto &pixelColor = imageData.pixelAt(x, y);
         auto uv = imageData.uvAt(x, y);
         Ray ray(
-            DIContext.cam.position,
-            DIContext.cam.getRayDirction(uv) + Random::RandomVector(perturbStrength));
-        if (!DIContext.sceneRendering) {
+            DIContext.cameraRef.position,
+            DIContext.cameraRef.getRayDirction(uv) + Random::RandomVector(perturbStrength));
+        if (!DIContext.sceneRendering)
+        {
             throw std::runtime_error("Scene is not loaded.");
         }
         std::shared_lock<std::shared_mutex> sceneLock(*DIContext.sceneRenderingMutex);
@@ -98,19 +112,22 @@ void TraceSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, i
         pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
     };
     size_t rowsPerThread = traceImageData.height / numThreads;
-    for (int i = 0; i < numThreads; ++i) {
+    for (int i = 0; i < numThreads; ++i)
+    {
         size_t startY = i * rowsPerThread;
         size_t endY = (i == numThreads - 1) ? traceImageData.height : startY + rowsPerThread;
-        this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]() {
+        this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]()
+                                                  {
             for (size_t y = startY; y < endY; ++y) {
                 for (size_t x = 0; x < traceImageData.width; ++x) {
                     shade(this->traceImageData, x, y);
                 }
-            }
-        }));
+            } }));
     }
-    if (!shadingFutures.empty()) {
-        for (auto &future : shadingFutures) {
+    if (!shadingFutures.empty())
+    {
+        for (auto &future : shadingFutures)
+        {
             future.get();
         }
         this->shadingFutures.clear();

@@ -48,19 +48,17 @@ private:
     RenderMode renderMode = RenderMode::GPU_SdScene;
 
 public:
-    std::unique_ptr<ScreenPass> screenPass;
-    std::unique_ptr<PostProcessor> postProcessor;
-    std::unique_ptr<SkyTexPass> skyTexPass;
+    std::unique_ptr<ScreenPass> screenPass = nullptr;
+    std::unique_ptr<PostProcessor> postProcessor = nullptr;
+    std::unique_ptr<SkyTexPass> skyTexPass = nullptr;
 
-    std::unique_ptr<ITracer> tracer;
-    std::unique_ptr<IUpLoader> uploader;
-    std::unique_ptr<IRenderPipeline> currentPipeline;
+    std::unique_ptr<ITracer> tracer = nullptr;
+    std::unique_ptr<IUpLoader> uploader = nullptr;
+    std::unique_ptr<IRenderPipeline> currentPipeline = nullptr;
 
-    std::shared_ptr<ResizeCallback> onResize;
+    std::shared_ptr<ResizeCallback> onResize = nullptr;
 
     Camera cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
-    Texture2D screenTexture;
-    TextureID skyboxTextureID;
 
     Renderer();
     Renderer(const Renderer &) = delete;

@@ -132,6 +132,45 @@ void Texture2D::swap(Texture2D &other)
     std::swap(Height, other.Height);
 }
 
+Texture2D Texture2D::clone()
+{
+    Texture2D cloneTexture;
+    cloneTexture.generate(Width, Height, InternalFormat, Format, Type, nullptr, Mipmapping);
+
+    // 复制纹理状态设置
+    cloneTexture.FilterMin = FilterMin;
+    cloneTexture.FilterMax = FilterMax;
+    cloneTexture.WrapS = WrapS;
+    cloneTexture.WrapT = WrapT;
+    cloneTexture.WrapR = WrapR;
+
+    glBindTexture(GL_TEXTURE_2D, cloneTexture.ID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, FilterMin);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, FilterMax);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, WrapS);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, WrapT);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glCopyImageSubData(ID, GL_TEXTURE_2D, 0, 0, 0, 0,
+                       cloneTexture.ID, GL_TEXTURE_2D, 0, 0, 0, 0,
+                       Width, Height, 1);
+    return cloneTexture;
+}
+
+void Texture2D::copyDataTo(Texture2D &dest)
+{
+    if (Width == dest.Width && Height == dest.Height)
+    {
+        glCopyImageSubData(ID, GL_TEXTURE_2D, 0, 0, 0, 0,
+                           dest.ID, GL_TEXTURE_2D, 0, 0, 0, 0,
+                           Width, Height, 1);
+    }
+    else
+    {
+        throw std::runtime_error("Texture2D::copyDataTo Error: Texture sizes do not match.");
+    }
+}
+
 /**
  * @brief 设置纹理的缩小过滤模式。
  * @param filter 用于缩小过滤的 OpenGL 枚举值。
@@ -212,9 +251,10 @@ TextureCube::TextureCube()
     ID = 0;
     Width = 0;
     Height = 0;
-    WrapS = GL_REPEAT;
-    WrapT = GL_REPEAT;
-    WrapR = GL_REPEAT;
+    // Cubemap必须使用GL_CLAMP_TO_EDGE避免接缝
+    WrapS = GL_CLAMP_TO_EDGE;
+    WrapT = GL_CLAMP_TO_EDGE;
+    WrapR = GL_CLAMP_TO_EDGE;
 }
 
 ///@brief 生成CubeTexture对象,设置属性
@@ -311,6 +351,36 @@ void TextureCube::setWrapMode(GLenum wrapMode)
         glTexParameteri(Target, GL_TEXTURE_WRAP_R, WrapR);
     }
     glBindTexture(Target, 0);
+}
+
+TextureCube TextureCube::clone()
+{
+    TextureCube cloneTexture;
+
+    cloneTexture.generate(Width, Height, GL_RGBA32F, GL_RGBA, GL_FLOAT, GL_LINEAR, GL_LINEAR, false);
+
+    glCopyImageSubData(
+        ID, GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,              // 源，层=面索引
+        cloneTexture.ID, GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0, // 目标，层=面索引
+        Width, Height, 6                                  // 尺寸
+    );
+
+    return cloneTexture;
+}
+
+void TextureCube::copyDataTo(TextureCube &dest)
+{
+    if (Width == dest.Width && Height == dest.Height)
+    {
+        glCopyImageSubData(
+            ID, GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,
+            dest.ID, GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,
+            Width, Height, 6);
+    }
+    else
+    {
+        throw std::runtime_error("TextureCube::copyDataTo Error: Texture sizes do not match.");
+    }
 }
 
 TextureCube::~TextureCube()
@@ -444,6 +514,46 @@ void Texture2DArray::setWrapMode(GLenum wrapMode)
         glTexParameteri(Target, GL_TEXTURE_WRAP_R, wrapMode);
     }
     glBindTexture(Target, 0);
+}
+
+void Texture2DArray::copyDataTo(Texture2DArray &dest)
+{
+    if (Width == dest.Width && Height == dest.Height && Depth == dest.Depth)
+    {
+        glCopyImageSubData(ID, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
+                           dest.ID, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
+                           Width, Height, Depth);
+    }
+    else
+    {
+        throw std::runtime_error("Texture2DArray::copyDataTo Error: Texture sizes do not match.");
+    }
+}
+
+Texture2DArray Texture2DArray::clone()
+{
+    Texture2DArray cloneTexture;
+    cloneTexture.generate(Width, Height, Depth, InternalFormat, Format, Type, nullptr, Mipmapping);
+
+    // 复制纹理状态设置
+    cloneTexture.FilterMin = FilterMin;
+    cloneTexture.FilterMax = FilterMax;
+    cloneTexture.WrapS = WrapS;
+    cloneTexture.WrapT = WrapT;
+    cloneTexture.WrapR = WrapR;
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, cloneTexture.ID);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, FilterMin);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, FilterMax);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, WrapS);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, WrapT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_R, WrapR);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
+    glCopyImageSubData(ID, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
+                       cloneTexture.ID, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
+                       Width, Height, Depth);
+    return cloneTexture;
 }
 
 Texture2DArray::~Texture2DArray()

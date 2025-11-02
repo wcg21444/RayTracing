@@ -73,7 +73,7 @@ void SkyTexPass::render(const glm::vec3 & camPos)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-unsigned int SkyTexPass::getCubemap()
+unsigned int SkyTexPass::getCubemapID()
 {
     return skyCubemapTex.ID;
 }

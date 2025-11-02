@@ -192,8 +192,8 @@ namespace SimplifiedData
 
         try
         {
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/Sphere.obj");
-            // sceneIndices.push_back(root);
+            root = sd::ModelLoader::LoadModelFileSync("Resources/Scene.obj");
+            sceneIndices.push_back(root);
             // root = sd::ModelLoader::LoadModelFileSync("Resources/brizzareTri.obj");
             // root = sd::ModelLoader::LoadModelFileSync("Resources/dragon/dragon.obj");//Read access violation
             // sceneIndices.push_back(root);

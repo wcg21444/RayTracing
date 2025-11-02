@@ -25,5 +25,11 @@ public:
     void resize(int _width, int _height) override;
 
     void render(const glm::vec3 & camPos);
-    unsigned int getCubemap();
+
+    unsigned int getCubemapID();
+
+    TextureCube &getCubemapRef()
+    {
+        return skyCubemapTex;
+    }
 };

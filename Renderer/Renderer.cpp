@@ -14,7 +14,8 @@ Renderer::Renderer()
       postProcessor(std::make_unique<PostProcessor>(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
       skyTexPass(std::make_unique<SkyTexPass>("GLSL/cubemapSphere.vs", "GLSL/skyTex.fs", 256)),
       tracer(std::make_unique<TracerAsync>(width, height)),
-      uploader(std::make_unique<SceneAsyncLoader>()),
+    //   uploader(std::make_unique<SceneAsyncLoader>()),
+      uploader(std::make_unique<SceneUploader>()),
       onResize(std::make_shared<ResizeCallback>(
           [this](int newWidth, int newHeight)
           {
@@ -41,7 +42,7 @@ void Renderer::changeMode(RenderMode newMode)
     case RenderMode::GPU_SdScene:
         currentPipeline = std::make_unique<RenderPipeline<SdSceneGPUContext, LoadSdSceneGPU, TraceSdSceneGPU>>(
             SdSceneGPUContext{
-                skyboxTextureID,
+                skyTexPass->getCubemapRef(),
                 cam});
         break;
     case RenderMode::CPU_SdScene:
@@ -65,11 +66,8 @@ void Renderer::render()
 {
     assert(currentPipeline && "RenderPipeline not set in Renderer::render");
     // 对pipeline context的绑定修改不需要同步?句柄引用?
-    tracer->waitForCompletion(); // 帧同步
-    uploader->waitForCompletion();
     // Preprocessing
     skyTexPass->render(cam.position);
-    skyboxTextureID = skyTexPass->getCubemap();
     // 需要注入到GPU渲染管线
 
     auto loadMethod = currentPipeline->getLoadMethod();
@@ -85,6 +83,10 @@ void Renderer::render()
     }
     if (RenderState::Dirty)
     {
+        tracer->waitForCompletion();
+        uploader->waitForCompletion();
+        // 拍摄context快照
+        currentPipeline->snapshotContext();
         tracer->resetSamples();
         RenderState::Dirty = false;
     }

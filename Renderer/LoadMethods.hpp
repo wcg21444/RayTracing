@@ -18,7 +18,6 @@ private:
 };
 
 //[全局变量访问]: Storage::SdScene.pDataStorage
-
 class LoadSdSceneCPU : public ILoadMethod
 {
     SdSceneCPUContext &DIContext;

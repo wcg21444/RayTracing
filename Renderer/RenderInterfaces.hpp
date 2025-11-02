@@ -21,6 +21,13 @@ public:
     virtual ~ILoadMethod() {}
 };
 
+class IRenderContext
+{
+    public:
+    virtual ~IRenderContext() {}
+    virtual void snapshot() = 0;
+};
+
 class ITracer // Tracer Method 调度器
 {
 public:
@@ -50,6 +57,7 @@ public:
     virtual ~IRenderPipeline() {}
     virtual ILoadMethod *getLoadMethod() = 0;
     virtual ITraceMethod *getTraceMethod() = 0;
+    virtual void snapshotContext() = 0;
 };
 
 template <typename ContextType, typename LoadMethodType, typename TraceMethodType>
@@ -74,5 +82,10 @@ public:
     ITraceMethod *getTraceMethod() override
     {
         return traceMethod.get();
+    }
+
+    void snapshotContext() override
+    {
+        context->snapshot();
     }
 };
