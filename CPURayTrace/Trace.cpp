@@ -12,6 +12,7 @@
 #include "Trace.hpp"
 #include "SimplifiedData.hpp"
 #include <limits>
+#include "Profiler.hpp"
 
 color4 Trace::CastRayDirectionLight(const Ray &ray, const color4 &light, const Scene &scene)
 {
@@ -57,11 +58,16 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, const Scene &scene)
 
 color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStorage)
 {
+    static thread_local auto &castRayCount = Profiler::Aggregator::RegisterCounter("CastRay");
+    static thread_local auto &castRayTimeStats = Profiler::Aggregator::RegisterTimeStats("CastRay");
+
     vec4 color = vec4(0.0f);
     vec3 throughout = vec3(1.f);
     Ray tracingRay = ray;
     while (traceDepth < bounceLimit)
     {
+         castRayCount++;
+        Profiler::ScopedTimer timer(castRayTimeStats);
 
         traceDepth++;
         // 场景测试
@@ -77,8 +83,8 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStora
             // tracingRay = Ray(closestHit.pos + bias, rndDir);
             // throughout *= vec3(0.9f, 0.4f, 0.7f);
             // color = vec4(1.0f,0.0f,0.0f,0.0f);
-            if(closestHit.matFlags == sd::LambertianMat)
-            throughout *= vec3(Lambertian::Hit(closestHit, tracingRay, color4(0.9f, 0.6f, 0.5f, 1.0f)));
+            if (closestHit.matFlags == sd::LambertianMat)
+                throughout *= vec3(Lambertian::Hit(closestHit, tracingRay, color4(0.9f, 0.6f, 0.5f, 1.0f)));
             continue;
         }
         // 未命中
@@ -94,4 +100,3 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStora
 
     return color;
 }
-

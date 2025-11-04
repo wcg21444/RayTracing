@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <memory>
 
+#include "Profiler.hpp"
+
 // TraceSdSceneGPU
 TraceSdSceneGPU::TraceSdSceneGPU(SdSceneGPUContext &context)
     : DIContext(context),
@@ -49,9 +51,12 @@ void TraceSdSceneGPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
 TraceSdSceneCPU::TraceSdSceneCPU(SdSceneCPUContext &context) : DIContext(context) {}
 void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount)
 {
+
     traceImageData.resize(traceInput.Width, traceInput.Height);
     auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y)
     {
+        static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("Shade");
+        Profiler::ScopedTimer timer(timeStats);
         const float perturbStrength = 0.001f;
         auto &pixelColor = imageData.pixelAt(x, y);
         auto uv = imageData.uvAt(x, y);
@@ -73,20 +78,21 @@ void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
         size_t endY = (i == numThreads - 1) ? traceImageData.height : startY + rowsPerThread;
         this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]()
                                                   {
+            Profiler::AggregatorGuard threadCounterGuard;
             for (size_t y = startY; y < endY; ++y) {
                 for (size_t x = 0; x < traceImageData.width; ++x) {
                     shade(this->traceImageData, x, y);
                 }
             } }));
     }
-    if (!shadingFutures.empty())
-    {
-        for (auto &future : shadingFutures)
+        if (!shadingFutures.empty())
         {
-            future.get();
+            for (auto &future : shadingFutures)
+            {
+                future.get();
+            }
+            this->shadingFutures.clear();
         }
-        this->shadingFutures.clear();
-    }
     traceOutput.setData(traceImageData.data());
 }
 

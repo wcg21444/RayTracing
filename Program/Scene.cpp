@@ -192,6 +192,7 @@ namespace SimplifiedData
 
         try
         {
+            // root = sd::ModelLoader::LoadModelFileSync("Resources/TestScene1Box.obj");
             root = sd::ModelLoader::LoadModelFileSync("Resources/Scene.obj");
             sceneIndices.push_back(root);
             // root = sd::ModelLoader::LoadModelFileSync("Resources/brizzareTri.obj");

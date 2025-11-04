@@ -15,6 +15,7 @@
 #include "Storage.hpp"
 #include "UI.hpp"
 #include "Renderer.hpp"
+#include "Profiler.hpp"
 
 const int InitWidth = 640;
 const int InitHeight = 360;
@@ -103,6 +104,7 @@ int main()
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
+        Profiler::ProcessStatistics();
         Profiler::RenderUI();
 
         renderer->render();
@@ -119,8 +121,13 @@ int main()
                     Storage::OldScene.update();
                 }
             }
+            if (ImGui::Button("Print BVH Tree"))
+            {
+                BVHSettings::Output2DVisualization(*Storage::SdScene.pDataStorage, "BVHOutput.txt");
+            }
             ImGui::End();
         }
+        BVHSettings::InteractableVisualization(*Storage::SdScene.pDataStorage);
         BVHSettings::RenderUI();
 
         // BVHSettings::RenderVisualization(scene.BVHTree.root);

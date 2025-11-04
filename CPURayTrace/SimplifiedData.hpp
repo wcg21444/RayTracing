@@ -64,7 +64,8 @@ namespace SimplifiedData
     struct BoundingBox
     {
         vec3 pMin = vec3(FLT_MAX);
-        vec3 pMax = vec3(FLT_MIN);
+        // vec3 pMax = vec3(FLT_MIN);//Oppps FLT_MIN is 1.175494351e-38F
+        vec3 pMax = vec3(-FLT_MAX); // Oppps FLT_MIN is 1.175494351e-38F
         BoundingBox &operator=(const BoundingBox &other);
     };
     // flag 决定跳转到 NodeStorage 还是 TriangleStorage

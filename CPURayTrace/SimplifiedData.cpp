@@ -1,5 +1,5 @@
 #include "SimplifiedData.hpp"
-
+#include "Profiler.hpp"
 #include <exception>
 namespace SimplifiedData
 {
@@ -145,11 +145,17 @@ namespace SimplifiedData
 
     bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax)
     {
+        // static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("BoundingBox Intersections");
+        static thread_local auto &count = Profiler::Aggregator::RegisterCounter("BoundingBox Intersections");
+        // Profiler::ScopedTimer timer(timeStats);
+        count++;
+        auto invDir = ray.getInvDirection();
+        auto origin = ray.getOrigin();
         for (int a = 0; a < 3; a++)
         {
-            float invD = ray.getInvDirection()[a];
-            float t0 = (box.pMin[a] - ray.getOrigin()[a]) * invD;
-            float t1 = (box.pMax[a] - ray.getOrigin()[a]) * invD;
+            float invD = invDir[a];
+            float t0 = (box.pMin[a] - origin[a]) * invD;
+            float t1 = (box.pMax[a] - origin[a]) * invD;
             if (invD < 0.0f)
                 std::swap(t0, t1);
             tMin = t0 > tMin ? t0 : tMin;
@@ -268,6 +274,13 @@ namespace SimplifiedData
     }
     HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax)
     {
+        // static thread_local auto& count = Profiler::Aggregator::RegisterCounter("Triangle Intersections");
+        static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("Triangle Intersections");
+        Profiler::ScopedTimer timer(timeStats);
+        // count++;
+
+        // aggregator->increment(counterName);//构造字符串性能开销很大
+        // TODO 统计一个线程内 三角形求交次数
         const float EPSILON = 1e-7f;
         vec3 edge1 = tri.positions[1] - tri.positions[0];
         vec3 edge2 = tri.positions[2] - tri.positions[0];
@@ -356,6 +369,7 @@ namespace SimplifiedData
             auto subBox = subNode.box;
             nodeBox.pMin = glm::min(nodeBox.pMin, subBox.pMin);
             nodeBox.pMax = glm::max(nodeBox.pMax, subBox.pMax);
+
         }
         float xExtent = nodeBox.pMax.x - nodeBox.pMin.x;
         float yExtent = nodeBox.pMax.y - nodeBox.pMin.y;
@@ -429,6 +443,12 @@ namespace SimplifiedData
 
     HitInfos BVH::IntersectLoop(DataStorage &dataStorage, const Ray &ray)
     {
+        static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("BVH Intersections");
+        static thread_local auto &timeStatsBB = Profiler::Aggregator::RegisterTimeStats("BoundingBox Intersections");
+        static thread_local auto &counterBB = Profiler::Aggregator::RegisterCounter("BoundingBox Intersections");
+
+        Profiler::ScopedTimer timer(timeStats);
+
         static thread_local std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
         static thread_local size_t top = 0;
         HitInfos closestHit;
@@ -440,9 +460,13 @@ namespace SimplifiedData
             uint32_t index = callStack[--top];
             const Node &node = dataStorage.nodeStorage.nodes[index];
 
-            if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
             {
-                continue;
+                // Profiler::ScopedTimer timerBB(timeStatsBB);//测的越多越不准,因为开销过大
+                counterBB++;
+                if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
+                {
+                    continue;
+                }
             }
             if (node.flags == NODE_LEAF) // 叶子节点
             {

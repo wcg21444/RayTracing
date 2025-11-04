@@ -73,22 +73,3 @@ namespace Output
 
 } // namespace Output
 
-//线程安全吗?
-namespace Profiler
-{
-    // 用两个方法, 划分开始结束区间 , 监测区间内代码耗时,每个区间用户自定义名字
-    // 输出区间耗时到imgui
-    using namespace std::chrono;
-    struct TimeBeginEnd
-    {
-        high_resolution_clock::time_point startTime;
-        high_resolution_clock::time_point endTime;
-    };
-    extern std::unordered_map<std::string, TimeBeginEnd> TimeBlocks;
-
-    //可以考虑改成配对的方式,Begin传入名字,这应该需要一个栈来维护
-    void BeginTimeBlock(const std::string& name);
-    void EndTimeBlock(const std::string& name);
-
-    void RenderUI();
-} // namespace Profiler

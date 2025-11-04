@@ -9,12 +9,14 @@
 #include "LoadMethods.hpp"
 #include "TraceMethods.hpp"
 
+#include "Profiler.hpp"
+
 Renderer::Renderer()
     : screenPass(std::make_unique<ScreenPass>(width, height, "GLSL/screenQuad.vs", "GLSL/screenOutput.fs")),
       postProcessor(std::make_unique<PostProcessor>(width, height, "GLSL/screenQuad.vs", "GLSL/postProcess.fs")),
       skyTexPass(std::make_unique<SkyTexPass>("GLSL/cubemapSphere.vs", "GLSL/skyTex.fs", 256)),
       tracer(std::make_unique<TracerAsync>(width, height)),
-    //   uploader(std::make_unique<SceneAsyncLoader>()),
+      //   uploader(std::make_unique<SceneAsyncLoader>()),
       uploader(std::make_unique<SceneUploader>()),
       onResize(std::make_shared<ResizeCallback>(
           [this](int newWidth, int newHeight)
@@ -83,6 +85,7 @@ void Renderer::render()
     }
     if (RenderState::Dirty)
     {
+        Profiler::ScopedTimeBlock timer("Renderer::render - Reset Samples and Snapshot Context");
         tracer->waitForCompletion();
         uploader->waitForCompletion();
         // 拍摄context快照
@@ -90,7 +93,10 @@ void Renderer::render()
         tracer->resetSamples();
         RenderState::Dirty = false;
     }
-    tracer->render(*traceMethod);
+    {
+        Profiler::ScopedTimeBlock timer("Renderer::render - Render Trace");
+        tracer->render(*traceMethod);
+    }
     // postprocessing
     auto raytraceResultID = tracer->getTraceOutputTextureID();
     postProcessor->render(raytraceResultID);
