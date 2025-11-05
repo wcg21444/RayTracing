@@ -4,10 +4,10 @@ namespace Storage
 {
     SceneBundle SceneBundleRendering;
     std::shared_mutex SceneBundleRenderingMutex;
-    sd::Scene SdScene;
-    std::shared_mutex SdSceneMutex;
-    Scene OldScene;    
-    std::shared_mutex OldSceneMutex;
+    sd::Scene SdSceneInstance;
+    std::shared_mutex SdSceneInstanceMutex;
+    ImplicitScene ImplicitSceneInstance;    
+    std::shared_mutex ImplicitSceneInstanceMutex;
 
     void InitializeSceneRendering()
     {

@@ -14,7 +14,7 @@
 #include <limits>
 #include "Profiler.hpp"
 
-color4 Trace::CastRayDirectionLight(const Ray &ray, const color4 &light, const Scene &scene)
+color4 Trace::CastRayDirectionLight(const Ray &ray, const color4 &light, const ImplicitScene &scene)
 {
     HitInfos closestHit;
     closestHit.t = std::numeric_limits<float>::infinity();
@@ -29,7 +29,7 @@ color4 Trace::CastRayDirectionLight(const Ray &ray, const color4 &light, const S
     return light;
 }
 
-color4 Trace::CastRay(const Ray &ray, int traceDepth, const Scene &scene)
+color4 Trace::CastRay(const Ray &ray, int traceDepth, const ImplicitScene &scene)
 {
     float rr = traceDepth <= 1 ? 1.0f : Random::RussianRoulette(0.8f);
 
@@ -40,7 +40,7 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, const Scene &scene)
     // 深度测试
     // auto closestHit = scene.IntersectClosest(ray);
     HitInfos closestHit;
-    if (BVHSettings::toggleBVHAccel)
+    if (BVHDebugSettings::toggleBVHAccel)
         closestHit = scene.intersectClosestBVH(ray);
     else
         closestHit = scene.intersectClosest(ray);

@@ -8,7 +8,7 @@ public:
     LightEmit(color4 intensity) : intensity(intensity) {}
     ~LightEmit() {}
 
-    color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const Scene &scene) const override
+    color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const ImplicitScene &scene) const override
     {
         return intensity;
     }

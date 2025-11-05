@@ -1,7 +1,7 @@
 #pragma once
 #include "Texture.hpp"
 
-//规定  方法必须保证线程安全
+// 规定  方法必须保证线程安全
 class ITraceMethod
 {
 public:
@@ -11,7 +11,7 @@ public:
     virtual ~ITraceMethod() {}
 };
 
-//规定 方法必须保证线程安全
+// 规定 方法必须保证线程安全
 class ILoadMethod
 {
 public:
@@ -21,9 +21,16 @@ public:
     virtual ~ILoadMethod() {}
 };
 
+class IUIMethod
+{
+public:
+    virtual void renderUI() = 0;
+    virtual ~IUIMethod() {}
+};
+
 class IRenderContext
 {
-    public:
+public:
     virtual ~IRenderContext() {}
     virtual void snapshot() = 0;
 };
@@ -39,9 +46,9 @@ public:
     virtual ~ITracer() {}
 };
 
-//规定 UpLoader 接口
-// 将会写入Context的数据
-// 异步加载器和同步加载器在行为上相同的点是什么?
+// 规定 UpLoader 接口
+//  将会写入Context的数据
+//  异步加载器和同步加载器在行为上相同的点是什么?
 class IUpLoader // Loader Method 调度器
 {
 public:
@@ -57,15 +64,20 @@ public:
     virtual ~IRenderPipeline() {}
     virtual ILoadMethod *getLoadMethod() = 0;
     virtual ITraceMethod *getTraceMethod() = 0;
+    virtual IUIMethod *getUIMethod() = 0;
     virtual void snapshotContext() = 0;
 };
 
-template <typename ContextType, typename LoadMethodType, typename TraceMethodType>
+template <typename ContextType,
+          typename LoadMethodType,
+          typename TraceMethodType,
+          typename UIMethodType>
 class RenderPipeline : public IRenderPipeline
 {
 private:
     std::unique_ptr<LoadMethodType> loadMethod;
     std::unique_ptr<TraceMethodType> traceMethod;
+    std::unique_ptr<UIMethodType> uiMethod;
     std::unique_ptr<ContextType> context;
 
 public:
@@ -74,6 +86,7 @@ public:
         context = std::make_unique<ContextType>(std::move(_context));
         loadMethod = std::make_unique<LoadMethodType>(*context);
         traceMethod = std::make_unique<TraceMethodType>(*context);
+        uiMethod = std::make_unique<UIMethodType>(*context);
     }
     ILoadMethod *getLoadMethod() override
     {
@@ -82,6 +95,10 @@ public:
     ITraceMethod *getTraceMethod() override
     {
         return traceMethod.get();
+    }
+    IUIMethod *getUIMethod() override
+    {
+        return uiMethod.get();
     }
 
     void snapshotContext() override

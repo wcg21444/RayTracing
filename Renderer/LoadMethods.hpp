@@ -2,8 +2,6 @@
 #include "RenderInterfaces.hpp"
 #include "RenderContexts.hpp"
 
-//[全局变量访问]: Storage::SdScene.pDataStorage
-//               Storage::SdSceneMutex
 class LoadSdSceneGPU : public ILoadMethod // 产生对应Context的引用依赖
 {
     SdSceneGPUContext &DIContext; // DI 必须
@@ -17,7 +15,6 @@ private:
     void resizeTextureStroage(TextureStorage &texLoading, const FlatStorage &flatStorage, const std::string &storageName);
 };
 
-//[全局变量访问]: Storage::SdScene.pDataStorage
 class LoadSdSceneCPU : public ILoadMethod
 {
     SdSceneCPUContext &DIContext;
@@ -25,10 +22,11 @@ public:
     LoadSdSceneCPU(SdSceneCPUContext &context);
     void load() override;
 };
-class LoadSceneCPU : public ILoadMethod
+
+class LoadImSceneCPU : public ILoadMethod
 {
-    SceneCPUContext &DIContext;
+    ImSceneCPUContext &DIContext;
 public:
-    LoadSceneCPU(SceneCPUContext &context);
+    LoadImSceneCPU(ImSceneCPUContext &context);
     void load() override;
 };

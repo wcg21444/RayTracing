@@ -13,17 +13,19 @@ LoadSdSceneGPU::LoadSdSceneGPU(SdSceneGPUContext &context)
       flatNodeStorage(std::make_unique<sd::FlatNodeStorage>()),
       flatTriangleStorage(std::make_unique<sd::FlatTriangleStorage>()) {}
 
-void LoadSdSceneGPU::load() {
+void LoadSdSceneGPU::load()
+{
     uint32_t rootIndex = 0;
     {
-        std::shared_lock<std::shared_mutex> sdSceneLock(Storage::SdSceneMutex); // read lock
-        sd::ConvertToFlatStorage(*Storage::SdScene.pDataStorage, *flatNodeStorage.get(), *flatTriangleStorage.get());
-        rootIndex = Storage::SdScene.pDataStorage->rootIndex;
+        std::shared_lock<std::shared_mutex> sdSceneLock(DIContext.sdSceneMutexRef); // read lock
+        sd::ConvertToFlatStorage(*DIContext.sdSceneRef.pDataStorage, *flatNodeStorage.get(), *flatTriangleStorage.get());
+        rootIndex = DIContext.sdSceneRef.pDataStorage->rootIndex;
     }
     {
         std::unique_lock<std::shared_mutex> sceneRenderingLock(*DIContext.sceneBundleRenderingMutex); // write lock
         auto &[NodeStorageTexRendering, TriangleStorageTexRendering, SceneRootIndexRendering] = *DIContext.sceneBundleRendering;
-        if (NodeStorageTexRendering.ID == 0 || TriangleStorageTexRendering.ID == 0) {
+        if (NodeStorageTexRendering.ID == 0 || TriangleStorageTexRendering.ID == 0)
+        {
             throw std::runtime_error("Error: SceneBundleRendering Textures not initialized!");
         }
         resizeTextureStroage(TriangleStorageTexRendering, *flatTriangleStorage.get(), "Triangle");
@@ -35,12 +37,15 @@ void LoadSdSceneGPU::load() {
 }
 
 template <typename TextureStorage, typename FlatStorage>
-void LoadSdSceneGPU::resizeTextureStroage(TextureStorage &texLoading, const FlatStorage &flatStorage, const std::string &storageName) {
+void LoadSdSceneGPU::resizeTextureStroage(TextureStorage &texLoading, const FlatStorage &flatStorage, const std::string &storageName)
+{
     size_t requiredSize = flatStorage.getSizeInFloats();
     size_t currentCapacity = (size_t)texLoading.Width * (size_t)texLoading.Height;
     size_t limit = (size_t)GetTextureSizeLimit() * (size_t)GetTextureSizeLimit();
-    if (currentCapacity < requiredSize) {
-        if (requiredSize > limit) {
+    if (currentCapacity < requiredSize)
+    {
+        if (requiredSize > limit)
+        {
             throw std::runtime_error(std::format("{} Storage Texture width beyond Limit: {} > {}", storageName, requiredSize, limit));
         }
         int newWidth = GetTextureSizeLimit();
@@ -52,22 +57,27 @@ void LoadSdSceneGPU::resizeTextureStroage(TextureStorage &texLoading, const Flat
 
 // LoadSdSceneCPU
 LoadSdSceneCPU::LoadSdSceneCPU(SdSceneCPUContext &context) : DIContext(context) {}
-void LoadSdSceneCPU::load() {
+void LoadSdSceneCPU::load()
+{
     {
         std::unique_lock<std::shared_mutex> sceneWriteLock(*DIContext.sceneRenderingMutex); // write lock
-        std::shared_lock<std::shared_mutex> sceneReadLock(Storage::SdSceneMutex);           // read lock
-        DIContext.sceneRendering = std::make_unique<sd::Scene>(Storage::SdScene);           // 拷贝上传数据
+        std::shared_lock<std::shared_mutex> sceneReadLock(DIContext.sdSceneMutexRef);           // read lock
+        DIContext.sceneRendering = std::make_unique<sd::Scene>(DIContext.sdSceneRef);           // 拷贝上传数据
     }
 }
 
-// LoadSceneCPU
-LoadSceneCPU::LoadSceneCPU(SceneCPUContext &context) : DIContext(context) {}
-void LoadSceneCPU::load() {
-    try {
+// LoadImSceneCPU
+LoadImSceneCPU::LoadImSceneCPU(ImSceneCPUContext &context) : DIContext(context) {}
+void LoadImSceneCPU::load()
+{
+    try
+    {
         std::unique_lock<std::shared_mutex> sceneWriteLock(*DIContext.sceneRenderingMutex); // write lock
-        std::shared_lock<std::shared_mutex> sceneReadLock(Storage::OldSceneMutex);          // read lock
-        DIContext.sceneRendering = std::make_unique<Scene>(Storage::OldScene);              // 拷贝上传数据
-    } catch (std::exception &e) {
+        std::shared_lock<std::shared_mutex> sceneReadLock(DIContext.implicitSceneMutexRef);          // read lock
+        DIContext.sceneRendering = std::make_unique<ImplicitScene>(DIContext.implicitSceneRef);              // 拷贝上传数据
+    }
+    catch (std::exception &e)
+    {
         std::cerr << "Error loading Old Scene: " << e.what() << std::endl;
     }
 }

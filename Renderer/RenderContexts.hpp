@@ -20,18 +20,24 @@ struct SdSceneGPUContext : public IRenderContext // 将被移动注入
     // 引用外部资源
     TextureCube &skyboxCubemapRef;
     Camera &cameraRef;
+    sd::Scene &sdSceneRef;
+    std::shared_mutex &sdSceneMutexRef;
 
     // 通过构造函数区别注入的依赖和内部创建的依赖
     SdSceneGPUContext(
         TextureCube &_skyboxCubemap,
-        Camera &_cam)
+        Camera &_cam,
+        sd::Scene &_sdScene,
+        std::shared_mutex &_sdSceneMutex)
         : sceneBundleRendering(std::make_unique<Storage::SceneBundle>()),
           sceneBundleRenderingMutex(std::make_unique<std::shared_mutex>()),
           snapshotMutex(std::make_unique<std::shared_mutex>()),
           camSnapshot(std::make_unique<Camera>(_cam)),
           skyboxSnapShot(std::make_unique<TextureCube>()),
           skyboxCubemapRef(_skyboxCubemap),
-          cameraRef(_cam)
+          cameraRef(_cam),
+          sdSceneRef(_sdScene),
+          sdSceneMutexRef(_sdSceneMutex)
     {
         Storage::InitializeSceneBundle(*sceneBundleRendering);
         *skyboxSnapShot = (skyboxCubemapRef.clone());
@@ -50,39 +56,63 @@ struct SdSceneCPUContext : public IRenderContext // 将被移动注入
     std::unique_ptr<sd::Scene> sceneRendering;              // CPU Context Loader 上传目标, Trace 读取目标
     std::unique_ptr<std::shared_mutex> sceneRenderingMutex; // 必须是指针，不能移动锁
 
+    std::unique_ptr<std::shared_mutex> snapshotMutex;
+    std::unique_ptr<Camera> camSnapshot; // 用于保存渲染时的Camera状态
+
     Camera &cameraRef;
+    sd::Scene &sdSceneRef;
+    std::shared_mutex &sdSceneMutexRef;
 
     // 通过构造函数区别注入的依赖和内部创建的依赖
     SdSceneCPUContext(
-        Camera &_cam)
+        Camera &_cam,
+        sd::Scene &_sdScene,
+        std::shared_mutex &_sdSceneMutexRef)
         : sceneRendering(std::make_unique<sd::Scene>()),
           sceneRenderingMutex(std::make_unique<std::shared_mutex>()),
-          cameraRef(_cam)
+          snapshotMutex(std::make_unique<std::shared_mutex>()),
+          camSnapshot(std::make_unique<Camera>(_cam)),
+          cameraRef(_cam),
+          sdSceneRef(_sdScene),
+          sdSceneMutexRef(_sdSceneMutexRef)
     {
     }
     void snapshot() override
     {
-        // CPU Context 无需快照
+        std::unique_lock<std::shared_mutex> contextLock(*snapshotMutex); // write lock
+        *(camSnapshot) = cameraRef;
     }
 };
 
-struct SceneCPUContext : public IRenderContext // 将被移动注入
+struct ImSceneCPUContext : public IRenderContext // 将被移动注入
 {
-    std::unique_ptr<Scene> sceneRendering;                  // CPU Context Loader 上传目标, Trace 读取目标
+    std::unique_ptr<ImplicitScene> sceneRendering;          // CPU Context Loader 上传目标, Trace 读取目标
     std::unique_ptr<std::shared_mutex> sceneRenderingMutex; // 必须是指针，不能移动锁
 
+    std::unique_ptr<std::shared_mutex> snapshotMutex;
+    std::unique_ptr<Camera> camSnapshot; // 用于保存渲染时的Camera状态
+
     Camera &cameraRef;
+    ImplicitScene &implicitSceneRef;
+    std::shared_mutex &implicitSceneMutexRef;
 
     // 通过构造函数区别注入的依赖和内部创建的依赖
-    SceneCPUContext(
-        Camera &_cam)
-        : sceneRendering(std::make_unique<Scene>()),
+    ImSceneCPUContext(
+        Camera &_cam,
+        ImplicitScene &_implicitScene,
+        std::shared_mutex &_implicitSceneMutex)
+        : sceneRendering(std::make_unique<ImplicitScene>()),
           sceneRenderingMutex(std::make_unique<std::shared_mutex>()),
-          cameraRef(_cam)
+          snapshotMutex(std::make_unique<std::shared_mutex>()),
+          camSnapshot(std::make_unique<Camera>(_cam)),
+          cameraRef(_cam),
+          implicitSceneRef(_implicitScene),
+          implicitSceneMutexRef(_implicitSceneMutex)
     {
     }
     void snapshot() override
     {
-        // CPU Context 无需快照
+        std::unique_lock<std::shared_mutex> contextLock(*snapshotMutex); // write lock
+        *(camSnapshot) = cameraRef;
     }
 };

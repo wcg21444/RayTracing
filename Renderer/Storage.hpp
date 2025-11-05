@@ -35,10 +35,10 @@ namespace Storage
 
     extern SceneBundle SceneBundleRendering;
     extern std::shared_mutex SceneBundleRenderingMutex;
-    extern sd::Scene SdScene;
-    extern std::shared_mutex SdSceneMutex;
-    extern Scene OldScene;
-    extern std::shared_mutex OldSceneMutex;
+    extern sd::Scene SdSceneInstance;
+    extern std::shared_mutex SdSceneInstanceMutex;
+    extern ImplicitScene ImplicitSceneInstance;
+    extern std::shared_mutex ImplicitSceneInstanceMutex;
 
 
     void InitializeSceneRendering();

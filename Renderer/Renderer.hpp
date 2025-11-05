@@ -16,7 +16,7 @@ class PostProcessor;
 class GPURayTracer;
 class SkyTexPass;
 class CPURayTracer;
-class Scene;
+class ImplicitScene;
 
 using ResizeCallback = std::function<void(int, int)>;
 

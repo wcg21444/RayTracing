@@ -8,6 +8,7 @@
 #include "RenderContexts.hpp"
 #include "LoadMethods.hpp"
 #include "TraceMethods.hpp"
+#include "UIMethods.hpp"
 
 #include "Profiler.hpp"
 
@@ -42,20 +43,26 @@ void Renderer::changeMode(RenderMode newMode)
     switch (renderMode)
     {
     case RenderMode::GPU_SdScene:
-        currentPipeline = std::make_unique<RenderPipeline<SdSceneGPUContext, LoadSdSceneGPU, TraceSdSceneGPU>>(
+        currentPipeline = std::make_unique<RenderPipeline<SdSceneGPUContext, LoadSdSceneGPU, TraceSdSceneGPU, SdSceneGPUUI>>(
             SdSceneGPUContext{
                 skyTexPass->getCubemapRef(),
-                cam});
+                cam,
+                Storage::SdSceneInstance,
+                Storage::SdSceneInstanceMutex});
         break;
     case RenderMode::CPU_SdScene:
-        currentPipeline = std::make_unique<RenderPipeline<SdSceneCPUContext, LoadSdSceneCPU, TraceSdSceneCPU>>(
+        currentPipeline = std::make_unique<RenderPipeline<SdSceneCPUContext, LoadSdSceneCPU, TraceSdSceneCPU, SdSceneCPUUI>>(
             SdSceneCPUContext{
-                cam});
+                cam,
+                Storage::SdSceneInstance,
+                Storage::SdSceneInstanceMutex});
         break;
     case RenderMode::CPU_Scene:
-        currentPipeline = std::make_unique<RenderPipeline<SceneCPUContext, LoadSceneCPU, TraceSceneCPU>>(
-            SceneCPUContext{
-                cam});
+        currentPipeline = std::make_unique<RenderPipeline<ImSceneCPUContext, LoadImSceneCPU, TraceImSceneCPU, ImSceneCPUUI>>(
+            ImSceneCPUContext{
+                cam,
+                Storage::ImplicitSceneInstance,
+                Storage::ImplicitSceneInstanceMutex});
         break;
 
     default:
@@ -189,4 +196,5 @@ void Renderer::renderUI()
         }
         ImGui::End();
     }
+    currentPipeline->getUIMethod()->renderUI();
 }

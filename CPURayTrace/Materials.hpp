@@ -4,7 +4,7 @@
 #include "Utils.hpp"
 
 class Material;
-class Scene;
+class ImplicitScene;
 struct HitInfos
 {
     float t = std::numeric_limits<float>::infinity(); // 命中时光线的t
@@ -20,6 +20,6 @@ class Material
 {
 public:
     virtual ~Material() {}
-    virtual color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const Scene &scene) const = 0;
+    virtual color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const ImplicitScene &scene) const = 0;
     virtual std::unique_ptr<Material> clone() const = 0;
 };

@@ -96,9 +96,9 @@ void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
     traceOutput.setData(traceImageData.data());
 }
 
-// TraceSceneCPU
-TraceSceneCPU::TraceSceneCPU(SceneCPUContext &context) : DIContext(context) {}
-void TraceSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount)
+// TraceImSceneCPU
+TraceImSceneCPU::TraceImSceneCPU(ImSceneCPUContext &context) : DIContext(context) {}
+void TraceImSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount)
 {
     traceImageData.resize(traceInput.Width, traceInput.Height);
     auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y)

@@ -13,7 +13,7 @@ public:
 
     Lambertian(const Lambertian &other) = default;
 
-    color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const Scene &scene) const override
+    color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const ImplicitScene &scene) const override
     {
         auto &normal = hitInfos.normal;
         auto &pos = hitInfos.pos;

@@ -12,7 +12,7 @@ public:
     Metal(color4 albedo, float gross) : albedo(albedo), gross(gross) {}
     ~Metal() {}
 
-    color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const Scene &scene) const override
+    color4 getIrradiance(const HitInfos &hitInfos, int traceDepth, const ImplicitScene &scene) const override
     {
         auto &normal = hitInfos.normal;
         auto &pos = hitInfos.pos;

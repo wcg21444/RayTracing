@@ -48,13 +48,13 @@ public:
     void trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount) override;
 };
 
-class TraceSceneCPU : public ITraceMethod
+class TraceImSceneCPU : public ITraceMethod
 {
-    SceneCPUContext &DIContext;
+    ImSceneCPUContext &DIContext;
     CPUImageData traceImageData;
     size_t numThreads = 16;
     std::vector<std::future<void>> shadingFutures;
 public:
-    TraceSceneCPU(SceneCPUContext &context);
+    TraceImSceneCPU(ImSceneCPUContext &context);
     void trace(const Texture2D &traceInput, Texture2D &traceOutput, int sampleCount) override;
 };

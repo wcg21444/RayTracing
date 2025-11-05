@@ -153,7 +153,7 @@ public:
 
     std::optional<HitInfos> intersect(const Ray &ray) override
     {
-        if (BVHSettings::toggleBVHAccel)
+        if (BVHDebugSettings::toggleBVHAccel)
 
         {
             return std::make_optional(insideBVH.intersect(ray));

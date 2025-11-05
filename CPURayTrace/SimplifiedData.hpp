@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Materials.hpp"
-#include "Ray.hpp"
 #include "Utils.hpp"
+#include "SimplifiedDataFwd.hpp"
 
 #include <optional>
 #include <vector>
@@ -13,18 +12,6 @@
 #include <algorithm>
 namespace SimplifiedData
 {
-    namespace sd = SimplifiedData;
-    // fwd declaration
-    struct Node;
-    struct BoundingBox;
-    struct Triangle;
-    struct HitInfos;
-    class TriangleStorage;
-    class NodeStorage;
-    class Mesh;
-    struct DataStorage;
-    class BVH;
-
     inline const uint32_t invalidIndex = uint32_t(-1);
 
     enum NodeFlags : uint8_t

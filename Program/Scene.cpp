@@ -1,3 +1,5 @@
+
+
 #pragma once
 #include <glm/glm.hpp>
 #include <vector>
@@ -15,7 +17,89 @@
 #include "Random.hpp"
 #include "ModelLoader.hpp"
 
-void Scene::initialize()
+// Scene copy constructor
+ImplicitScene::ImplicitScene(const ImplicitScene &other)
+    : objects(other.objects), BVHTree(other.BVHTree)
+{
+    if (other.BVHTree.root)
+    {
+        std::unordered_map<std::shared_ptr<Hittable>, int> indexHash;
+        for (int i = 0; i < objects.size(); ++i)
+        {
+            if (objects[i] != nullptr)
+            {
+                indexHash[objects[i]] = i;
+            }
+        }
+        auto remapping = [this, &indexHash](auto &&traverseSelf, BVHNode *node) -> void
+        {
+            if (!node)
+            {
+                return;
+            }
+            if (node->object) // 叶子节点
+            {
+                node->object = objects[indexHash[node->object]];
+            }
+            traverseSelf(traverseSelf, node->left);
+            traverseSelf(traverseSelf, node->right);
+        };
+        remapping(remapping, BVHTree.root);
+        // BVHTree.build(objects);
+    }
+}
+
+// Scene default constructor
+ImplicitScene::ImplicitScene()
+{
+    initialize();
+}
+
+// Scene::update
+void ImplicitScene::update()
+{
+    BVHTree.build(objects);
+}
+
+// Scene::addObject
+void ImplicitScene::addObject(std::shared_ptr<Hittable> object)
+{
+    objects.push_back(object);
+}
+
+// Scene::intersectClosestBVH
+HitInfos ImplicitScene::intersectClosestBVH(const Ray &ray) const
+{
+    return BVHTree.intersect(ray);
+}
+
+// Scene::intersectClosest
+HitInfos ImplicitScene::intersectClosest(const Ray &ray) const
+{
+    HitInfos closestHit;
+    for (auto &&object : objects)
+    {
+        auto hitInfos = object->intersect(ray);
+        if (hitInfos && hitInfos->t < closestHit.t)
+        {
+            closestHit = *hitInfos;
+        }
+    }
+    return closestHit;
+}
+
+// Scene copy assignment operator
+ImplicitScene &ImplicitScene::operator=(const ImplicitScene &other)
+{
+    objects = other.objects;
+    if (other.BVHTree.root)
+    {
+        BVHTree.build(objects);
+    }
+    return *this;
+}
+
+void ImplicitScene::initialize()
 {
     /*     objects.push_back(
             std::make_shared<Sphere>(
@@ -68,16 +152,16 @@ void Scene::initialize()
                     std::make_shared<Metal>(color4((Random::RandomVector(0.7f) + 1.0f) / 2.f, 1.0f), 0.9f)));
         } */
 
-     //for (size_t i = 0; i < 50; i++)
-     //{
-     //    point3 center = point3(Random::RandomVector(10.f));
-     //    center.y = glm::length(center) / 10.f - 0.5f;
-     //    objects.push_back(
-     //        std::make_shared<Sphere>(
-     //            center,
-     //            0.4f,
-     //            Metal(color4((Random::RandomVector(0.7f) + 1.0f) / 2.f, 1.0f), 0.9f)));
-     //}
+    // for (size_t i = 0; i < 50; i++)
+    //{
+    //     point3 center = point3(Random::RandomVector(10.f));
+    //     center.y = glm::length(center) / 10.f - 0.5f;
+    //     objects.push_back(
+    //         std::make_shared<Sphere>(
+    //             center,
+    //             0.4f,
+    //             Metal(color4((Random::RandomVector(0.7f) + 1.0f) / 2.f, 1.0f), 0.9f)));
+    // }
 
     // 搭建立方体（每个面4个顶点，共24个顶点，保证法线与UV正确）
     // objects.push_back(

@@ -82,12 +82,12 @@ int main()
     std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>();
     renderer->resize(InitWidth, InitHeight);
 
-    Storage::OldScene.update();
-    ModelLoader::Run(Storage::OldScene);
+    Storage::ImplicitSceneInstance.update();
+    ModelLoader::Run(Storage::ImplicitSceneInstance);
 
     // sd::Scene sdscene;
 
-    Storage::SdScene.initialize();
+    Storage::SdSceneInstance.initialize();
     Storage::InitializeSceneRendering();
 
     InputHandler::BindToWindowResizeCallback(window, renderer->onResize);
@@ -116,29 +116,15 @@ int main()
                 RenderState::Dirty |= true;
                 RenderState::SceneDirty |= true;
                 {
-                    std::unique_lock<std::shared_mutex> lock(Storage::OldSceneMutex);
-                    Storage::OldScene.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
-                    Storage::OldScene.update();
+                    std::unique_lock<std::shared_mutex> lock(Storage::ImplicitSceneInstanceMutex);
+                    Storage::ImplicitSceneInstance.objects.push_back(std::make_shared<Sphere>(Random::RandomVector(40.f), 8.f, Lambertian(color4(0.7f, 0.3f, 0.3f, 1.0f))));
+                    Storage::ImplicitSceneInstance.update();
                 }
             }
-            if (ImGui::Button("Print BVH Tree"))
-            {
-                BVHSettings::Output2DVisualization(*Storage::SdScene.pDataStorage, "BVHOutput.txt");
-            }
+
             ImGui::End();
         }
-        BVHSettings::InteractableVisualization(*Storage::SdScene.pDataStorage);
-        BVHSettings::RenderUI();
 
-        // BVHSettings::RenderVisualization(scene.BVHTree.root);
-
-        // for (auto&& object : scene.objects) {
-        //     if (auto root = object->getInsideBVHRoot()) {
-        //         BVHSettings::RenderVisualization(root);
-        //     }
-        // }
-
-        BVHSettings::RenderVisualization(*Storage::SdScene.pDataStorage);
         SkySettings::RenderUI();
 
         DebugObjectRenderer::SetCamera(&renderer->cam);

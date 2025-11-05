@@ -80,7 +80,7 @@ private:
         return meshes;
     }
 
-    inline static void LoadAndProcessModel(Scene& scene, ModelLoadFuture& model_future)
+    inline static void LoadAndProcessModel(ImplicitScene& scene, ModelLoadFuture& model_future)
     {
         try
         {
@@ -131,7 +131,7 @@ public:
                 return std::make_pair(scene, std::move(importer)); });
     }
 
-    inline static void LoadModelFileSync(const std::string& path, Scene& scene)
+    inline static void LoadModelFileSync(const std::string& path, ImplicitScene& scene)
     {
         auto importer = std::make_unique<Assimp::Importer>();
         const aiScene* raw_model = importer->ReadFile(
@@ -166,7 +166,7 @@ public:
     [in]: scene 场景对象
     importing_vec 中将模型加载器加载好的文件 处理 并 加入到 scene 中
     */
-    inline static void Run(Scene& scene)
+    inline static void Run(ImplicitScene& scene)
     {
         auto it = importing_vec.begin();
         while (it != importing_vec.end())
