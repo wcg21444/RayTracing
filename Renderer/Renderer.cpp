@@ -101,7 +101,7 @@ void Renderer::render()
         RenderState::Dirty = false;
     }
     {
-        Profiler::ScopedTimeBlock timer("Renderer::render - Render Trace");
+        Profiler::ScopedTimeBlock timer("Renderer::render - Trace");
         tracer->render(*traceMethod);
     }
     // postprocessing

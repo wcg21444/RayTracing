@@ -6,6 +6,8 @@
 #include <glm/gtc/constants.hpp>
 #include <vector>
 
+#include "Profiler.hpp"
+
 namespace Random
 {
     inline std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]

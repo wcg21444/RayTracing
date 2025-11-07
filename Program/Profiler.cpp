@@ -49,51 +49,86 @@ namespace Profiler
         }
     }
 
-    void DisplayTimeAuto(const std::string &msg, long long durationCount)
+    // Micro version
+    //  void DisplayTimeAuto(const std::string &msg, long long durationCount)
+    //  {
+    //      if (durationCount < 1000)
+    //      {
+    //          // std::cout << msg << durationCount << " us" << std::endl; // 微秒
+    //          ImGui::Text("%s: %lld us", msg.c_str(), durationCount);
+    //      }
+    //      else if (durationCount < 1000000)
+    //      {
+    //          ImGui::Text("%s: %f ms", msg.c_str(), durationCount / 1000.0f);
+    //      }
+    //      else
+    //      {
+    //          ImGui::Text("%s: %f s", msg.c_str(), durationCount / 1000000.0f);
+    //      }
+    //  }
+
+    // Nano version
+    void DisplayTimeAuto(const std::string &msg, long long nanoDuration)
     {
-        if (durationCount < 1000)
+        const int MircosInNs = 1000;
+        const int MillisInNs = 1000000;
+        const int SecondsInNs = 1000000000;
+        if (nanoDuration < MircosInNs)
         {
-            // std::cout << msg << durationCount << " us" << std::endl; // 微秒
-            ImGui::Text("%s: %lld us", msg.c_str(), durationCount);
+            ImGui::Text("%-10lld ns - %-40s", nanoDuration, msg.c_str()); // 纳秒
         }
-        else if (durationCount < 1000000)
+        else if (nanoDuration < MillisInNs)
         {
-            ImGui::Text("%s: %f ms", msg.c_str(), durationCount / 1000.0f);
+            ImGui::Text("%-10f us - %-40s", nanoDuration / static_cast<float>(MircosInNs), msg.c_str()); // 微秒
+        }
+        else if (nanoDuration < SecondsInNs)
+        {
+            ImGui::Text("%-10f ms - %-40s", nanoDuration / static_cast<float>(MillisInNs), msg.c_str()); // 毫秒
         }
         else
         {
-            ImGui::Text("%s: %f s", msg.c_str(), durationCount / 1000000.0f);
+            ImGui::Text("%-10f s - %-40s", nanoDuration / static_cast<float>(SecondsInNs), msg.c_str()); // 秒
         }
     }
 
     void RenderUI()
     {
-        const size_t NumThreads = 16;
+        const size_t numThreads = 16;
         int screenWidth = ImGui::GetIO().DisplaySize.x;
         int screenHeight = ImGui::GetIO().DisplaySize.y;
         ImGui::Begin("Profiler");
         for (const auto &[name, duration] : BlockDurations)
         {
-            DisplayTimeAuto(std::format("{}: ", name), duration.count());
+            DisplayTimeAuto(name, duration.count());
+        }
+        ImGui::SeparatorText("Aggregated Stats");
+
+        for (const auto &[name, count] : ThreadStatsAggregator::s_GetTotalCounterTable())
+        {
+            if (ImGui::TreeNode(std::format("{}##Counter", name).c_str())) // 根节点
+            {
+                ImGui::Text("%s: %zu per Sample", name.c_str(), count);                                                             // 计数器累计
+                ImGui::Text("%s: %f per Sample per Pixel", name.c_str(), static_cast<float>(count) / (screenWidth * screenHeight)); // 单位采样单位像素计数
+                ImGui::TreePop();
+            }
         }
 
-        for (const auto &[name, count] : Aggregator::s_GetTotalCounterTable())
+        for (const auto &[name, stats] : ThreadStatsAggregator::s_GetTotalTimeStatsTable())
         {
-            ImGui::Text("%s: %zu per Sample", name.c_str(), count);                                                             // 计数器累计
-            ImGui::Text("%s: %f per Sample per Pixel", name.c_str(), static_cast<float>(count) / (screenWidth * screenHeight)); // 单位采样单位像素计数
-        }
-
-        for (const auto &[name, stats] : Aggregator::s_GetTotalTimeStatsTable())
-        {
-            ImGui::Text("%s Call Counts per Sample: %zu", name.c_str(), stats.callCount);                                                        // 调用次数
-            DisplayTimeAuto(std::format("{} Time Costs per Sample", name), stats.totalDuration.count() / NumThreads);                            // 总耗时
-            // DisplayTimeAuto(std::format("{} Time per Call", name), (stats.totalDuration.count()) / stats.callCount / NumThreads); // 平均耗时
+            if (ImGui::TreeNode(std::format("{}##TimeStats", name).c_str())) // 根节点
+            {
+                ImGui::Text("Call Counts per Sample: %zu", stats.callCount);                                         // 调用次数
+                DisplayTimeAuto(std::format("Avg Time Costs per Sample"), stats.totalDuration.count() / numThreads); // 平均耗时
+                DisplayTimeAuto(std::format("Max Time Costs per Sample"), stats.maxDuration.count());                // 最大耗时
+                DisplayTimeAuto(std::format("Min Time Costs per Sample"), stats.minDuration.count());                // 最小耗时
+                ImGui::TreePop();
+            }
         }
 
         ImGui::End();
     }
 
     std::unordered_map<std::string, TimeBeginEnd> TimeBlocks;
-    std::unordered_map<std::string, microseconds> BlockDurations;
+    std::unordered_map<std::string, nanoseconds> BlockDurations;
 
 } // namespace Profiler

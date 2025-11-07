@@ -146,8 +146,8 @@ namespace SimplifiedData
     bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax)
     {
         // static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("BoundingBox Intersections");
-        static thread_local auto &count = Profiler::Aggregator::RegisterCounter("BoundingBox Intersections");
-        // Profiler::ScopedTimer timer(timeStats);
+        static thread_local auto &count = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections Inner");
+        // Profiler::ThreadScopedTimer timer(timeStats);
         count++;
         auto invDir = ray.getInvDirection();
         auto origin = ray.getOrigin();
@@ -275,8 +275,8 @@ namespace SimplifiedData
     HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax)
     {
         // static thread_local auto& count = Profiler::Aggregator::RegisterCounter("Triangle Intersections");
-        static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("Triangle Intersections");
-        Profiler::ScopedTimer timer(timeStats);
+        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Triangle Intersections");
+        Profiler::ThreadScopedTimer timer(timeStats);
         // count++;
 
         // aggregator->increment(counterName);//构造字符串性能开销很大
@@ -369,7 +369,6 @@ namespace SimplifiedData
             auto subBox = subNode.box;
             nodeBox.pMin = glm::min(nodeBox.pMin, subBox.pMin);
             nodeBox.pMax = glm::max(nodeBox.pMax, subBox.pMax);
-
         }
         float xExtent = nodeBox.pMax.x - nodeBox.pMin.x;
         float yExtent = nodeBox.pMax.y - nodeBox.pMin.y;
@@ -443,11 +442,12 @@ namespace SimplifiedData
 
     HitInfos BVH::IntersectLoop(DataStorage &dataStorage, const Ray &ray)
     {
-        static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("BVH Intersections");
-        static thread_local auto &timeStatsBB = Profiler::Aggregator::RegisterTimeStats("BoundingBox Intersections");
-        static thread_local auto &counterBB = Profiler::Aggregator::RegisterCounter("BoundingBox Intersections");
+        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BVH Intersections per 100 TimeSamples");
+        static thread_local auto &timeStatsBB = Profiler::ThreadStatsAggregator::RegisterTimeStats("BoundingBox Intersections per 100 TimeSamples");
+        static thread_local auto &counterBB = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections");
 
-        Profiler::ScopedTimer timer(timeStats);
+        // Profiler::ThreadScopedTimer timer(timeStats);
+        Profiler::ThreadScopedTimeSampler timeSampler(timeStats, 100);
 
         static thread_local std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
         static thread_local size_t top = 0;
@@ -461,7 +461,8 @@ namespace SimplifiedData
             const Node &node = dataStorage.nodeStorage.nodes[index];
 
             {
-                // Profiler::ScopedTimer timerBB(timeStatsBB);//测的越多越不准,因为开销过大
+                // Profiler::ThreadScopedTimer timerBB(timeStatsBB);//测的越多越不准,因为开销过大
+                Profiler::ThreadScopedTimeSampler timeSamplerBB(timeStatsBB, 100);
                 counterBB++;
                 if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
                 {

@@ -58,16 +58,19 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, const ImplicitScene &scene
 
 color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStorage)
 {
-    static thread_local auto &castRayCount = Profiler::Aggregator::RegisterCounter("CastRay");
-    static thread_local auto &castRayTimeStats = Profiler::Aggregator::RegisterTimeStats("CastRay");
-
+    static thread_local auto &castRayCount = Profiler::ThreadStatsAggregator::RegisterCounter("CastRay");
+    // static thread_local auto &castRayTimeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("CastRay");
+    static thread_local auto &castRayTimeSamplerStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("CastRay per 100 TimeSamples");
     vec4 color = vec4(0.0f);
+
     vec3 throughout = vec3(1.f);
     Ray tracingRay = ray;
     while (traceDepth < bounceLimit)
     {
-         castRayCount++;
-        Profiler::ScopedTimer timer(castRayTimeStats);
+        // volatile Profiler::ThreadScopedTimer timer(castRayTimeStats);
+        volatile Profiler::ThreadScopedTimeSampler timeSampler(castRayTimeSamplerStats, 100);
+
+        castRayCount++;
 
         traceDepth++;
         // 场景测试

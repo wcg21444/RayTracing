@@ -53,23 +53,30 @@ void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
 {
 
     traceImageData.resize(traceInput.Width, traceInput.Height);
+
     auto shade = [this, sampleCount](CPUImageData &imageData, size_t x, size_t y)
     {
-        static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("Shade");
-        Profiler::ScopedTimer timer(timeStats);
+        // static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Shade");
+        // volatile Profiler::ThreadScopedTimer timer(timeStats); // 约15ms开销. 空函数情况下他在这里能记录5ms 这部分是谁的?还是说是精度问题? .函数体开销为1ms
+        static thread_local auto &timeSamplerStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Shade per 100 TimeSamples");
+        volatile Profiler::ThreadScopedTimeSampler timeSampler(timeSamplerStats, 100);
+        // 构造析构开销也不小 而且他统计不到函数内的递归调用时间.
+        //  有没有可能是因为,每一次累积的时间非常少,导致精度累积误差过大?所以与实际时间销毁偏差很大?
         const float perturbStrength = 0.001f;
         auto &pixelColor = imageData.pixelAt(x, y);
         auto uv = imageData.uvAt(x, y);
+
         Ray ray(
             DIContext.cameraRef.position,
             DIContext.cameraRef.getRayDirction(uv) + Random::RandomVector(perturbStrength));
+        std::shared_lock<std::shared_mutex> sceneLock(*DIContext.sceneRenderingMutex);
         if (!DIContext.sceneRendering)
         {
             throw std::runtime_error("Scene is not loaded.");
         }
-        std::shared_lock<std::shared_mutex> sceneLock(*DIContext.sceneRenderingMutex);
         auto newColor = Trace::CastRay(ray, 0, *DIContext.sceneRendering->pDataStorage);
-        pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
+        // auto newColor = Trace::CastRay(Ray{}, 0, *DIContext.sceneRendering->pDataStorage);//5ms左右构造
+        pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount); // 约10ms
     };
     size_t rowsPerThread = traceImageData.height / numThreads;
     for (int i = 0; i < numThreads; ++i)
@@ -79,21 +86,28 @@ void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
         this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]()
                                                   {
             Profiler::AggregatorGuard threadCounterGuard;
+            volatile int i =0;
             for (size_t y = startY; y < endY; ++y) {
                 for (size_t x = 0; x < traceImageData.width; ++x) {
                     shade(this->traceImageData, x, y);
+                    // ++i;
                 }
             } }));
     }
-        if (!shadingFutures.empty())
+    if (!shadingFutures.empty())
+    {
+        int futureIndex = 0;
+        for (auto &future : shadingFutures)
         {
-            for (auto &future : shadingFutures)
-            {
-                future.get();
-            }
-            this->shadingFutures.clear();
+
+            future.get();
         }
-    traceOutput.setData(traceImageData.data());
+        this->shadingFutures.clear();
+    }
+    {
+        Profiler::ScopedTimeBlock timer("Renderer::render - Trace Copy Data CPU to GPU");
+        traceOutput.setData(traceImageData.data());
+    }
 }
 
 // TraceImSceneCPU
