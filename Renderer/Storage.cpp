@@ -9,7 +9,7 @@ namespace Storage
     ImplicitScene ImplicitSceneInstance;    
     std::shared_mutex ImplicitSceneInstanceMutex;
 
-    void InitializeSceneRendering()
+    void InitSceneStorageRendering()
     {
         auto &[nodeStorageTexRendering, triangleStorageTexRendering, sceneRootIndexRendering] = Storage::SceneBundleRendering;
         nodeStorageTexRendering.setFilterMax(GL_NEAREST);

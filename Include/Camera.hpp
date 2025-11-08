@@ -13,6 +13,7 @@ public:
     float width;
     float height;
     float aspectRatio;
+    float sensitivity = 0.1f;
 
 public:
     Camera() {}
@@ -62,10 +63,10 @@ public:
 
     glm::mat4 getViewMatrix() const
     {
-        if(position==lookAtCenter)
+        if (position == lookAtCenter)
         {
             return glm::mat4(1.0f);
-		}
+        }
         return glm::lookAt(position, lookAtCenter, vec3(0.0f, 1.0f, 0.0f));
     }
 
@@ -88,5 +89,39 @@ public:
         shaders.setUniform(std::format("{}width", owner), width);
         shaders.setUniform(std::format("{}height", owner), height);
         shaders.setUniform(std::format("{}aspectRatio", owner), aspectRatio);
+    }
+
+    void processOrientationOffset(float xoffset, float yoffset)
+    {
+        vec3 front = normalize(lookAtCenter - position);
+        vec3 right = normalize(cross(front, vec3(0.0f, 1.0f, 0.0f)));
+        vec3 up = normalize(cross(right, front));
+        float dist = glm::length(lookAtCenter - position);
+
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        // 改变position
+        position -= (xoffset * right + yoffset * up) * sensitivity * glm::sqrt(dist);
+        position = lookAtCenter + normalize(position - lookAtCenter) * dist; // 只改变方向
+    }
+
+    void processPositionOffset(float xoffset, float yoffset)
+    {
+        vec3 front = normalize(lookAtCenter - position);
+        float dist = glm::length(lookAtCenter - position);
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        float offset = xoffset + yoffset;
+
+        // 改变position
+        position += front * offset * sensitivity * glm::sqrt(dist);
+    }
+
+    void processMouseScroll(float yoffset)
+    {
+        sensitivity += yoffset * 0.01f;
+        sensitivity = std::max(0.001f, sensitivity);
     }
 };

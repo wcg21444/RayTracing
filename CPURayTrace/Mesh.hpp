@@ -22,7 +22,7 @@ public:
     std::unique_ptr<Material> pMaterial;
     BoundingBox boundingBox;
 
-    Triangle(const Vertex &v0, const Vertex &v1, const Vertex &v2, const Material& _material)
+    Triangle(const Vertex &v0, const Vertex &v1, const Vertex &v2, const Material &_material)
         : pMaterial(_material.clone())
     {
         vertices[0] = v0;
@@ -99,14 +99,25 @@ public:
     BoundingBox boundingBox;
     BVH insideBVH;
 
-    Mesh(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices, const Material& _material)
+    Mesh(const std::vector<Vertex> &vertices,
+         const std::vector<unsigned int> &indices,
+         const Material &_material,
+         glm::mat4 transform = glm::mat4(1.0f))
         : pMaterial(_material.clone())
     {
         triangles.reserve(indices.size() / 3);
+        auto transformedVertices = vertices;
+        // 应用变换矩阵到顶点位置和法线
+        for (auto &vert : transformedVertices)
+        {
+            glm::vec4 posHomo = glm::vec4(vert.position, 1.0f);
+            posHomo = transform * posHomo;
+            vert.position = glm::vec3(posHomo);
+        }
         for (size_t i = 0; i < indices.size(); i += 3)
         {
             triangles.emplace_back(std::make_shared<Triangle>(
-                vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]], *pMaterial));
+                transformedVertices[indices[i]], transformedVertices[indices[i + 1]], transformedVertices[indices[i + 2]], *pMaterial));
         }
         if (!triangles.empty())
         {

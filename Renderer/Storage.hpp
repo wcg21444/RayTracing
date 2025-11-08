@@ -41,7 +41,7 @@ namespace Storage
     extern std::shared_mutex ImplicitSceneInstanceMutex;
 
 
-    void InitializeSceneRendering();
+    void InitSceneStorageRendering();
 
     void InitializeSceneBundle(SceneBundle &sceneBundle);
 

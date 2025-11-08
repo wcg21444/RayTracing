@@ -67,9 +67,9 @@ public:
 
     void changeMode(RenderMode newMode);
     void render();
+    void renderUI();
     void resize(int newWidth, int newHeight);
     void shutdown();
 
 private:
-    void renderUI();
 };

@@ -1,4 +1,3 @@
-
 #pragma once
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -56,7 +55,6 @@ ImplicitScene::ImplicitScene(const ImplicitScene &other)
 // Scene default constructor
 ImplicitScene::ImplicitScene()
 {
-    initialize();
 }
 
 // Scene::update
@@ -103,150 +101,82 @@ ImplicitScene &ImplicitScene::operator=(const ImplicitScene &other)
     return *this;
 }
 
-void ImplicitScene::initialize()
+void ImplicitScene::initialize(const SceneConfig *config)
 {
-    /*     objects.push_back(
-            std::make_shared<Sphere>(
-                point3(2.0f, 0.0f, 2.f),
-                1.5f,
-                std::make_shared<Lambertian>(color4(0.7f, 0.1f, 0.15f, 1.0f))));
-        objects.push_back(
-            std::make_shared<Sphere>(
-                point3(3.0f, 1.5f, 1.f),
-                1.5f,
-                std::make_shared<Lambertian>(color4(0.2f, 0.7f, 0.1f, 1.0f))));
-        objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-6.0f, 2.f, 5.f),
-                1.5f,
-                std::make_shared<Metal>(color4(0.8f, 0.7f, 0.2f, 1.0f), 0.99f)));
-        objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-2.0f, 4.f, 2.f),
-                1.5f,
-                std::make_shared<Metal>(color4(0.7f, 0.7f, 0.4f, 1.0f), 0.5f)));
-        objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-2.0f, 14.f, 7.f),
-                1.5f,
-                std::make_shared<Metal>(color4(0.7f, 0.7f, 0.4f, 1.0f), 0.5f)));
-        objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-2.0f, 18.f, 9.f),
-                1.5f,
-                std::make_shared<Metal>(color4(0.7f, 0.7f, 0.4f, 1.0f), 0.5f)));
-        objects.push_back(
-            std::make_shared<Sphere>(
-                point3(-2.0f, 15.f, 0.f),
-                4.f,
-                std::make_shared<LightEmit>(color4(50.0f)))); // 光源
-        objects.push_back(
-            std::make_shared<Sphere>(
-                point3(0.f, -6.3e3f, 0.f),
-                6.3e3f,
-                std::make_shared<Lambertian>(color4(0.7f, 0.7f, 0.7f, 1.0f)))); // 地球
-        for (size_t i = 0; i < 50; i++)
+    if (!config)
+        return;
+    objects.clear();
+    try
+    {
+        for (auto &object : config->jsonConfig["objects"])
         {
-            point3 center = point3(Random::RandomVector(10.f));
-            center.y = glm::length(center) / 10.f -0.5f;
-            objects.push_back(
-                std::make_shared<Sphere>(
-                    center,
-                    0.4f,
-                    std::make_shared<Metal>(color4((Random::RandomVector(0.7f) + 1.0f) / 2.f, 1.0f), 0.9f)));
-        } */
-
-    // for (size_t i = 0; i < 50; i++)
-    //{
-    //     point3 center = point3(Random::RandomVector(10.f));
-    //     center.y = glm::length(center) / 10.f - 0.5f;
-    //     objects.push_back(
-    //         std::make_shared<Sphere>(
-    //             center,
-    //             0.4f,
-    //             Metal(color4((Random::RandomVector(0.7f) + 1.0f) / 2.f, 1.0f), 0.9f)));
-    // }
-
-    // 搭建立方体（每个面4个顶点，共24个顶点，保证法线与UV正确）
-    // objects.push_back(
-    //     std::make_shared<Mesh>(
-    //         std::vector<Vertex>{
-    //             // Front (-Z)
-    //             {{-1.0f, 0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}},
-    //             {{1.0f, 0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}},
-    //             {{1.0f, 2.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}},
-    //             {{-1.0f, 2.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}},
-    //             // Back (+Z)
-    //             {{-1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-    //             {{1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-    //             {{1.0f, 2.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    //             {{-1.0f, 2.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    //             // Top (+Y)
-    //             {{-1.0f, 2.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    //             {{1.0f, 2.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    //             {{1.0f, 2.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-    //             {{-1.0f, 2.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-    //             // Bottom (-Y)
-    //             {{-1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
-    //             {{1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
-    //             {{1.0f, 0.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
-    //             {{-1.0f, 0.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}},
-    //             // Left (-X)
-    //             {{-1.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    //             {{-1.0f, 0.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    //             {{-1.0f, 2.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-    //             {{-1.0f, 2.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-    //             // Right (+X)
-    //             {{1.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    //             {{1.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    //             {{1.0f, 2.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-    //             {{1.0f, 2.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-    //         },
-    //         std::vector<unsigned int>{
-    //             // Front
-    //             0,
-    //             1,
-    //             2,
-    //             2,
-    //             3,
-    //             0,
-    //             // Back
-    //             4,
-    //             5,
-    //             6,
-    //             6,
-    //             7,
-    //             4,
-    //             // Top
-    //             8,
-    //             9,
-    //             10,
-    //             10,
-    //             11,
-    //             8,
-    //             // Bottom
-    //             12,
-    //             13,
-    //             14,
-    //             14,
-    //             15,
-    //             12,
-    //             // Left
-    //             16,
-    //             17,
-    //             18,
-    //             18,
-    //             19,
-    //             16,
-    //             // Right
-    //             20,
-    //             21,
-    //             22,
-    //             22,
-    //             23,
-    //             20,
-    //         },
-    //         LightEmit(color4(8.f, 6.f, 5.f, 1.f))));
+            if (object["type"] == "sphere")
+            {
+                glm::vec3 position = {object["position"][0], object["position"][1], object["position"][2]};
+                float radius = object.contains("scale") ? static_cast<float>(object["scale"][0]) : 1.0f;
+                glm::vec3 scale = object.contains("scale") ? glm::vec3(object["scale"][0], object["scale"][1], object["scale"][2]) : glm::vec3(1.0f);
+                glm::vec3 rotationEuler = object.contains("rotation_euler") ? glm::vec3(object["rotation_euler"][0], object["rotation_euler"][1], object["rotation_euler"][2]) : glm::vec3(0.0f);
+                // 材质解析
+                std::shared_ptr<Material> mat;
+                const auto &matJson = object["material"];
+                std::string matType = matJson["type"];
+                glm::vec4 color = matJson.contains("color") ? glm::vec4(matJson["color"][0], matJson["color"][1], matJson["color"][2], matJson["color"][3]) : glm::vec4(1.0f);
+                if (matType == "Lambertian")
+                    mat = std::make_shared<Lambertian>(color);
+                else if (matType == "Metal")
+                    mat = std::make_shared<Metal>(color, matJson.value("fuzz", 0.0f));
+                else if (matType == "LightEmit")
+                    mat = std::make_shared<LightEmit>(color);
+                else
+                    mat = std::make_shared<Lambertian>(color);
+                objects.push_back(std::make_shared<Sphere>(position, radius, *mat));
+            }
+            else if (object["type"] == "mesh")
+            {
+                // Mesh 反序列化
+                std::vector<Vertex> vertices;
+                for (const auto &v : object["vertices"])
+                {
+                    Vertex vert;
+                    vert.position = glm::vec3(v["position"][0], v["position"][1], v["position"][2]);
+                    vert.normal = glm::vec3(v["normal"][0], v["normal"][1], v["normal"][2]);
+                    vert.texCoord = glm::vec2(v["uv"][0], v["uv"][1]);
+                    vertices.push_back(vert);
+                }
+                std::vector<unsigned int> indices;
+                for (const auto &idx : object["indices"])
+                    indices.push_back(idx);
+                // 材质
+                const auto &matJson = object["material"];
+                std::string matType = matJson["type"];
+                glm::vec4 color = matJson.contains("color") ? glm::vec4(matJson["color"][0], matJson["color"][1], matJson["color"][2], matJson["color"][3]) : glm::vec4(1.0f);
+                std::shared_ptr<Material> mat;
+                if (matType == "Lambertian")
+                    mat = std::make_shared<Lambertian>(color);
+                else if (matType == "Metal")
+                    mat = std::make_shared<Metal>(color, matJson.value("fuzz", 0.0f));
+                else if (matType == "LightEmit")
+                    mat = std::make_shared<LightEmit>(color);
+                else
+                    mat = std::make_shared<Lambertian>(color);
+                // 变换
+                glm::vec3 position = {object["position"][0], object["position"][1], object["position"][2]};
+                glm::vec3 rotationEuler = object.contains("rotation_euler") ? glm::vec3(object["rotation_euler"][0], object["rotation_euler"][1], object["rotation_euler"][2]) : glm::vec3(0.0f);
+                glm::vec3 scale = object.contains("scale") ? glm::vec3(object["scale"][0], object["scale"][1], object["scale"][2]) : glm::vec3(1.0f);
+                glm::mat4 transform = glm::mat4(1.0f);
+                transform = glm::translate(transform, position);
+                transform = glm::eulerAngleXYZ(rotationEuler.x, rotationEuler.y, rotationEuler.z) * transform;
+                transform = glm::scale(transform, scale);
+                objects.push_back(std::make_shared<Mesh>(vertices, indices, *mat, transform));
+            }
+        }
+        update();
+    }
+    catch (std::exception &e)
+    {
+        std::cout << e.what() << std::endl;
+        std::abort();
+    }
 }
 
 namespace SimplifiedData
@@ -272,7 +202,7 @@ namespace SimplifiedData
         return *this;
     }
 
-    void Scene::initialize()
+    void Scene::initialize(const SceneConfig *config)
     {
         ModelLoader::SetDataStorage(pDataStorage.get());
 
@@ -280,20 +210,11 @@ namespace SimplifiedData
 
         try
         {
-
-            // // root = sd::ModelLoader::LoadModelFileSync("Resources/TestScene1Box.obj");
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/Scene.obj");
-            // sceneIndices.push_back(root);
-            // // root = sd::ModelLoader::LoadModelFileSync("Resources/brizzareTri.obj");
-            // // root = sd::ModelLoader::LoadModelFileSync("Resources/dragon/dragon.obj");//Read access violation
-            // // sceneIndices.push_back(root);
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/MultiHighCube.obj");
-            // // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj");
-            // // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon18520.obj");
-            // sceneIndices.push_back(root);
-            SceneConfig config("Configs/SceneConfig.json");
-
-            for (auto &object : config.jsonConfig["objects"])
+            if (!config)
+            {
+                return;
+            }
+            for (auto &object : config->jsonConfig["objects"])
             {
                 if (object["type"] != "mesh")
                     continue;

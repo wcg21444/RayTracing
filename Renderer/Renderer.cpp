@@ -112,8 +112,6 @@ void Renderer::render()
     auto debugRendererOutput = DebugObjectRenderer::GetRenderOutput();
 
     screenPass->render(postProcessed, debugRendererOutput);
-
-    renderUI();
 }
 
 void Renderer::resize(int newWidth, int newHeight)
@@ -140,6 +138,7 @@ void Renderer::shutdown()
 
 void Renderer::renderUI()
 {
+
     ImGui::Begin("RenderUI");
     {
         if ((ImGui::Button("Reload")))

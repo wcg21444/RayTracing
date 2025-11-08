@@ -16,6 +16,7 @@
 #include "UI.hpp"
 #include "Renderer.hpp"
 #include "Profiler.hpp"
+#include "Config.hpp"
 
 const int InitWidth = 640;
 const int InitHeight = 360;
@@ -82,13 +83,13 @@ int main()
     std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>();
     renderer->resize(InitWidth, InitHeight);
 
-    Storage::ImplicitSceneInstance.update();
-    ModelLoader::Run(Storage::ImplicitSceneInstance);
+    SceneConfig ImSceneConfig("Configs/ImSceneConfig.json");
+    SceneConfig sceneConfig("Configs/SceneConfig.json");
 
-    // sd::Scene sdscene;
+    Storage::ImplicitSceneInstance.initialize(&ImSceneConfig);
+    Storage::SdSceneInstance.initialize(&sceneConfig);
 
-    Storage::SdSceneInstance.initialize();
-    Storage::InitializeSceneRendering();
+    Storage::InitSceneStorageRendering();
 
     InputHandler::BindToWindowResizeCallback(window, renderer->onResize);
     InputHandler::BindToWindowResizeCallback(window, DebugObjectRenderer::onResize);
@@ -108,6 +109,33 @@ int main()
         Profiler::RenderUI();
 
         renderer->render();
+        renderer->renderUI();
+
+        // 处理 Camera 鼠标交互
+        if (ImGui::IsAnyMouseDown() && !ImGui::GetIO().WantCaptureMouse)
+        {
+            // std::cout << "Mouse Down of Main Window Detected   " << std::endl;
+            if (ImGui::IsMouseDown(0)) // Left Button
+            {
+                ImVec2 mouseDelta = ImGui::GetMouseDragDelta(0, 0);
+                // Renderer::cam
+                renderer->cam.processOrientationOffset(mouseDelta.x, -mouseDelta.y);
+                RenderState::Dirty |= true;
+                ImGui::ResetMouseDragDelta(0);
+            }
+            if(ImGui::IsMouseDown(1)) // Right Button
+            {
+                ImVec2 mouseDelta = ImGui::GetMouseDragDelta(1, 0);
+                renderer->cam.processPositionOffset(mouseDelta.x, mouseDelta.y);
+                RenderState::Dirty |= true;
+                ImGui::ResetMouseDragDelta(1);
+            }
+        }
+        float scrollY = ImGui::GetIO().MouseWheel;
+        if (scrollY != 0.0f && !ImGui::GetIO().WantCaptureMouse)
+        {
+            renderer->cam.processMouseScroll(scrollY);
+        }
 
         ImGui::Begin("RenderUI");
         {
