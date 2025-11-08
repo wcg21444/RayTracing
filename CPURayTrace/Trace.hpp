@@ -13,7 +13,7 @@ namespace SimplifiedData
 }
 namespace Trace
 {
-    inline size_t bounceLimit = 2;
+    inline size_t bounceLimit = 5;
 
     color4 CastRayDirectionLight(const Ray &ray, const color4 &light, const ImplicitScene &scene);
 

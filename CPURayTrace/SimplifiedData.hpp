@@ -45,7 +45,7 @@ namespace SimplifiedData
         glm::vec3 invDir;                                 // 光线dir倒数
         glm::vec3 pos;                                    // 命中位置
         glm::vec3 normal;                                 // 归一化世界法线
-        uint16_t matFlags;                                // 材质
+        uint32_t matFlags;                                // 材质
     };
 
     struct BoundingBox
@@ -72,7 +72,7 @@ namespace SimplifiedData
         vec3 positions[3];
         vec3 normals[3];
         vec2 texCoords[3];
-        uint16_t matFlags;
+        uint32_t matFlags;
     };
 
     inline constexpr uint32_t TRIANGLESIZE = 1 << 20;          // 2^21 = 2097152 个三角形  不要用一个数组分配太大内存 否则 bad alloc

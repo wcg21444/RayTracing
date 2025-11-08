@@ -19,10 +19,10 @@
 class ModelLoader
 {
     using PtrImporter = std::unique_ptr<Assimp::Importer>;
-    using ModelLoadFuture = std::future<std::pair<const aiScene*, PtrImporter>>;
+    using ModelLoadFuture = std::future<std::pair<const aiScene *, PtrImporter>>;
 
 private:
-    inline static Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene)
+    inline static Mesh ProcessMesh(aiMesh *mesh, const aiScene *scene)
     {
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
@@ -33,7 +33,7 @@ private:
 
             if (!mesh->mNormals) // 检查法线指针是否有效 (非空)
             {
-                throw (std::runtime_error("Mesh has no normals!"));
+                throw(std::runtime_error("Mesh has no normals!"));
             }
             vertex.position.x = mesh->mVertices[i].x;
             vertex.position.y = mesh->mVertices[i].y;
@@ -66,32 +66,32 @@ private:
      *  [out]: ptr Model : Model object, which is loaded to OpenGL context
      *  [process]: OpenGL Object Binding needs synchrours operation
      */
-    inline static std::vector<Mesh> PostProcess(const aiScene& loadedScene)
+    inline static std::vector<Mesh> PostProcess(const aiScene &loadedScene)
     {
         std::vector<Mesh> meshes;
         for (size_t i = 0; i < loadedScene.mRootNode->mNumChildren; ++i)
         {
             // DebugOutput::AddLog("nums of Children of Node{}:{}\n", i, loadedScene.mRootNode->mChildren[i]->mNumChildren);
-            auto& node = *(loadedScene.mRootNode->mChildren[i]);
-            auto& mesh_id = node.mMeshes[0];
-            auto& mesh = loadedScene.mMeshes[mesh_id];
+            auto &node = *(loadedScene.mRootNode->mChildren[i]);
+            auto &mesh_id = node.mMeshes[0];
+            auto &mesh = loadedScene.mMeshes[mesh_id];
             meshes.emplace_back(ProcessMesh(mesh, &loadedScene));
         }
         return meshes;
     }
 
-    inline static void LoadAndProcessModel(ImplicitScene& scene, ModelLoadFuture& model_future)
+    inline static void LoadAndProcessModel(ImplicitScene &scene, ModelLoadFuture &model_future)
     {
         try
         {
             auto [raw_model, importer] = model_future.get();
-            auto&& meshes = PostProcess(*raw_model);
-            for (auto&& mesh : meshes)
+            auto &&meshes = PostProcess(*raw_model);
+            for (auto &&mesh : meshes)
             {
                 scene.addObject(std::make_shared<Mesh>(mesh));
             }
         }
-        catch (std::exception& e)
+        catch (std::exception &e)
         {
             std::cout << e.what() << std::endl;
         }
@@ -110,7 +110,7 @@ public:
     ModelLoader()
     {
     }
-    ModelLoadFuture inline static LoadModelAsync(const std::string& path)
+    ModelLoadFuture inline static LoadModelAsync(const std::string &path)
     {
         // aiScene 必须在 Importer 上下文环境才有效
         // aiScene 生命周期必须与 Importer 一致
@@ -131,34 +131,34 @@ public:
                 return std::make_pair(scene, std::move(importer)); });
     }
 
-    inline static void LoadModelFileSync(const std::string& path, ImplicitScene& scene)
+    inline static void LoadModelFileSync(const std::string &path, ImplicitScene &scene)
     {
         auto importer = std::make_unique<Assimp::Importer>();
-        const aiScene* raw_model = importer->ReadFile(
+        const aiScene *raw_model = importer->ReadFile(
             path,
             aiProcess_CalcTangentSpace |
-            aiProcess_Triangulate |
-            aiProcess_JoinIdenticalVertices |
-            aiProcess_SortByPType);
+                aiProcess_Triangulate |
+                aiProcess_JoinIdenticalVertices |
+                aiProcess_SortByPType);
 
         try
         {
-            auto&& meshes = PostProcess(*raw_model);
-            for (auto&& mesh : meshes)
+            auto &&meshes = PostProcess(*raw_model);
+            for (auto &&mesh : meshes)
             {
                 scene.addObject(std::make_shared<Mesh>(mesh));
             }
         }
-        catch (std::exception& e)
+        catch (std::exception &e)
         {
             std::cout << e.what() << std::endl;
         }
     }
 
     // 发送加载模型请求
-    inline static void LoadModelFile(const std::string& pFile)
+    inline static void LoadModelFile(const std::string &pFile)
     {
-        importing_vec.emplace_back(ImportingContext{ LoadModelAsync(pFile), pFile });
+        importing_vec.emplace_back(ImportingContext{LoadModelAsync(pFile), pFile});
     }
 
     // TODO 异常处理优化 ; 进度输出;
@@ -166,7 +166,7 @@ public:
     [in]: scene 场景对象
     importing_vec 中将模型加载器加载好的文件 处理 并 加入到 scene 中
     */
-    inline static void Run(ImplicitScene& scene)
+    inline static void Run(ImplicitScene &scene)
     {
         auto it = importing_vec.begin();
         while (it != importing_vec.end())
@@ -190,11 +190,11 @@ namespace SimplifiedData
     class ModelLoader
     {
         using PtrImporter = std::unique_ptr<Assimp::Importer>;
-        using ModelLoadFuture = std::future<std::pair<const aiScene*, PtrImporter>>;
+        using ModelLoadFuture = std::future<std::pair<const aiScene *, PtrImporter>>;
 
     private:
         // ISSUE: 模型不规范(V,N,T不完整)时,无法加载转换
-        inline static sd::Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene)
+        inline static sd::Mesh ProcessMesh(aiMesh *mesh, const aiScene *scene)
         {
             std::vector<sd::Vertex> vertices;
             std::vector<unsigned int> indices;
@@ -218,7 +218,13 @@ namespace SimplifiedData
                     vertex.texCoord.y = mesh->mTextureCoords[0][i].y;
                 }
                 else
+                {
                     vertex.texCoord = glm::vec2(0.0f, 0.0f);
+                }
+
+                vertex.position = modelTransform * glm::vec4(vertex.position, 1.0f);
+                // vertex.normal = modelTransform * glm::vec4(vertex.normal, 1.0f);//normal is local
+
                 vertices.push_back(vertex);
             }
             // process indices
@@ -228,53 +234,60 @@ namespace SimplifiedData
                 for (unsigned int j = 0; j < face.mNumIndices; j++)
                     indices.push_back(face.mIndices[j]);
             }
-            return sd::Mesh(*pDataStroage, vertices, indices, Lambertian(glm::vec4(0.8f, 0.3f, 0.3f, 1.f))); // 暂时不处理材质
+            return sd::Mesh(*pDataStroage, vertices, indices, Lambertian(color)); // 暂时不处理材质
         }
 
         /* [in]: loadedScene : Obj file imported in memory
          *  [out]: ptr Model : Model object, which is loaded to OpenGL context
          *  [process]: OpenGL Object Binding needs synchrours operation
          */
-        inline static std::vector<uint32_t> PostProcess(const aiScene& loadedScene)
+        inline static std::vector<uint32_t> PostProcess(const aiScene &loadedScene)
         {
             std::vector<uint32_t> meshNodeIndices;
             for (size_t i = 0; i < loadedScene.mRootNode->mNumChildren; ++i)
             {
                 // DebugOutput::AddLog("nums of Children of Node{}:{}\n", i, loadedScene.mRootNode->mChildren[i]->mNumChildren);
-                auto& node = *(loadedScene.mRootNode->mChildren[i]);
-                auto& mesh_id = node.mMeshes[0];
-                auto& mesh = loadedScene.mMeshes[mesh_id];
+                auto &node = *(loadedScene.mRootNode->mChildren[i]);
+                auto &mesh_id = node.mMeshes[0];
+                auto &mesh = loadedScene.mMeshes[mesh_id];
                 auto processedMesh = ProcessMesh(mesh, &loadedScene);
                 meshNodeIndices.emplace_back(processedMesh.meshNodeIndex);
             }
             return meshNodeIndices;
         }
 
-    private:
-        inline static sd::DataStorage* pDataStroage = nullptr;
-
     public:
         ModelLoader()
         {
         }
-        inline static uint32_t LoadModelFileSync(const std::string& path)
+        inline static uint32_t LoadModelFileSync(
+            const std::string &path,
+            const glm::mat4 &transform = glm::mat4(1.0f),
+            const glm::vec4 &color = glm::vec4(0.8f, 0.3f, 0.3f, 1.f))
         {
+            modelTransform = transform;
             auto importer = std::make_unique<Assimp::Importer>();
-            const aiScene* raw_model = importer->ReadFile(
+            const aiScene *raw_model = importer->ReadFile(
                 path,
                 aiProcess_CalcTangentSpace |
-                aiProcess_Triangulate |
-                aiProcess_JoinIdenticalVertices |
-                aiProcess_SortByPType);
+                    aiProcess_Triangulate |
+                    aiProcess_JoinIdenticalVertices |
+                    aiProcess_SortByPType);
 
             auto meshIndices = PostProcess(*raw_model);
-            uint32_t root = sd::BVH::BuildBVHFromNodes(pDataStroage->nodeStorage, meshIndices.data(), 0, meshIndices.size()); // 问题
+            uint32_t root = sd::BVH::BuildBVHFromNodes(pDataStroage->nodeStorage, meshIndices.data(), 0, meshIndices.size());
             return root;
         }
-        inline static void SetDataStorage(sd::DataStorage* ptr)
+        inline static void SetDataStorage(sd::DataStorage *ptr)
         {
             pDataStroage = ptr;
         }
+
+    private:
+        inline static sd::DataStorage *pDataStroage = nullptr;
+
+        inline static glm::mat4 modelTransform = glm::mat4(1.0f);
+        inline static glm::vec4 color = glm::vec4(0.8f, 0.3f, 0.3f, 1.f);
     };
 
 }

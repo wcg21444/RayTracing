@@ -255,7 +255,7 @@ namespace SimplifiedData
             tri.normals[v] = vec3(src[offset + 3], src[offset + 4], src[offset + 5]);
             tri.texCoords[v] = vec2(src[offset + 6], src[offset + 7]);
         }
-        tri.matFlags = static_cast<uint16_t>(src[base + 24]);
+        tri.matFlags = static_cast<uint32_t>(src[base + 24]);
         return tri;
     }
 

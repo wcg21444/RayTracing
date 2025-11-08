@@ -1,7 +1,10 @@
 
-
 #pragma once
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/euler_angles.hpp>
 #include <vector>
 #include <memory>
 #include <algorithm>
@@ -16,6 +19,7 @@
 #include "Materials/Sky.hpp"
 #include "Random.hpp"
 #include "ModelLoader.hpp"
+#include "Config.hpp"
 
 // Scene copy constructor
 ImplicitScene::ImplicitScene(const ImplicitScene &other)
@@ -276,17 +280,35 @@ namespace SimplifiedData
 
         try
         {
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/TestScene1Box.obj");
-            root = sd::ModelLoader::LoadModelFileSync("Resources/Scene.obj");
-            sceneIndices.push_back(root);
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/brizzareTri.obj");
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/dragon/dragon.obj");//Read access violation
-            // sceneIndices.push_back(root);
-            root = sd::ModelLoader::LoadModelFileSync("Resources/MultiHighCube.obj");
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj");
-            // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon18520.obj");
-            sceneIndices.push_back(root);
 
+            // // root = sd::ModelLoader::LoadModelFileSync("Resources/TestScene1Box.obj");
+            // root = sd::ModelLoader::LoadModelFileSync("Resources/Scene.obj");
+            // sceneIndices.push_back(root);
+            // // root = sd::ModelLoader::LoadModelFileSync("Resources/brizzareTri.obj");
+            // // root = sd::ModelLoader::LoadModelFileSync("Resources/dragon/dragon.obj");//Read access violation
+            // // sceneIndices.push_back(root);
+            // root = sd::ModelLoader::LoadModelFileSync("Resources/MultiHighCube.obj");
+            // // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon2426.obj");
+            // // root = sd::ModelLoader::LoadModelFileSync("Resources/TheStanfordDragon18520.obj");
+            // sceneIndices.push_back(root);
+            SceneConfig config("Configs/SceneConfig.json");
+
+            for (auto &object : config.jsonConfig["objects"])
+            {
+                if (object["type"] != "mesh")
+                    continue;
+
+                glm::vec3 position = {object["position"][0], object["position"][1], object["position"][2]};
+                glm::vec3 rotationEuler = {object["rotation_euler"][0], object["rotation_euler"][1], object["rotation_euler"][2]};
+                glm::vec3 scale = {object["scale"][0], object["scale"][1], object["scale"][2]};
+                glm::vec4 color = {object["color"][0], object["color"][1], object["color"][2], object["color"][3]};
+                glm::mat4 transform = glm::mat4(1.0f);
+                transform = glm::translate(transform, position);
+                transform = glm::eulerAngleXYZ(rotationEuler.y, rotationEuler.x, rotationEuler.z) * transform;
+                transform = glm::scale(transform, scale);
+                root = sd::ModelLoader::LoadModelFileSync(object["path"].get<std::string>(), transform, color);
+                sceneIndices.push_back(root);
+            }
             auto sceneRoot = sd::BVH::BuildBVHFromNodes(pDataStorage->nodeStorage, sceneIndices.data(), 0, sceneIndices.size());
             pDataStorage->rootIndex = sceneRoot;
         }
