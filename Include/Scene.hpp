@@ -4,6 +4,8 @@
 #include <memory>
 #include <algorithm>
 #include <functional>
+#include <optional>
+
 #include "Objects.hpp"
 #include "BVH.hpp"
 #include "Materials.hpp"
@@ -18,15 +20,13 @@ public:
     std::vector<std::shared_ptr<Hittable>> objects;
     BVH BVHTree;
 
-    // Camera cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
-
     ImplicitScene();
-    // 拷贝构造
+    // 拷贝构造 深拷贝
     ImplicitScene(const ImplicitScene &other);
-    // 拷贝赋值
+    // 拷贝赋值 深拷贝
     ImplicitScene &operator=(const ImplicitScene &other);
 
-    void initialize(const SceneConfig* config); // 布置场景
+    void initialize(const std::optional<SceneConfig> &config); // 布置场景
 
     void update();
 
@@ -46,10 +46,10 @@ namespace SimplifiedData
 
         Scene();
 
-        // 拷贝
+        // 拷贝 深拷贝
         Scene(const Scene &other);
         Scene &operator=(const Scene &other);
 
-        void initialize(const SceneConfig* config); // 布置场景 延迟初始化
+        void initialize(const std::optional<SceneConfig> &config); // 布置场景 延迟初始化
     };
 }

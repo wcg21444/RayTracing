@@ -1,0 +1,16 @@
+{
+    "name": "RenderConfig",
+    "type": "RenderConfig",
+    "camera": {
+        "focalLength": 1.0,
+        "position": [0.0, 0.0, 15.0],
+        "lookAtCenter": [0.0, 0.0, 0.0],
+        "width": 2.0,
+        "height": 1.125,
+        "aspectRatio": 1.7777778,
+        "sensitivity": 0.1
+    },
+    "InitWidth": 640,
+    "InitHeight": 360,
+    "CPUNumThreads": 16
+}

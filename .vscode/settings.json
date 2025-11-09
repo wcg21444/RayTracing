@@ -102,7 +102,30 @@
         "scenetex,glsl": "cpp",
         "coroutine": "cpp",
         "resumable": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "barrier": "cpp",
+        "bitset": "cpp",
+        "cfenv": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "cuchar": "cpp",
+        "execution": "cpp",
+        "expected": "cpp",
+        "generator": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "latch": "cpp",
+        "mdspan": "cpp",
+        "print": "cpp",
+        "regex": "cpp",
+        "scoped_allocator": "cpp",
+        "spanstream": "cpp",
+        "stacktrace": "cpp",
+        "stdfloat": "cpp",
+        "strstream": "cpp",
+        "syncstream": "cpp",
+        "valarray": "cpp",
+        "*.inc": "cpp"
     },
     // "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
@@ -118,6 +141,19 @@
     "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
     "C_Cpp.clang_format_style": "Visual Studio",
     "C_Cpp.formatting": "default",
-    "C_Cpp.vcFormat.indent.accessSpecifiers": false
+    "C_Cpp.vcFormat.indent.accessSpecifiers": false,
+    "editor.defaultFormatter": "ms-vscode.cpptools-extension-pack",
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    }
     // "C_Cpp.formatting": "clangFormat"
 }

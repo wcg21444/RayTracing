@@ -3,125 +3,116 @@
 #include "Shader.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 class Shader;
+class ICameraController;
 
 class Camera
 {
 public:
+    struct ControlState
+    {
+        vec3 position;
+        vec3 lookAtCenter;
+        float focalLength;
+    };
+
     float focalLength;
     vec3 position;
     vec3 lookAtCenter;
+
     float width;
     float height;
     float aspectRatio;
-    float sensitivity = 0.1f;
+
+    std::shared_ptr<ICameraController> controller = nullptr;
 
 public:
-    Camera() {}
+    Camera();
     Camera(float _focalLength,
            vec3 _position,
            float _width,
            float _aspectRatio,
-           vec3 _lookAtCenter = vec3(0.0f)) : focalLength(_focalLength),
-                                              position(_position),
-                                              width(_width),
-                                              height(width / _aspectRatio),
-                                              aspectRatio(_aspectRatio),
-                                              lookAtCenter(_lookAtCenter)
+           vec3 _lookAtCenter = vec3(0.0f));
 
-    {
-    }
+    void setController(std::shared_ptr<ICameraController> controller);
+    void update();
 
-    vec3 getRayDirction(const vec2 &uv)
-    {
-        vec3 viewDir = normalize(vec3(
-            uv.x * width - width / 2,
-            uv.y * height - height / 2,
-            focalLength));
-        viewDir.x = -viewDir.x;
-        vec3 absY = vec3(0.f, 1.f, 0.f);
-        vec3 z = DirectionOf(lookAtCenter, position);
-        vec3 x = glm::normalize(glm::cross(absY, z));
-        vec3 y = glm::cross(z, x);
-        glm::mat3 rotation(x, y, z);
+    vec3 getRayDirection(const vec2 &uv) const;
+    void resize(int newWidth, int newHeight);
+    float getHorizontalFOV() const;
+    float getVerticalFOV() const;
+    glm::mat4 getViewMatrix() const;
+    glm::mat4 getProjectionMatrix() const;
+    void setToFragShader(Shader &shaders, std::string owner = "");
+    void renderUI();
+};
 
-        return rotation * viewDir;
-    }
-    void resize(int newWidth, int newHeight)
-    {
-        this->aspectRatio = float(newWidth) / newHeight;
-        height = width / aspectRatio;
-    }
-    float getHorizontalFOV() const
-    {
-        return 2.f * std::atan(width / 2 / focalLength) * 180.f / glm::pi<float>();
-    }
+// Usage: 通过调用Process系列函数来控制Camera
+//        getUpdatedControlState 获取新状态用于驱动 Camera
+class ICameraController
+{
+public:
+    virtual void processOrientationOffset(float xoffset, float yoffset) = 0;
+    virtual void processDollyOffset(float xoffset, float yoffset) = 0;
+    virtual void processMouseScroll(float yoffset) = 0;
+    virtual void processPanOffset(float xoffset, float yoffset) = 0;
+    virtual void processZoom(float xoffset, float yoffset) = 0;
 
-    float getVerticalFOV() const
-    {
-        return 2.f * std::atan(height / 2 / focalLength) * 180.f / glm::pi<float>();
-    }
+    virtual Camera::ControlState getUpdatedControlState() = 0; // 更新控制器状态并获取当前控制器状态
 
-    glm::mat4 getViewMatrix() const
-    {
-        if (position == lookAtCenter)
-        {
-            return glm::mat4(1.0f);
-        }
-        return glm::lookAt(position, lookAtCenter, vec3(0.0f, 1.0f, 0.0f));
-    }
+    virtual void setControlState(const Camera::ControlState &state) = 0;
 
-    glm::mat4 getProjectionMatrix() const
-    {
-        return glm::perspective(glm::radians(getVerticalFOV()), aspectRatio, 0.1f, 1e5f);
-    }
+    virtual ~ICameraController() = default;
+};
 
-    void setToFragShader(Shader &shaders, std::string owner = "")
-    {
-        if (owner != "")
-        {
-            owner += ".";
-        }
-        shaders.setUniform(std::format("{}view", owner), getViewMatrix());
-        shaders.setUniform(std::format("{}projection", owner), getProjectionMatrix());
-        shaders.setUniform(std::format("{}focalLength", owner), focalLength);
-        shaders.setUniform(std::format("{}position", owner), position);
-        shaders.setUniform(std::format("{}lookAtCenter", owner), lookAtCenter);
-        shaders.setUniform(std::format("{}width", owner), width);
-        shaders.setUniform(std::format("{}height", owner), height);
-        shaders.setUniform(std::format("{}aspectRatio", owner), aspectRatio);
-    }
+class EasyCameraController : public ICameraController
+{
+public:
+    // cache states
+    vec3 position;
+    vec3 lookAtCenter;
+    float focalLength;
 
-    void processOrientationOffset(float xoffset, float yoffset)
-    {
-        vec3 front = normalize(lookAtCenter - position);
-        vec3 right = normalize(cross(front, vec3(0.0f, 1.0f, 0.0f)));
-        vec3 up = normalize(cross(right, front));
-        float dist = glm::length(lookAtCenter - position);
+    float sensitivity = 0.1f;
 
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
+public:
+    EasyCameraController() = default;
+    EasyCameraController(float _focalLength,
+                         vec3 _position,
+                         vec3 _lookAtCenter);
+    ~EasyCameraController() override = default;
+    EasyCameraController(const EasyCameraController &) = delete;
+    EasyCameraController(EasyCameraController &&) noexcept;
+    EasyCameraController &operator=(const EasyCameraController &) = delete;
+    EasyCameraController &operator=(EasyCameraController &&) noexcept;
 
-        // 改变position
-        position -= (xoffset * right + yoffset * up) * sensitivity * glm::sqrt(dist);
-        position = lookAtCenter + normalize(position - lookAtCenter) * dist; // 只改变方向
-    }
+    void setControlState(const Camera::ControlState &state);
 
-    void processPositionOffset(float xoffset, float yoffset)
-    {
-        vec3 front = normalize(lookAtCenter - position);
-        float dist = glm::length(lookAtCenter - position);
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
+    void processOrientationOffset(float xoffset, float yoffset) override;
+    void processDollyOffset(float xoffset, float yoffset) override;
+    void processMouseScroll(float yoffset) override;
+    void processPanOffset(float xoffset, float yoffset) override;
+    void processZoom(float xoffset, float yoffset) override;
+    Camera::ControlState getUpdatedControlState() override;
+    void renderUI();
+};
 
-        float offset = xoffset + yoffset;
+class SmoothController : public ICameraController
+{
+private:
+public:
+    SmoothController(std::shared_ptr<ICameraController> baseController);
 
-        // 改变position
-        position += front * offset * sensitivity * glm::sqrt(dist);
-    }
+    void processOrientationOffset(float xoffset, float yoffset) override;
+    void processDollyOffset(float xoffset, float yoffset) override;
+    void processMouseScroll(float yoffset) override;
+    void processPanOffset(float xoffset, float yoffset) override;
+    void processZoom(float xoffset, float yoffset) override;
+    Camera::ControlState getUpdatedControlState() override;
 
-    void processMouseScroll(float yoffset)
-    {
-        sensitivity += yoffset * 0.01f;
-        sensitivity = std::max(0.001f, sensitivity);
-    }
+private:
+    std::shared_ptr<ICameraController> baseController;
+    Camera::ControlState currentState;
+    float smoothFactor = 0.1f; // 越大越平滑
+
+    void update(); // call by getUpdatedControlState()
 };

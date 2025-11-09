@@ -46,21 +46,21 @@ void Renderer::changeMode(RenderMode newMode)
         currentPipeline = std::make_unique<RenderPipeline<SdSceneGPUContext, LoadSdSceneGPU, TraceSdSceneGPU, SdSceneGPUUI>>(
             SdSceneGPUContext{
                 skyTexPass->getCubemapRef(),
-                cam,
+                RenderState::CameraInstance,
                 Storage::SdSceneInstance,
                 Storage::SdSceneInstanceMutex});
         break;
     case RenderMode::CPU_SdScene:
         currentPipeline = std::make_unique<RenderPipeline<SdSceneCPUContext, LoadSdSceneCPU, TraceSdSceneCPU, SdSceneCPUUI>>(
             SdSceneCPUContext{
-                cam,
+                RenderState::CameraInstance,
                 Storage::SdSceneInstance,
                 Storage::SdSceneInstanceMutex});
         break;
     case RenderMode::CPU_Scene:
         currentPipeline = std::make_unique<RenderPipeline<ImSceneCPUContext, LoadImSceneCPU, TraceImSceneCPU, ImSceneCPUUI>>(
             ImSceneCPUContext{
-                cam,
+                RenderState::CameraInstance,
                 Storage::ImplicitSceneInstance,
                 Storage::ImplicitSceneInstanceMutex});
         break;
@@ -76,7 +76,7 @@ void Renderer::render()
     assert(currentPipeline && "RenderPipeline not set in Renderer::render");
     // 对pipeline context的绑定修改不需要同步?句柄引用?
     // Preprocessing
-    skyTexPass->render(cam.position);
+    skyTexPass->render(RenderState::CameraInstance.position);
     // 需要注入到GPU渲染管线
 
     auto loadMethod = currentPipeline->getLoadMethod();
@@ -187,12 +187,6 @@ void Renderer::renderUI()
             }
         }
 
-        {
-            RenderState::Dirty |= ImGui::DragFloat3("CamPosition", glm::value_ptr(cam.position), 0.01f);
-            RenderState::Dirty |= ImGui::DragFloat3("LookAtCenter", glm::value_ptr(cam.lookAtCenter), 0.01f);
-            RenderState::Dirty |= ImGui::DragFloat("CamFocalLength", &cam.focalLength, 0.01f);
-            ImGui::Text(std::format("HFov: {}", cam.getHorizontalFOV()).c_str());
-        }
         ImGui::End();
     }
     currentPipeline->getUIMethod()->renderUI();

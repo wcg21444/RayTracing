@@ -146,9 +146,9 @@ namespace SimplifiedData
     bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax)
     {
         // static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("BoundingBox Intersections");
-        static thread_local auto &count = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections Inner");
+        // static thread_local auto &count = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections Inner"); // 结构破坏: 如果上层调用不需要统计,则错误  底层调用则上层必须有Aggregator
         // Profiler::ThreadScopedTimer timer(timeStats);
-        count++;
+        // count++;
         auto invDir = ray.getInvDirection();
         auto origin = ray.getOrigin();
         for (int a = 0; a < 3; a++)

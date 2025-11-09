@@ -68,7 +68,7 @@ void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
 
         Ray ray(
             DIContext.cameraRef.position,
-            DIContext.cameraRef.getRayDirction(uv) + Random::RandomVector(perturbStrength));
+            DIContext.cameraRef.getRayDirection(uv) + Random::RandomVector(perturbStrength));
         std::shared_lock<std::shared_mutex> sceneLock(*DIContext.sceneRenderingMutex);
         if (!DIContext.sceneRendering)
         {
@@ -78,11 +78,11 @@ void TraceSdSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
         // auto newColor = Trace::CastRay(Ray{}, 0, *DIContext.sceneRendering->pDataStorage);//5ms左右构造
         pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount); // 约10ms
     };
-    size_t rowsPerThread = traceImageData.height / numThreads;
-    for (int i = 0; i < numThreads; ++i)
+    size_t rowsPerThread = traceImageData.height / RenderState::CPUNumThreads;
+    for (int i = 0; i < RenderState::CPUNumThreads; ++i)
     {
         size_t startY = i * rowsPerThread;
-        size_t endY = (i == numThreads - 1) ? traceImageData.height : startY + rowsPerThread;
+        size_t endY = (i == RenderState::CPUNumThreads - 1) ? traceImageData.height : startY + rowsPerThread;
         this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]()
                                                   {
             Profiler::AggregatorGuard threadCounterGuard;
@@ -122,7 +122,7 @@ void TraceImSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
         auto uv = imageData.uvAt(x, y);
         Ray ray(
             DIContext.cameraRef.position,
-            DIContext.cameraRef.getRayDirction(uv) + Random::RandomVector(perturbStrength));
+            DIContext.cameraRef.getRayDirection(uv) + Random::RandomVector(perturbStrength));
         if (!DIContext.sceneRendering)
         {
             throw std::runtime_error("Scene is not loaded.");
@@ -131,11 +131,11 @@ void TraceImSceneCPU::trace(const Texture2D &traceInput, Texture2D &traceOutput,
         auto newColor = Trace::CastRay(ray, 0, *DIContext.sceneRendering);
         pixelColor = (pixelColor * static_cast<float>(sampleCount - 1.f) + newColor) / static_cast<float>(sampleCount);
     };
-    size_t rowsPerThread = traceImageData.height / numThreads;
-    for (int i = 0; i < numThreads; ++i)
+    size_t rowsPerThread = traceImageData.height / RenderState::CPUNumThreads;
+    for (int i = 0; i < RenderState::CPUNumThreads; ++i)
     {
         size_t startY = i * rowsPerThread;
-        size_t endY = (i == numThreads - 1) ? traceImageData.height : startY + rowsPerThread;
+        size_t endY = (i == RenderState::CPUNumThreads - 1) ? traceImageData.height : startY + rowsPerThread;
         this->shadingFutures.push_back(std::async(std::launch::async, [this, startY, endY, shade]()
                                                   {
             for (size_t y = startY; y < endY; ++y) {

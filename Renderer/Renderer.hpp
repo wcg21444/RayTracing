@@ -58,8 +58,6 @@ public:
 
     std::shared_ptr<ResizeCallback> onResize = nullptr;
 
-    Camera cam = Camera(1.0f, point3(0.0f, 0.0f, 1.0f), 2.0f, float(16) / float(9));
-
     Renderer();
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;

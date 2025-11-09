@@ -1,5 +1,6 @@
 #include "Profiler.hpp"
 #include "UICommon.hpp"
+#include "RenderState.hpp"
 
 #include <unordered_map>
 #include <chrono>
@@ -93,9 +94,8 @@ namespace Profiler
 
     void RenderUI()
     {
-        const size_t numThreads = 16;
-        int screenWidth = ImGui::GetIO().DisplaySize.x;
-        int screenHeight = ImGui::GetIO().DisplaySize.y;
+        float screenWidth = ImGui::GetIO().DisplaySize.x;
+        float screenHeight = ImGui::GetIO().DisplaySize.y;
         ImGui::Begin("Profiler");
         for (const auto &[name, duration] : BlockDurations)
         {
@@ -118,7 +118,7 @@ namespace Profiler
             if (ImGui::TreeNode(std::format("{}##TimeStats", name).c_str())) // 根节点
             {
                 ImGui::Text("Call Counts per Sample: %zu", stats.callCount);                                         // 调用次数
-                DisplayTimeAuto(std::format("Avg Time Costs per Sample"), stats.totalDuration.count() / numThreads); // 平均耗时
+                DisplayTimeAuto(std::format("Avg Time Costs per Sample"), stats.totalDuration.count() / RenderState::CPUNumThreads); // 平均耗时
                 DisplayTimeAuto(std::format("Max Time Costs per Sample"), stats.maxDuration.count());                // 最大耗时
                 DisplayTimeAuto(std::format("Min Time Costs per Sample"), stats.minDuration.count());                // 最小耗时
                 ImGui::TreePop();

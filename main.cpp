@@ -17,9 +17,7 @@
 #include "Renderer.hpp"
 #include "Profiler.hpp"
 #include "Config.hpp"
-
-const int InitWidth = 640;
-const int InitHeight = 360;
+#include "RenderState.hpp"
 
 struct Vecs
 {
@@ -30,13 +28,16 @@ struct Vecs
 
 int main()
 {
+    RenderConfig renderConfig("Configs/RenderConfig.json");
+    RenderState::LoadConfig(renderConfig);
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     const char *glsl_version = "#version 460";
-    GLFWwindow *window = glfwCreateWindow(InitWidth, InitHeight, "TRayTracing", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(RenderState::InitWidth, RenderState::InitHeight, "TRayTracing", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -78,16 +79,16 @@ int main()
     std::cout << "ImGui Version: " << IMGUI_VERSION << std::endl;
 
     DebugObjectRenderer::Initialize();
-    DebugObjectRenderer::Resize(InitWidth, InitHeight);
+    DebugObjectRenderer::Resize(RenderState::InitWidth, RenderState::InitHeight);
 
     std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>();
-    renderer->resize(InitWidth, InitHeight);
+    renderer->resize(RenderState::InitWidth, RenderState::InitHeight);
 
     SceneConfig ImSceneConfig("Configs/ImSceneConfig.json");
-    SceneConfig sceneConfig("Configs/SceneConfig.json");
+    SceneConfig sceneConfig("Configs/SceneConfig2.json");
 
-    Storage::ImplicitSceneInstance.initialize(&ImSceneConfig);
-    Storage::SdSceneInstance.initialize(&sceneConfig);
+    Storage::ImplicitSceneInstance.initialize(ImSceneConfig);
+    Storage::SdSceneInstance.initialize(sceneConfig);
 
     Storage::InitSceneStorageRendering();
 
@@ -117,25 +118,58 @@ int main()
             // std::cout << "Mouse Down of Main Window Detected   " << std::endl;
             if (ImGui::IsMouseDown(0)) // Left Button
             {
-                ImVec2 mouseDelta = ImGui::GetMouseDragDelta(0, 0);
-                // Renderer::cam
-                renderer->cam.processOrientationOffset(mouseDelta.x, -mouseDelta.y);
-                RenderState::Dirty |= true;
-                ImGui::ResetMouseDragDelta(0);
+                if (ImGui::GetIO().KeyAlt) // alt key down
+                {
+                    auto mousePos = ImGui::GetMousePos();
+                    // auto screenPos = ImGui::GetWindowPos(); ///奇怪 是一个固定值 因为开启了Docking, 得到的是OS Coordinates
+                    auto viewportPosition = ImGui::GetMainViewport()->Pos;
+                    ImVec2 uv = mousePos - viewportPosition;
+                    std::cout << "Mouse Position: " << mousePos.x << ", " << mousePos.y << std::endl;
+                    std::cout << "Screen Position: " << viewportPosition.x << ", " << viewportPosition.y << std::endl;
+                    std::cout << "Launching ray at screen UV: " << uv.x << ", " << uv.y << std::endl;
+                    RayVisualizer::LaunchRay(uv, RenderState::CameraInstance); // 相对屏幕坐标
+                }
+                else if (ImGui::GetIO().KeyShift) // shift + LMB平移摄像机
+                {
+                    ImVec2 mouseDelta = ImGui::GetMouseDragDelta(0, 0);
+
+                    RenderState::CameraInstance.controller->processPanOffset(mouseDelta.x, mouseDelta.y);
+                    RenderState::Dirty |= true;
+                    ImGui::ResetMouseDragDelta(0);
+                }
+                else
+                {
+                    ImVec2 mouseDelta = ImGui::GetMouseDragDelta(0, 0);
+                    RenderState::CameraInstance.controller->processOrientationOffset(mouseDelta.x, -mouseDelta.y);
+                    RenderState::Dirty |= true;
+                    ImGui::ResetMouseDragDelta(0);
+                }
             }
-            if(ImGui::IsMouseDown(1)) // Right Button
+            if (ImGui::IsMouseDown(1)) // Right Button
             {
-                ImVec2 mouseDelta = ImGui::GetMouseDragDelta(1, 0);
-                renderer->cam.processPositionOffset(mouseDelta.x, mouseDelta.y);
-                RenderState::Dirty |= true;
+                if (ImGui::GetIO().KeyShift) // shift + RMB  Zoom FOV
+                {
+                    ImVec2 mouseDelta = ImGui::GetMouseDragDelta(1, 0);
+
+                    RenderState::CameraInstance.controller->processZoom(mouseDelta.x, mouseDelta.y);
+                    RenderState::Dirty |= true;
+                }
+                else
+                {
+                    ImVec2 mouseDelta = ImGui::GetMouseDragDelta(1, 0);
+                    RenderState::CameraInstance.controller->processDollyOffset(mouseDelta.x, mouseDelta.y);
+                    RenderState::Dirty |= true;
+                }
                 ImGui::ResetMouseDragDelta(1);
             }
         }
         float scrollY = ImGui::GetIO().MouseWheel;
         if (scrollY != 0.0f && !ImGui::GetIO().WantCaptureMouse)
         {
-            renderer->cam.processMouseScroll(scrollY);
+            RenderState::CameraInstance.controller->processMouseScroll(scrollY);
         }
+
+        RenderState::CameraInstance.update();
 
         ImGui::Begin("RenderUI");
         {
@@ -155,7 +189,7 @@ int main()
 
         SkySettings::RenderUI();
 
-        DebugObjectRenderer::SetCamera(&renderer->cam);
+        DebugObjectRenderer::SetCamera(&RenderState::CameraInstance);
         DebugObjectRenderer::Render();
 
         ImGui::Render();

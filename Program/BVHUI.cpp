@@ -13,6 +13,7 @@
 #include "RenderState.hpp"
 #include "SimplifiedData.hpp"
 #include "Scene.hpp"
+#include "Ray.hpp"
 
 static int maxDepth = 40;
 static int minDepth = 0;
@@ -28,7 +29,6 @@ void BVHDebugSettings::RenderUI()
         ImGui::Checkbox("Visualize BVH", &toggleVisualizeBVH);
         ImGui::Checkbox("Show Leaf AABB", &showLeafAABB);
         RenderState::Dirty |= ImGui::Checkbox("BVH Acceleration", &toggleBVHAccel);
-        
     }
     ImGui::End();
 }
@@ -340,4 +340,135 @@ void InteractableVisualization(const sd::DataStorage &dataStorage)
     renderSelectedNodeBoundingBoxes();
 
     ImGui::End();
+}
+
+void RayVisualizer::LaunchRay(const ImVec2 &screenUV, const Camera &camera)
+{
+    float screenWidth = ImGui::GetIO().DisplaySize.x;
+    float screenHeight = ImGui::GetIO().DisplaySize.y;
+    auto normalizedUV = glm::vec2(screenUV.x / screenWidth, 1.0f - screenUV.y / screenHeight);
+    std::cout << "Launching ray at UV: (" << normalizedUV.x << ", " << normalizedUV.y << ")\n";
+    // Ray newRay = ...;
+    Ray newRay(camera.position, camera.getRayDirection(normalizedUV));
+    // RayVisualizer::Rays.push_back(newRay);
+    RayVisualizer::RayPtrs.push_back(std::make_unique<Ray>(std::move(newRay)));
+}
+
+void RayVisualizer::ClearRays()
+{
+    RayVisualizer::RayPtrs.clear();
+}
+
+void RayVisualizer::RenderVisualization(const sd::DataStorage &dataStorage, const std::unordered_map<NodeIndex, Depth> &nodeHitMap)
+{
+    if (!RayVisualizer::HideAll)
+    {
+        for (auto &[index, depth] : nodeHitMap)
+        {
+            float x = float(depth) / colorMaxDepth;
+            float h = (1.0f - x) * 240.0f; // 240=蓝，0=红
+            float s = 1.0f, v = 1.0f;
+            glm::vec3 color = hsv2rgb(glm::vec3(h, s, v)); // 需实现HSV到RGB
+            const sd::Node &node = dataStorage.nodeStorage.nodes[index];
+            DebugObjectRenderer::AddDrawCall([node, color](Shader &_shaders)
+                                             { DebugObjectRenderer::DrawWireframeCube(_shaders, node.box.pMin, node.box.pMax, glm::vec4(color, 1.0f)); });
+        }
+    }
+}
+
+void UpdateRayIntersection(const sd::DataStorage &dataStorage, const Ray &ray, std::unordered_map<uint32_t, size_t> &nodeHitMap)
+{
+
+    static std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
+    static size_t top = 0;
+
+    callStack[top++] = dataStorage.rootIndex;
+
+    while (top > 0)
+    {
+        uint32_t index = callStack[--top];
+        const sd::Node &node = dataStorage.nodeStorage.nodes[index];
+
+        if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, FLT_MAX))
+        {
+            continue;
+        }
+        if (node.flags == sd::NODE_LEAF) // 叶子节点
+        {
+            continue;
+        }
+        if (nodeHitMap.find(index) == nodeHitMap.end())
+        {
+            nodeHitMap.insert({index, top});
+        }
+        callStack[top++] = node.left;
+        callStack[top++] = node.right;
+    }
+}
+
+void RayVisualizer::Render(const SimplifiedData::DataStorage &dataStorage)
+{
+    static std::unordered_map<NodeIndex, Depth> nodeHitMap;
+    static std::unordered_set<Ray *> rayCache;
+
+    if (rayCache.size() < RayPtrs.size())
+    {
+        for (const auto &pRay : RayPtrs)
+        {
+            size_t hitCounts = nodeHitMap.size();
+            rayCache.insert(pRay.get());
+            UpdateRayIntersection(dataStorage, *pRay, nodeHitMap);
+            if(nodeHitMap.size() > hitCounts)
+            {
+                std::cout << "New hits recorded. Total hit nodes: " << nodeHitMap.size() << std::endl;
+                hitCounts = nodeHitMap.size();
+            }
+        }
+    }
+
+    ImGui::Begin("BVH Interactive Visualization");
+    if (ImGui::Button("Clear Rays"))
+    {
+        rayCache.clear();
+        nodeHitMap.clear();
+        RayVisualizer::ClearRays();
+    }
+    ImGui::SliderInt("Color Max Depth", reinterpret_cast<int *>(&RayVisualizer::colorMaxDepth), 1, 32);
+    ImGui::Checkbox("Hide All", &RayVisualizer::HideAll);
+    ImGui::End();
+
+    for (const auto &pRay : RayPtrs)
+    {
+        glm::vec3 start = pRay->getOrigin();
+        glm::vec3 end = pRay->at(1000.0f); // 假设绘制长度为1000单位的射线
+        DebugObjectRenderer::AddDrawCall([&dataStorage, start, end](Shader &_shaders)
+                                         {
+                                             DebugObjectRenderer::DrawLine(_shaders, start, end, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), 0.01f); // 用Cube 模拟射线
+                                         });
+    }
+    RenderVisualization(dataStorage, nodeHitMap); // 不需要每帧遍历的其实. 只需要在发射新射线时遍历一次,对节点标记,然后逐帧渲染就行了
+}
+
+void RayVisualizer::Render(const BVHNode *root)
+{
+    DebugObjectRenderer::AddDrawCall([](Shader &_shaders)
+                                     {
+        ImGui::Begin("BVH Interactive Visualization");
+        if (ImGui::Button("Clear Rays"))
+        {
+            RayVisualizer::ClearRays();
+        }
+        ImGui::SliderInt("Color Max Depth", reinterpret_cast<int*>(&RayVisualizer::colorMaxDepth), 1, 32);
+        ImGui::Checkbox("Hide All", &RayVisualizer::HideAll);
+        ImGui::End();
+
+        for (const auto &pRay : RayPtrs)
+        {
+            glm::vec3 start = pRay->getOrigin();
+            glm::vec3 end = pRay->at(1000.0f); // 假设绘制长度为1000单位的射线
+
+            DebugObjectRenderer::DrawLine(_shaders, start, end, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),0.01f); // 用Cube 模拟射线
+
+            //TODO
+        } });
 }

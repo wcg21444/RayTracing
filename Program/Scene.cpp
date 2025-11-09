@@ -101,11 +101,11 @@ ImplicitScene &ImplicitScene::operator=(const ImplicitScene &other)
     return *this;
 }
 
-void ImplicitScene::initialize(const SceneConfig *config)
+void ImplicitScene::initialize(const std::optional<SceneConfig> &config)
 {
-    if (!config)
-        return;
     objects.clear();
+    if(!config)
+        return;
     try
     {
         for (auto &object : config->jsonConfig["objects"])
@@ -202,7 +202,7 @@ namespace SimplifiedData
         return *this;
     }
 
-    void Scene::initialize(const SceneConfig *config)
+    void Scene::initialize(const std::optional<SceneConfig> &config)
     {
         ModelLoader::SetDataStorage(pDataStorage.get());
 

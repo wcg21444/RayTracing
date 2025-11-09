@@ -61,4 +61,5 @@ public:
     static void DrawCube(Shader& shaders, glm::mat4 modelMatrix = glm::identity<glm::mat4>(), glm::vec4 color = glm::vec4(1.0f));
     static void DrawWireframeCube(Shader& shaders, glm::mat4 modelMatrix = glm::identity<glm::mat4>(), glm::vec4 color = glm::vec4(1.0f));
     static void DrawWireframeCube(Shader& shaders, glm::vec3 pMin, glm::vec3 pMax, glm::vec4 color = glm::vec4(1.0f));
+    static void DrawLine(Shader& shaders, glm::vec3 start, glm::vec3 end, glm::vec4 color = glm::vec4(1.0f),float thickness=0.05f);
 };

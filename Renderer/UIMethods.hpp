@@ -22,6 +22,7 @@ public:
         InteractableVisualization(*Storage::SdSceneInstance.pDataStorage); // 跟渲染的具体场景类型有关,应该交由pipeline提供的方法处理
         BVHDebugSettings::RenderVisualization(*Storage::SdSceneInstance.pDataStorage);
         BVHDebugSettings::RenderUI();
+        RayVisualizer::Render(*Storage::SdSceneInstance.pDataStorage);
     }
 };
 class SdSceneCPUUI : public IUIMethod
@@ -43,6 +44,7 @@ public:
         InteractableVisualization(*Storage::SdSceneInstance.pDataStorage); // 跟渲染的具体场景类型有关,应该交由pipeline提供的方法处理
         BVHDebugSettings::RenderVisualization(*Storage::SdSceneInstance.pDataStorage);
         BVHDebugSettings::RenderUI();
+        RayVisualizer::Render(*Storage::SdSceneInstance.pDataStorage);
     }
 };
 class ImSceneCPUUI : public IUIMethod
@@ -55,6 +57,7 @@ public:
     {
         BVHDebugSettings::RenderVisualization(DIContext.implicitSceneRef.BVHTree.root);
         BVHDebugSettings::RenderUI();
+        RayVisualizer::Render(DIContext.implicitSceneRef.BVHTree.root);
 
     }
 };

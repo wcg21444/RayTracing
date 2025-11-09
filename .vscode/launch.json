@@ -5,7 +5,7 @@
             "name": "Launch Without Build",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}",
+            "program": "${workspaceFolder}/build/Debug/RayTracing.exe", // 可执行文件路径
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

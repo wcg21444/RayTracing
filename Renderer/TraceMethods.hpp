@@ -41,7 +41,6 @@ class TraceSdSceneCPU : public ITraceMethod
 {
     SdSceneCPUContext &DIContext;
     CPUImageData traceImageData;
-    size_t numThreads = 16;
     std::vector<std::future<void>> shadingFutures;
 public:
     TraceSdSceneCPU(SdSceneCPUContext &context);
@@ -52,7 +51,6 @@ class TraceImSceneCPU : public ITraceMethod
 {
     ImSceneCPUContext &DIContext;
     CPUImageData traceImageData;
-    size_t numThreads = 16;
     std::vector<std::future<void>> shadingFutures;
 public:
     TraceImSceneCPU(ImSceneCPUContext &context);
