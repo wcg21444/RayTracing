@@ -4,6 +4,7 @@
 #include <string>
 #include "RenderState.hpp"
 #include "Config.hpp"
+#include "Trace.hpp"
 
 namespace RenderState
 {
@@ -51,5 +52,8 @@ namespace RenderState
             RenderState::InitHeight = j["InitHeight"];
         if (j.contains("CPUNumThreads"))
             RenderState::CPUNumThreads = j["CPUNumThreads"];
+        if (j.contains("CPUBounceLimit")){
+            Trace::bounceLimit = j["CPUBounceLimit"];
+        }
     }
 }

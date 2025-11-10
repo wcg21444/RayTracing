@@ -100,6 +100,7 @@ namespace Profiler
         inline static thread_local std::unordered_map<std::string, Count> th_CounterTable;
         inline static thread_local std::unordered_map<std::string, TimeStats> th_TimeStatsTable;
 
+
     public:
         ThreadStatsAggregator() // Acquire Counter
         {

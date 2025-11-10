@@ -45,7 +45,7 @@ namespace Profiler
         // 表驱动
         for (const auto &[name, timeBlock] : TimeBlocks)
         {
-            auto duration = duration_cast<microseconds>(timeBlock.endTime - timeBlock.startTime);
+            auto duration = duration_cast<nanoseconds>(timeBlock.endTime - timeBlock.startTime);
             BlockDurations[name] = duration;
         }
     }
@@ -99,6 +99,7 @@ namespace Profiler
         ImGui::Begin("Profiler");
         for (const auto &[name, duration] : BlockDurations)
         {
+            assert(duration.count() >= 0);//溢出检查
             DisplayTimeAuto(name, duration.count());
         }
         ImGui::SeparatorText("Aggregated Stats");

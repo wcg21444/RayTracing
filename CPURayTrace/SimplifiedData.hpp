@@ -54,6 +54,7 @@ namespace SimplifiedData
         // vec3 pMax = vec3(FLT_MIN);//Oppps FLT_MIN is 1.175494351e-38F
         vec3 pMax = vec3(-FLT_MAX); // Oppps FLT_MIN is 1.175494351e-38F
         BoundingBox &operator=(const BoundingBox &other);
+        vec3 center() const { return (pMin + pMax) * 0.5f; }
     };
     // flag 决定跳转到 NodeStorage 还是 TriangleStorage
     struct Node
@@ -134,12 +135,15 @@ namespace SimplifiedData
         static uint32_t BuildBVHFromNodes(NodeStorage &nodeStorage, uint32_t *nodeIndices, size_t start, size_t end);
         static HitInfos Intersect(DataStorage &dataStorage, const Ray &ray);
         static HitInfos IntersectLoop(DataStorage &dataStorage, const Ray &ray);
+        static HitInfos IntersectLoop_O1(DataStorage &dataStorage, const Ray &ray);
+        static HitInfos IntersectLoop_UnOptimized(DataStorage &dataStorage, const Ray &ray);
     };
 
     sd::BoundingBox GetBoundingBox(const sd::Triangle &triangle);
     HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax);
     bool operator==(const HitInfos &hit1, const HitInfos &hit2);
     bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax);
+    bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax, float &tHit);
 
     struct FlatNodeStorage
     {

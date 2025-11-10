@@ -165,6 +165,32 @@ namespace SimplifiedData
         }
         return true;
     }
+    bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax, float &tHit)
+    {
+        // static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BoundingBox Intersections");
+        static thread_local auto &count = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections Inner"); // 结构破坏: 如果上层调用不需要统计,则错误  底层调用则上层必须有Aggregator
+        // Profiler::ThreadScopedTimer timer(timeStats);
+        count++;
+        auto invDir = ray.getInvDirection();
+        auto origin = ray.getOrigin();
+        for (int a = 0; a < 3; a++)
+        {
+            float invD = invDir[a];
+            float t0 = (box.pMin[a] - origin[a]) * invD;
+            float t1 = (box.pMax[a] - origin[a]) * invD;
+            if (invD < 0.0f)
+                std::swap(t0, t1);
+            tMin = t0 > tMin ? t0 : tMin;
+            tMax = t1 < tMax ? t1 : tMax;
+            if (tMax <= tMin)
+            {
+                tHit = FLT_MAX;
+                return false;
+            }
+        }
+        tHit = tMin;
+        return true;
+    }
     void ConvertNodeToFlatStorage(const NodeStorage &nodeStorage, FlatNodeStorage &flatNodeStorage)
     {
         const auto stride = FlatNodeStorage::kFloatsPerNode;
@@ -275,8 +301,8 @@ namespace SimplifiedData
     HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax)
     {
         // static thread_local auto& count = Profiler::Aggregator::RegisterCounter("Triangle Intersections");
-        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Triangle Intersections");
-        Profiler::ThreadScopedTimer timer(timeStats);
+        // static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Triangle Intersections");
+        // Profiler::ThreadScopedTimer timer(timeStats);
         // count++;
 
         // aggregator->increment(counterName);//构造字符串性能开销很大
@@ -439,7 +465,6 @@ namespace SimplifiedData
         traverse(traverse, dataStorage.rootIndex);
         return closestHit;
     }
-
     HitInfos BVH::IntersectLoop(DataStorage &dataStorage, const Ray &ray)
     {
         static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BVH Intersections per 100 TimeSamples");
@@ -466,6 +491,7 @@ namespace SimplifiedData
                 counterBB++;
                 if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
                 {
+                    // 这里有一个 closest hit 剪枝.
                     continue;
                 }
             }
@@ -480,6 +506,137 @@ namespace SimplifiedData
                 }
                 continue;
             }
+            const auto &leftNode = dataStorage.nodeStorage.nodes[node.left];
+            const auto &rightNode = dataStorage.nodeStorage.nodes[node.right];
+            float leftDist = glm::dot(leftNode.box.center() - ray.getOrigin(), ray.getDirection());
+            float rightDist = glm::dot(rightNode.box.center() - ray.getOrigin(), ray.getDirection());
+            if (leftDist < rightDist) // AABB center closer first
+            {
+                callStack[top++] = node.right;
+                callStack[top++] = node.left;
+            }
+            else
+            {
+                callStack[top++] = node.left;
+                callStack[top++] = node.right;
+            }
+        }
+        return closestHit;
+    }
+    HitInfos BVH::IntersectLoop_O1(DataStorage &dataStorage, const Ray &ray)
+    {
+        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BVH Intersections per 100 TimeSamples");
+        static thread_local auto &timeStatsBB = Profiler::ThreadStatsAggregator::RegisterTimeStats("BoundingBox Intersections per 100 TimeSamples");
+        static thread_local auto &counterBB = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections");
+
+        // Profiler::ThreadScopedTimer timer(timeStats);
+        Profiler::ThreadScopedTimeSampler timeSampler(timeStats, 100);
+
+        static thread_local std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
+        static thread_local size_t top = 0;
+        HitInfos closestHit;
+
+        callStack[top++] = dataStorage.rootIndex;
+
+        while (top > 0)
+        {
+            uint32_t index = callStack[--top];
+            const Node &node = dataStorage.nodeStorage.nodes[index];
+
+            // {
+            //     // Profiler::ThreadScopedTimer timerBB(timeStatsBB);//测的越多越不准,因为开销过大
+            //     Profiler::ThreadScopedTimeSampler timeSamplerBB(timeStatsBB, 100);
+            //     counterBB++;
+            //     if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
+            //     {
+            //         // 这里有一个 closest hit 剪枝.
+            //         continue;
+            //     }
+            // }
+            if (node.flags == NODE_LEAF) // 叶子节点
+            {
+                // 展开求交
+                const auto &tri = dataStorage.triangleStorage.triangles[node.left];
+                auto hitInfos = sd::IntersectTriangle(tri, ray, 1e-6f, closestHit.t);
+                if (hitInfos.hit && hitInfos.t < closestHit.t) // 代替原来的命中物体收集
+                {
+                    closestHit = hitInfos;
+                }
+                continue;
+            }
+            const auto &leftNode = dataStorage.nodeStorage.nodes[node.left];
+            const auto &rightNode = dataStorage.nodeStorage.nodes[node.right];
+            float hitTLeft = FLT_MAX;
+            float hitTRight = FLT_MAX;
+            sd::IntersectBoundingBox(leftNode.box, ray, 1e-6f, closestHit.t, hitTLeft);
+            sd::IntersectBoundingBox(rightNode.box, ray, 1e-6f, closestHit.t, hitTRight);
+            if (hitTLeft < hitTRight) // AABB center closer first
+            {
+                if (hitTRight != FLT_MAX)
+                {
+                    callStack[top++] = node.right;
+                }
+                if (hitTLeft != FLT_MAX)
+                {
+                    callStack[top++] = node.left;
+                }
+            }
+            else
+            {
+                if (hitTLeft != FLT_MAX)
+                {
+                    callStack[top++] = node.left;
+                }
+                if (hitTRight != FLT_MAX)
+                {
+                    callStack[top++] = node.right;
+                }
+            }
+        }
+        return closestHit;
+    }
+    HitInfos BVH::IntersectLoop_UnOptimized(DataStorage &dataStorage, const Ray &ray)
+    {
+        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BVH Intersections per 100 TimeSamples");
+        static thread_local auto &timeStatsBB = Profiler::ThreadStatsAggregator::RegisterTimeStats("BoundingBox Intersections per 100 TimeSamples");
+        static thread_local auto &counterBB = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections");
+
+        // Profiler::ThreadScopedTimer timer(timeStats);
+        Profiler::ThreadScopedTimeSampler timeSampler(timeStats, 100);
+
+        static thread_local std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
+        static thread_local size_t top = 0;
+        HitInfos closestHit;
+
+        callStack[top++] = dataStorage.rootIndex;
+
+        while (top > 0)
+        {
+            uint32_t index = callStack[--top];
+            const Node &node = dataStorage.nodeStorage.nodes[index];
+
+            {
+                // Profiler::ThreadScopedTimer timerBB(timeStatsBB);//测的越多越不准,因为开销过大
+                Profiler::ThreadScopedTimeSampler timeSamplerBB(timeStatsBB, 100);
+                counterBB++;
+                if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
+                {
+                    // 这里有一个 closet hit 剪枝.
+                    continue;
+                }
+            }
+            if (node.flags == NODE_LEAF) // 叶子节点
+            {
+                // 展开求交
+                const auto &tri = dataStorage.triangleStorage.triangles[node.left];
+                auto hitInfos = sd::IntersectTriangle(tri, ray, 1e-6f, closestHit.t);
+                if (hitInfos.hit && hitInfos.t < closestHit.t) // 代替原来的命中物体收集
+                {
+                    closestHit = hitInfos;
+                }
+                continue;
+            }
+            // TODO: 加入 距离 启发式 排序
             callStack[top++] = node.left;
             callStack[top++] = node.right;
         }

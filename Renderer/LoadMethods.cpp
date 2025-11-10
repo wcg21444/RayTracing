@@ -7,6 +7,8 @@
 #include <memory>
 #include <algorithm>
 
+#include "Profiler.hpp"
+
 // LoadSdSceneGPU
 LoadSdSceneGPU::LoadSdSceneGPU(SdSceneGPUContext &context)
     : DIContext(context),
@@ -15,6 +17,7 @@ LoadSdSceneGPU::LoadSdSceneGPU(SdSceneGPUContext &context)
 
 void LoadSdSceneGPU::load()
 {
+    Profiler::ScopedTimeBlock timer("LoadSdSceneGPU::load");
     uint32_t rootIndex = 0;
     {
         std::shared_lock<std::shared_mutex> sdSceneLock(DIContext.sdSceneMutexRef); // read lock

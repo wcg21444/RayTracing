@@ -75,7 +75,9 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStora
         traceDepth++;
         // 场景测试
         sd::HitInfos closestHit;
-        closestHit = sd::BVH::IntersectLoop(dataStorage, tracingRay);
+        // closestHit = sd::BVH::IntersectLoop(dataStorage, tracingRay);
+        closestHit = sd::BVH::IntersectLoop_O1(dataStorage, tracingRay);
+        // closestHit = sd::BVH::IntersectLoop_UnOptimized(dataStorage, tracingRay);
         // 命中场景
         if (closestHit.hit)
         {

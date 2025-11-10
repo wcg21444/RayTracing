@@ -376,12 +376,165 @@ void RayVisualizer::RenderVisualization(const sd::DataStorage &dataStorage, cons
     }
 }
 
+void UpdateRayIntersection_O1(const sd::DataStorage &dataStorage, const Ray &ray, std::unordered_map<uint32_t, size_t> &nodeHitMap)
+{
+
+    static std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
+    static size_t top = 0;
+    sd::HitInfos closestHit;
+    callStack[top++] = dataStorage.rootIndex;
+
+    while (top > 0)
+    {
+        uint32_t index = callStack[--top];
+        const sd::Node &node = dataStorage.nodeStorage.nodes[index];
+
+        if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
+        {
+            continue;
+        }
+        if (node.flags == sd::NODE_LEAF) // 叶子节点
+        {
+            // 展开求交
+            const auto &tri = dataStorage.triangleStorage.triangles[node.left];
+            auto hitInfos = sd::IntersectTriangle(tri, ray, 1e-6f, closestHit.t);
+            if (hitInfos.hit && hitInfos.t < closestHit.t) // 代替原来的命中物体收集
+            {
+                closestHit = hitInfos;
+            }
+            continue;
+        }
+        if (nodeHitMap.find(index) == nodeHitMap.end())
+        {
+            nodeHitMap.insert({index, top});
+        }
+        // TODO: 加入 距离 启发式 排序
+
+        const auto &leftNode = dataStorage.nodeStorage.nodes[node.left];
+        const auto &rightNode = dataStorage.nodeStorage.nodes[node.right];
+        float hitTLeft = FLT_MAX;
+        float hitTRight = FLT_MAX;
+        sd::IntersectBoundingBox(leftNode.box, ray, 1e-6f, closestHit.t, hitTLeft);
+        sd::IntersectBoundingBox(rightNode.box, ray, 1e-6f, closestHit.t, hitTRight);
+        if (hitTLeft < hitTRight) // AABB center closer first
+        {
+            if (hitTRight != FLT_MAX)
+            {
+                callStack[top++] = node.right;
+            }
+            if (hitTLeft != FLT_MAX)
+            {
+                callStack[top++] = node.left;
+            }
+        }
+        else
+        {
+            if (hitTRight != FLT_MAX)
+            {
+                callStack[top++] = node.right;
+            }
+            if (hitTLeft != FLT_MAX)
+            {
+                callStack[top++] = node.left;
+            }
+        }
+    }
+}
+
 void UpdateRayIntersection(const sd::DataStorage &dataStorage, const Ray &ray, std::unordered_map<uint32_t, size_t> &nodeHitMap)
 {
 
     static std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
     static size_t top = 0;
+    sd::HitInfos closestHit;
+    callStack[top++] = dataStorage.rootIndex;
 
+    while (top > 0)
+    {
+        uint32_t index = callStack[--top];
+        const sd::Node &node = dataStorage.nodeStorage.nodes[index];
+
+        if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
+        {
+            continue;
+        }
+        if (node.flags == sd::NODE_LEAF) // 叶子节点
+        {
+            // 展开求交
+            const auto &tri = dataStorage.triangleStorage.triangles[node.left];
+            auto hitInfos = sd::IntersectTriangle(tri, ray, 1e-6f, closestHit.t);
+            if (hitInfos.hit && hitInfos.t < closestHit.t) // 代替原来的命中物体收集
+            {
+                closestHit = hitInfos;
+            }
+            continue;
+        }
+        if (nodeHitMap.find(index) == nodeHitMap.end())
+        {
+            nodeHitMap.insert({index, top});
+        }
+        // TODO: 加入 距离 启发式 排序
+
+        const auto &leftNode = dataStorage.nodeStorage.nodes[node.left];
+        const auto &rightNode = dataStorage.nodeStorage.nodes[node.right];
+        float leftDist = glm::dot(leftNode.box.center() - ray.getOrigin(), ray.getDirection());
+        float rightDist = glm::dot(rightNode.box.center() - ray.getOrigin(), ray.getDirection());
+        if (leftDist < rightDist) // AABB center closer first
+        {
+            callStack[top++] = node.right;
+            callStack[top++] = node.left;
+        }
+        else
+        {
+            callStack[top++] = node.left;
+            callStack[top++] = node.right;
+        }
+    }
+}
+
+// 有剪枝,无排序
+void UpdateRayIntersection_UnOptimized2(const sd::DataStorage &dataStorage, const Ray &ray, std::unordered_map<uint32_t, size_t> &nodeHitMap)
+{
+
+    static std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
+    static size_t top = 0;
+    sd::HitInfos closestHit;
+    callStack[top++] = dataStorage.rootIndex;
+
+    while (top > 0)
+    {
+        uint32_t index = callStack[--top];
+        const sd::Node &node = dataStorage.nodeStorage.nodes[index];
+
+        if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
+        {
+            continue;
+        }
+        if (node.flags == sd::NODE_LEAF) // 叶子节点
+        {
+            // 展开求交
+            const auto &tri = dataStorage.triangleStorage.triangles[node.left];
+            auto hitInfos = sd::IntersectTriangle(tri, ray, 1e-6f, closestHit.t);
+            if (hitInfos.hit && hitInfos.t < closestHit.t) // 代替原来的命中物体收集
+            {
+                closestHit = hitInfos;
+            }
+            continue;
+        }
+        if (nodeHitMap.find(index) == nodeHitMap.end())
+        {
+            nodeHitMap.insert({index, top});
+        }
+        callStack[top++] = node.left;
+        callStack[top++] = node.right;
+    }
+}
+// 无剪枝,无排序
+void UpdateRayIntersection_UnOptimized1(const sd::DataStorage &dataStorage, const Ray &ray, std::unordered_map<uint32_t, size_t> &nodeHitMap)
+{
+
+    static std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
+    static size_t top = 0;
     callStack[top++] = dataStorage.rootIndex;
 
     while (top > 0)
@@ -418,7 +571,7 @@ void RayVisualizer::Render(const SimplifiedData::DataStorage &dataStorage)
             size_t hitCounts = nodeHitMap.size();
             rayCache.insert(pRay.get());
             UpdateRayIntersection(dataStorage, *pRay, nodeHitMap);
-            if(nodeHitMap.size() > hitCounts)
+            if (nodeHitMap.size() > hitCounts)
             {
                 std::cout << "New hits recorded. Total hit nodes: " << nodeHitMap.size() << std::endl;
                 hitCounts = nodeHitMap.size();
@@ -435,6 +588,7 @@ void RayVisualizer::Render(const SimplifiedData::DataStorage &dataStorage)
     }
     ImGui::SliderInt("Color Max Depth", reinterpret_cast<int *>(&RayVisualizer::colorMaxDepth), 1, 32);
     ImGui::Checkbox("Hide All", &RayVisualizer::HideAll);
+    ImGui::Text("Total Hit Nodes: %zu", nodeHitMap.size());
     ImGui::End();
 
     for (const auto &pRay : RayPtrs)
