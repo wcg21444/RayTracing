@@ -14,6 +14,30 @@ namespace Profiler
     using namespace std::chrono;
     using hrClock = std::chrono::high_resolution_clock;
 
+    std::string ConvertNsAuto(nanoseconds duration)
+    {
+        const int MircosInNs = 1000;
+        const int MillisInNs = 1000000;
+        const int SecondsInNs = 1000000000;
+        auto nanoDuration = duration.count();
+        if (nanoDuration < MircosInNs)
+        {
+            return std::format("{} ns", nanoDuration); // 纳秒
+        }
+        else if (nanoDuration < MillisInNs)
+        {
+            return std::format("{} us", nanoDuration / static_cast<float>(MircosInNs)); // 微秒
+        }
+        else if (nanoDuration < SecondsInNs)
+        {
+            return std::format("{} ms", nanoDuration / static_cast<float>(MillisInNs)); // 毫秒
+        }
+        else
+        {
+            return std::format("{} s", nanoDuration / static_cast<float>(SecondsInNs)); // 秒
+        }
+    }
+
     void BeginTimeBlock(const std::string &name)
     {
         // 注册时间块

@@ -24,6 +24,12 @@ namespace Profiler
     {
         high_resolution_clock::time_point startTime;
         high_resolution_clock::time_point endTime;
+
+        template <typename Duration = nanoseconds>
+        Duration duration() const
+        {
+            return duration_cast<Duration>(endTime - startTime);
+        }
     };
 
     // 微秒级可能难以统计每一个像素的时间花费? 会不会是因为精度不够,所以最终累积的时间和实际时间差距过大?
@@ -102,7 +108,7 @@ namespace Profiler
         inline static thread_local std::unordered_map<std::string, Count> th_CounterTableDummy;
         inline static thread_local std::unordered_map<std::string, TimeStats> th_TimeStatsTableDummy;
 
-    public:
+    private:
         ThreadStatsAggregator() // Acquire Counter
         {
             // Clear Thread Total Count Data
@@ -116,12 +122,26 @@ namespace Profiler
                 stats = TimeStats{};
             }
         }
+        static void CreateInstance()
+        {
+            assert(th_AggregatorInstance == nullptr); // 线程唯一
+            th_AggregatorInstance = std::unique_ptr<ThreadStatsAggregator>(new ThreadStatsAggregator());
+        }
+
+        static void Submit()
+        {
+            th_AggregatorInstance.reset();
+        }
+
+    public:
+        friend class AggregatorGuard;
 
         // 静态调用注册函数 例如: thread_local auto& count = Profiler::Aggregator::RegisterCounter("name");
         static Count &RegisterCounter(const std::string &name)
         {
             // assert(th_AggregatorInstance);
-            if(!th_AggregatorInstance) {
+            if (!th_AggregatorInstance)
+            {
                 return th_CounterTableDummy[name];
             }
             th_CounterTable[name] = 0;
@@ -132,24 +152,14 @@ namespace Profiler
         static TimeStats &RegisterTimeStats(const std::string &name)
         {
             // assert(th_AggregatorInstance);
-            if(!th_AggregatorInstance) {
+            if (!th_AggregatorInstance)
+            {
                 return th_TimeStatsTableDummy[name];
             }
             th_TimeStatsTable[name] = TimeStats{};
             std::unique_lock<std::mutex> lock(s_TotalTimeStatsTableMutex);
             s_TotalTimeStatsTable[name] = TimeStats{};
             return th_TimeStatsTable[name];
-        }
-
-        static void CreateInstance()
-        {
-            assert(th_AggregatorInstance == nullptr); // 线程唯一
-            th_AggregatorInstance = std::make_unique<ThreadStatsAggregator>();
-        }
-
-        static void Submit()
-        {
-            th_AggregatorInstance.reset();
         }
 
         static std::unordered_map<std::string, Count> &s_GetTotalCounterTable()
@@ -205,6 +215,8 @@ namespace Profiler
             ThreadStatsAggregator::Submit();
         }
     };
+
+    std::string ConvertNsAuto(nanoseconds duration);
 
     // 数据收集
     extern std::unordered_map<std::string, TimeBeginEnd> TimeBlocks;

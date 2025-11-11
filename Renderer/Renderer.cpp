@@ -105,13 +105,17 @@ void Renderer::render()
         tracer->render(*traceMethod);
     }
     // postprocessing
-    auto raytraceResultID = tracer->getTraceOutputTextureID();
-    postProcessor->render(raytraceResultID);
-    auto postProcessed = postProcessor->getTextures();
+    {
+        Profiler::ScopedTimeBlock timer("Renderer::render - Screen Pass");
 
-    auto debugRendererOutput = DebugObjectRenderer::GetRenderOutput();
+        auto raytraceResultID = tracer->getTraceOutputTextureID();
+        postProcessor->render(raytraceResultID);
+        auto postProcessed = postProcessor->getTextures();
 
-    screenPass->render(postProcessed, debugRendererOutput);
+        auto debugRendererOutput = DebugObjectRenderer::GetRenderOutput();
+
+        screenPass->render(postProcessed, debugRendererOutput);
+    }
 }
 
 void Renderer::resize(int newWidth, int newHeight)
@@ -189,5 +193,8 @@ void Renderer::renderUI()
 
         ImGui::End();
     }
-    currentPipeline->getUIMethod()->renderUI();
+    {
+        Profiler::ScopedTimeBlock timer("Renderer::renderUI - currentPipeline->getUIMethod()->renderUI()");
+        currentPipeline->getUIMethod()->renderUI();
+    }
 }

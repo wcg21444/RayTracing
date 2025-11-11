@@ -1,30 +1,22 @@
-#include <array>
 #include <iostream>
 
-#include "BVHUI.hpp"
-#include "Scene.hpp"
+
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+#include "BVHUI.hpp"
+#include "Scene.hpp"
 #include "DebugObjectRenderer.hpp"
 #include "InputHandler.hpp"
 #include "Materials/Lambertian.hpp"
-#include "ModelLoader.hpp"
 #include "Storage.hpp"
 #include "UI.hpp"
 #include "Renderer.hpp"
 #include "Profiler.hpp"
 #include "Config.hpp"
 #include "RenderState.hpp"
-
-struct Vecs
-{
-    glm::vec3 vec1;
-    glm::vec3 vec2;
-    glm::vec3 vec3;
-};
 
 int main()
 {
@@ -85,6 +77,8 @@ int main()
     renderer->resize(RenderState::InitWidth, RenderState::InitHeight);
 
     SceneConfig ImSceneConfig("Configs/ImSceneConfig.json");
+    // SceneConfig sceneConfig("Configs/SceneConfig.json");
+    // SceneConfig sceneConfig("Configs/SceneConfig3_highPoly.json");
     SceneConfig sceneConfig("Configs/SceneConfig2.json");
 
     Storage::ImplicitSceneInstance.initialize(ImSceneConfig);
@@ -97,6 +91,8 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        Profiler::ProcessStatistics();
+        Profiler::ScopedTimeBlock frameTimer("Main Loop Frame"); // 放在ProcessStatic前面就负溢出
 
         glfwPollEvents();
 
@@ -106,11 +102,21 @@ int main()
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspace_flags);
 
-        Profiler::ProcessStatistics();
-        Profiler::RenderUI();
+        {
+            Profiler::ScopedTimeBlock frameTimerRender("Main Loop Frame Profiler::RenderUI()");
+            Profiler::RenderUI();
+        }
 
-        renderer->render();
-        renderer->renderUI();
+        {
+            Profiler::ScopedTimeBlock frameTimerRender("Main Loop Frame Render()");
+
+            renderer->render();
+        }
+
+        {
+            Profiler::ScopedTimeBlock frameTimerRender("Main Loop Frame renderer->renderUI()");
+            renderer->renderUI();
+        }
 
         // 处理 Camera 鼠标交互
         if (ImGui::IsAnyMouseDown() && !ImGui::GetIO().WantCaptureMouse)
@@ -194,14 +200,19 @@ int main()
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
+            Profiler::ScopedTimeBlock frameTimerRender("Main Loop Frame glfwMakeContextCurrent()");
             GLFWwindow *backup_current_context = glfwGetCurrentContext();
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_current_context);
         }
-        glfwSwapBuffers(window);
+        {
+            Profiler::ScopedTimeBlock frameTimerRender("Main Loop Frame glfwSwapBuffers()");
+            glfwSwapBuffers(window);
+        }
     }
 
     renderer->shutdown();

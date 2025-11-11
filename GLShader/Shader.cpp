@@ -17,7 +17,9 @@ Shader::Shader(const char *vs_path, const char *fs_path, const char *gs_path) : 
     bool hasGS = gs_path && gs_path[0] != '\0';
 
     std::string shader_buf;
-    unsigned int vertexShader, fragmentShader, geometryShader;
+    unsigned int vertexShader=0;
+    unsigned int fragmentShader=0;
+    unsigned int geometryShader=0;
 
     // Config Vertex Shader
     try
@@ -165,6 +167,7 @@ GLint Shader::getUniformLocationSafe(const std::string &name)
 // 使原对象失效
 void Shader::CompileShader(const char *shader_source, GLenum shader_type, unsigned int &shader_id, const char *path)
 {
+    // 如果Access Violation, 检查GLFW上下文是否已经创建
     shader_id = glCreateShader(shader_type);
     glShaderSource(shader_id, 1, &shader_source, NULL);
     glCompileShader(shader_id);
