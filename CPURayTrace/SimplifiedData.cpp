@@ -146,9 +146,9 @@ namespace SimplifiedData
     bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax)
     {
         // static thread_local auto &timeStats = Profiler::Aggregator::RegisterTimeStats("BoundingBox Intersections");
-        // static thread_local auto &count = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections Inner"); // 结构破坏: 如果上层调用不需要统计,则错误  底层调用则上层必须有Aggregator
+        static thread_local auto &count = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections Inner"); // 结构破坏: 如果上层调用不需要统计,则错误  底层调用则上层必须有Aggregator
         // Profiler::ThreadScopedTimer timer(timeStats);
-        // count++;
+        count++;
         auto invDir = ray.getInvDirection();
         auto origin = ray.getOrigin();
         for (int a = 0; a < 3; a++)
@@ -167,9 +167,9 @@ namespace SimplifiedData
     }
     bool IntersectBoundingBox(const BoundingBox &box, const Ray &ray, float tMin, float tMax, float &tHit)
     {
-        // static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BoundingBox Intersections");
-        static thread_local auto &count = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections Inner"); // 结构破坏: 如果上层调用不需要统计,则错误  底层调用则上层必须有Aggregator
-        // Profiler::ThreadScopedTimer timer(timeStats);
+        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BoundingBox Intersections per 100 TimeSamples");
+        static thread_local auto &count = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections Inner"); 
+        Profiler::ThreadScopedTimeSampler timer(timeStats,100);
         count++;
         auto invDir = ray.getInvDirection();
         auto origin = ray.getOrigin();
@@ -300,10 +300,10 @@ namespace SimplifiedData
     }
     HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax)
     {
-        // static thread_local auto& count = Profiler::Aggregator::RegisterCounter("Triangle Intersections");
-        // static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Triangle Intersections");
-        // Profiler::ThreadScopedTimer timer(timeStats);
-        // count++;
+        static thread_local auto& count = Profiler::ThreadStatsAggregator::RegisterCounter("Triangle Intersections");
+        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Triangle Intersections per 100 TimeSamples");
+        Profiler::ThreadScopedTimeSampler timer(timeStats,100);
+        count++;
 
         // aggregator->increment(counterName);//构造字符串性能开销很大
         // TODO 统计一个线程内 三角形求交次数

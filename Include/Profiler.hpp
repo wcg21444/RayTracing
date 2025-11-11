@@ -95,11 +95,12 @@ namespace Profiler
         inline static std::unordered_map<std::string, TimeStats> s_TotalTimeStatsTable;
         inline static std::mutex s_TotalTimeStatsTableMutex;
 
-        inline static thread_local std::unique_ptr<ThreadStatsAggregator> th_Instance = nullptr;
+        inline static thread_local std::unique_ptr<ThreadStatsAggregator> th_AggregatorInstance = nullptr;
 
         inline static thread_local std::unordered_map<std::string, Count> th_CounterTable;
         inline static thread_local std::unordered_map<std::string, TimeStats> th_TimeStatsTable;
-
+        inline static thread_local std::unordered_map<std::string, Count> th_CounterTableDummy;
+        inline static thread_local std::unordered_map<std::string, TimeStats> th_TimeStatsTableDummy;
 
     public:
         ThreadStatsAggregator() // Acquire Counter
@@ -119,7 +120,10 @@ namespace Profiler
         // 静态调用注册函数 例如: thread_local auto& count = Profiler::Aggregator::RegisterCounter("name");
         static Count &RegisterCounter(const std::string &name)
         {
-            assert(th_Instance);
+            // assert(th_AggregatorInstance);
+            if(!th_AggregatorInstance) {
+                return th_CounterTableDummy[name];
+            }
             th_CounterTable[name] = 0;
             std::unique_lock<std::mutex> lock(s_TotalCounterTableMutex);
             s_TotalCounterTable[name] = 0;
@@ -127,7 +131,10 @@ namespace Profiler
         }
         static TimeStats &RegisterTimeStats(const std::string &name)
         {
-            assert(th_Instance);
+            // assert(th_AggregatorInstance);
+            if(!th_AggregatorInstance) {
+                return th_TimeStatsTableDummy[name];
+            }
             th_TimeStatsTable[name] = TimeStats{};
             std::unique_lock<std::mutex> lock(s_TotalTimeStatsTableMutex);
             s_TotalTimeStatsTable[name] = TimeStats{};
@@ -136,13 +143,13 @@ namespace Profiler
 
         static void CreateInstance()
         {
-            assert(th_Instance == nullptr); // 线程唯一
-            th_Instance = std::make_unique<ThreadStatsAggregator>();
+            assert(th_AggregatorInstance == nullptr); // 线程唯一
+            th_AggregatorInstance = std::make_unique<ThreadStatsAggregator>();
         }
 
         static void Submit()
         {
-            th_Instance.reset();
+            th_AggregatorInstance.reset();
         }
 
         static std::unordered_map<std::string, Count> &s_GetTotalCounterTable()
