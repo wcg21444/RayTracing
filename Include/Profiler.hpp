@@ -79,15 +79,20 @@ namespace Profiler
             {
                 statsRef.timerStartTime = high_resolution_clock::now();
             }
-            statsRef.callCount++;
         }
         ~ThreadScopedTimeSampler()
         {
-            if (statsRef.callCount % sampleStep == sampleStep - 1)
+            // if (statsRef.callCount % sampleStep == sampleStep - 1)
+            // {
+            //     statsRef.timerEndTime = high_resolution_clock::now();
+            //     statsRef.totalDuration += (statsRef.timerEndTime - statsRef.timerStartTime); //问题 会把外面的时间算上
+            // }
+            if (statsRef.callCount % sampleStep == 0)
             {
                 statsRef.timerEndTime = high_resolution_clock::now();
-                statsRef.totalDuration += (statsRef.timerEndTime - statsRef.timerStartTime);
+                statsRef.totalDuration += (statsRef.timerEndTime - statsRef.timerStartTime)*sampleStep; 
             }
+            statsRef.callCount++;
         }
     };
 
