@@ -42,7 +42,6 @@ namespace SimplifiedData
         float t = std::numeric_limits<float>::infinity(); // 命中时光线的t
         glm::vec3 origin;                                 // 光线起点
         glm::vec3 dir;                                    // 命中光线的dir
-        glm::vec3 invDir;                                 // 光线dir倒数
         glm::vec3 pos;                                    // 命中位置
         glm::vec3 normal;                                 // 归一化世界法线
         uint32_t matFlags;                                // 材质

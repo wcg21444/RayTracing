@@ -184,7 +184,6 @@ namespace SimplifiedData
             tMax = t1 < tMax ? t1 : tMax;
             if (tMax <= tMin)
             {
-                tHit = FLT_MAX;
                 return false;
             }
         }
@@ -292,7 +291,6 @@ namespace SimplifiedData
         eq &= (hit1.t == hit2.t);
         eq &= (hit1.origin == hit2.origin);
         eq &= (hit1.dir == hit2.dir);
-        eq &= (hit1.invDir == hit2.invDir);
         eq &= (hit1.pos == hit2.pos);
         eq &= (hit1.normal == hit2.normal);
         eq &= (hit1.matFlags == hit2.matFlags);
@@ -301,12 +299,10 @@ namespace SimplifiedData
     HitInfos IntersectTriangle(const Triangle &tri, const Ray &ray, float tMin, float tMax)
     {
         static thread_local auto& count = Profiler::ThreadStatsAggregator::RegisterCounter("Triangle Intersections");
-        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Triangle Intersections per 100 TimeSamples");
-        Profiler::ThreadScopedTimeSampler timer(timeStats,100);
+        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("Triangle Intersections per 1000 TimeSamples");
+        Profiler::ThreadScopedTimeSampler timer(timeStats,1000);
         count++;
 
-        // aggregator->increment(counterName);//构造字符串性能开销很大
-        // TODO 统计一个线程内 三角形求交次数
         const float EPSILON = 1e-7f;
         vec3 edge1 = tri.positions[1] - tri.positions[0];
         vec3 edge2 = tri.positions[2] - tri.positions[0];
@@ -336,7 +332,6 @@ namespace SimplifiedData
                 .t = t,
                 .origin = ray.getOrigin(),
                 .dir = dir,
-                .invDir = vec3(1.f / dir.x, 1.f / dir.y, 1.f / dir.z),
                 .pos = ray.at(t),
                 .normal = N,
                 .matFlags = tri.matFlags};
@@ -525,12 +520,11 @@ namespace SimplifiedData
     }
     HitInfos BVH::IntersectLoop_O1(DataStorage &dataStorage, const Ray &ray)
     {
-        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BVH Intersections per 100 TimeSamples");
-        static thread_local auto &timeStatsBB = Profiler::ThreadStatsAggregator::RegisterTimeStats("BoundingBox Intersections per 100 TimeSamples");
+        static thread_local auto &timeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("BVH Intersections per 10 TimeSamples");
         static thread_local auto &counterBB = Profiler::ThreadStatsAggregator::RegisterCounter("BoundingBox Intersections");
 
         // Profiler::ThreadScopedTimer timer(timeStats);
-        Profiler::ThreadScopedTimeSampler timeSampler(timeStats, 100);
+        Profiler::ThreadScopedTimeSampler timeSampler(timeStats, 10);
 
         static thread_local std::array<uint32_t, 32> callStack; // 假设栈深度不会超过32
         static thread_local size_t top = 0;
@@ -543,16 +537,6 @@ namespace SimplifiedData
             uint32_t index = callStack[--top];
             const Node &node = dataStorage.nodeStorage.nodes[index];
 
-            // {
-            //     // Profiler::ThreadScopedTimer timerBB(timeStatsBB);//测的越多越不准,因为开销过大
-            //     Profiler::ThreadScopedTimeSampler timeSamplerBB(timeStatsBB, 100);
-            //     counterBB++;
-            //     if (index == sd::invalidIndex || !sd::IntersectBoundingBox(node.box, ray, 1e-6f, closestHit.t))
-            //     {
-            //         // 这里有一个 closest hit 剪枝.
-            //         continue;
-            //     }
-            // }
             if (node.flags == NODE_LEAF) // 叶子节点
             {
                 // 展开求交
@@ -568,8 +552,8 @@ namespace SimplifiedData
             const auto &rightNode = dataStorage.nodeStorage.nodes[node.right];
             float hitTLeft = FLT_MAX;
             float hitTRight = FLT_MAX;
-            sd::IntersectBoundingBox(leftNode.box, ray, 1e-6f, closestHit.t, hitTLeft);
-            sd::IntersectBoundingBox(rightNode.box, ray, 1e-6f, closestHit.t, hitTRight);
+            sd::IntersectBoundingBox(leftNode.box, ray, 1e-4f, closestHit.t, hitTLeft);
+            sd::IntersectBoundingBox(rightNode.box, ray, 1e-4f, closestHit.t, hitTRight);
             if (hitTLeft < hitTRight) // AABB center closer first
             {
                 if (hitTRight != FLT_MAX)
