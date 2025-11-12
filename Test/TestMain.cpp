@@ -1,6 +1,7 @@
 #include <filesystem>
 
 #include <iostream>
+#include <ctime>
 
 #include "Scene.hpp"
 
@@ -9,12 +10,15 @@
 #include "TestRenderState.hpp"
 #include "TestRenderer.hpp"
 #include "TestProfiler.hpp"
+#include <cstdio>
 
 int main()
 {
+    freopen("./Test/TestOutput.txt", "a", stdout);//追加而不是覆盖
 
+    std::cout<<"----------------------------------------"<<std::endl;
     std::cout << "Test Working Directory: " << std::filesystem::current_path() << std::endl;
-    RenderConfig renderConfig("Test/Configs/RenderConfig.json");
+    RenderConfig renderConfig("Test/Configs/TestRenderConfig.json");
     RenderState::Test::LoadConfig(renderConfig);
 
     glfwInit();
@@ -42,7 +46,7 @@ int main()
     renderer->resize(RenderState::InitWidth, RenderState::InitHeight);
 
     // SceneConfig sceneConfig("Configs/SceneConfig3_highPoly.json");
-    SceneConfig sceneConfig("Test/Configs/SceneConfig.json");
+    SceneConfig sceneConfig("Test/Configs/TestSceneConfig.json");
     Storage::SdSceneInstance.initialize(sceneConfig);
 
     Storage::InitSceneStorageRendering();
@@ -55,22 +59,26 @@ int main()
     {
         renderer->changeMode(RenderMode::CPU_SdScene);
     }
+    std::cout << "Using Render Mode: " << RenderState::Test::RenderModeString << std::endl;
 
     std::cout << "Scene Initialized, start rendering..." << std::endl;
 
-    std::cout << "Using Render Mode: " << RenderState::Test::RenderModeString << std::endl;
 
     renderer->render();
 
     renderer->shutdown();
 
     Profiler::Test::OutputStatistics();
-
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::cout<<"Current TimeStamps:"<<std::ctime(&now) << std::endl;
+    std::cout << "Resolution: " << RenderState::InitWidth << "x" << RenderState::InitHeight << std::endl;
     std::cout << "Sample Times:" << RenderState::Test::SampleTimes << std::endl;
     std::cout << "Render Time:" << Profiler::ConvertNsAuto(Profiler::Test::TimeBlocks["Total Raytracing Time"].duration<std::chrono::nanoseconds>()) << std::endl;
     std::cout << "Sample per Second:" << (RenderState::Test::SampleTimes) / (Profiler::Test::TimeBlocks["Total Raytracing Time"].duration<std::chrono::nanoseconds>().count() / 1e9)
               << std::endl;
     std::cout << "Test Finished." << std::endl;
+    std::cout<<"----------------------------------------"<<std::endl;
+
 
     glfwTerminate();
 

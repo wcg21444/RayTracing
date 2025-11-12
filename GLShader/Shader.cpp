@@ -112,7 +112,7 @@ Shader::~Shader()
 {
     if (programID)
     {
-        std::cout << std::format("Shader Program ID:{} Was Deleted~\n", programID);
+        std::cerr << std::format("Shader Program ID:{} Was Deleted~\n", programID);
         glDeleteProgram(programID);
     }
     ShaderRegistry.erase(this);
@@ -124,7 +124,7 @@ Shader &Shader::operator=(Shader &&other) noexcept
     {
         if (programID)
         {
-            std::cout << std::format("Shader Program ID:{} Was Deleted\n", programID);
+            std::cerr << std::format("Shader Program ID:{} Was Deleted\n", programID);
             glDeleteProgram(programID);
         }
         this->programID = other.programID;

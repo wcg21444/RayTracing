@@ -1,0 +1,19 @@
+{
+    "name": "RenderConfig",
+    "type": "RenderConfig",
+    "camera": {
+        "focalLength":5.0,
+        "position": [0.0, 50.0, 1.0],
+        "lookAtCenter": [0.0, 50.0, 0.0],
+        "width": 2.0,
+        "height": 1.125,
+        "aspectRatio": 1.7777778,
+        "sensitivity": 0.1
+    },
+    "InitWidth": 800,
+    "InitHeight": 600,
+    "CPUNumThreads": 16,
+    "CPUBounceLimit": 10,
+    "SampleTimes" : 100,
+    "RenderMode": "GPU_SdScene"
+}

@@ -59,16 +59,14 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, const ImplicitScene &scene
 color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStorage)
 {
     static thread_local auto &castRayCount = Profiler::ThreadStatsAggregator::RegisterCounter("CastRay");
-    // static thread_local auto &castRayTimeStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("CastRay");
-    static thread_local auto &castRayTimeSamplerStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("CastRay per 100 TimeSamples");
+    static thread_local auto &castRayTimeSamplerStats = Profiler::ThreadStatsAggregator::RegisterTimeStats("CastRay per 10 TimeSamples");
     vec4 color = vec4(0.0f);
 
     vec3 throughout = vec3(1.f);
     Ray tracingRay = ray;
     while (traceDepth < bounceLimit)
     {
-        // volatile Profiler::ThreadScopedTimer timer(castRayTimeStats);
-        volatile Profiler::ThreadScopedTimeSampler timeSampler(castRayTimeSamplerStats, 100);
+        volatile Profiler::ThreadScopedTimeSampler timeSampler(castRayTimeSamplerStats, 10);
 
         castRayCount++;
 
@@ -81,13 +79,6 @@ color4 Trace::CastRay(const Ray &ray, int traceDepth, sd::DataStorage &dataStora
         // 命中场景
         if (closestHit.hit)
         {
-            // color+= lambertianIrradiance(closestHit);
-            // vec3 rndDir = sampleCosineHemisphere(closestHit.normal, TexCoord * (rand + 1.f));
-            // vec3 rndDir = Random::GenerateCosineSemiSphereVector(closestHit.normal);
-            // vec3 bias = closestHit.normal * 1e-5f;
-            // tracingRay = Ray(closestHit.pos + bias, rndDir);
-            // throughout *= vec3(0.9f, 0.4f, 0.7f);
-            // color = vec4(1.0f,0.0f,0.0f,0.0f);
             if (closestHit.matFlags == sd::LambertianMat)
                 throughout *= vec3(Lambertian::Hit(closestHit, tracingRay, color4(0.9f, 0.6f, 0.5f, 1.0f)));
             continue;

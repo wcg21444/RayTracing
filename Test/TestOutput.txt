@@ -1,0 +1,414 @@
+// closestHit = sd::BVH::IntersectLoop_O1(dataStorage, tracingRay);
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.880269 s
+Current TimeStamps:Wed Nov 12 14:51:59 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:12.880269 s
+Sample per Second:7.76381
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.399706 s
+Current TimeStamps:Wed Nov 12 14:52:26 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:12.399706 s
+Sample per Second:8.06471
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.393892 s
+Current TimeStamps:Wed Nov 12 14:52:41 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:12.393892 s
+Sample per Second:8.06849
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.081925 s
+Current TimeStamps:Wed Nov 12 14:52:56 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:12.081925 s
+Sample per Second:8.27683
+Test Finished.
+----------------------------------------  
+// closestHit = sd::BVH::IntersectLoop(dataStorage, tracingRay);
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 15.247716 s
+Current TimeStamps:Wed Nov 12 14:55:28 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:15.247716 s
+Sample per Second:6.55836
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 15.85994 s
+Current TimeStamps:Wed Nov 12 14:55:46 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:15.85994 s
+Sample per Second:6.30519
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 16.024706 s
+Current TimeStamps:Wed Nov 12 14:56:08 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:16.024706 s
+Sample per Second:6.24036
+Test Finished.
+----------------------------------------
+closestHit = sd::BVH::IntersectLoop_UnOptimized(dataStorage, tracingRay);
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 13.141559 s
+Current TimeStamps:Wed Nov 12 14:56:35 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:13.141559 s
+Sample per Second:7.60945
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 13.981127 s
+Current TimeStamps:Wed Nov 12 14:56:52 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:13.981127 s
+Sample per Second:7.1525
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 13.762703 s
+Current TimeStamps:Wed Nov 12 14:57:27 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:13.762703 s
+Sample per Second:7.26601
+Test Finished.
+----------------------------------------
+//closestHit Done
+// closestHit = sd::BVH::IntersectLoop_O1(dataStorage, tracingRay);
+--------------------------------------------------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.405852 s
+Current TimeStamps:Wed Nov 12 14:59:00 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:12.405852 s
+Sample per Second:8.06071
+Test Finished.
+----------------------------------------
+//删除HitInfo invDir成员后的测试----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 13.148055 s
+Current TimeStamps:Wed Nov 12 15:00:50 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:13.148055 s
+Sample per Second:7.60569
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.955239 s
+Current TimeStamps:Wed Nov 12 15:01:11 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:12.955239 s
+Sample per Second:7.71888
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 13.171024 s
+Current TimeStamps:Wed Nov 12 15:01:33 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:13.171024 s
+Sample per Second:7.59242
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.635308 s
+Current TimeStamps:Wed Nov 12 15:01:54 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:12.635308 s
+Sample per Second:7.91433
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 13.726823 s
+Current TimeStamps:Wed Nov 12 15:22:24 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:13.726823 s
+Sample per Second:7.28501
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: CPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 13.99042 s
+Current TimeStamps:Wed Nov 12 15:23:48 2025
+
+Resolution: 400x300
+Sample Times:100
+Render Time:13.99042 s
+Sample per Second:7.14775
+Test Finished.
+----------------------------------------
+//Old GPU BVH Intersect Test Results------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 3.4313595 s
+Current TimeStamps:Wed Nov 12 15:45:43 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:3.4313595 s
+Sample per Second:29.143
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 17.004536 s
+Current TimeStamps:Wed Nov 12 15:46:29 2025
+
+Resolution: 800x600
+Sample Times:500
+Render Time:17.004536 s
+Sample per Second:29.4039
+Test Finished.
+----------------------------------------
+//New GPU BVH Intersect_O1 Test Results----------------------------------------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.176666 s
+Current TimeStamps:Wed Nov 12 15:47:26 2025
+
+Resolution: 800x600
+Sample Times:500
+Render Time:12.176666 s
+Sample per Second:41.0621
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 12.011927 s
+Current TimeStamps:Wed Nov 12 15:47:45 2025
+
+Resolution: 800x600
+Sample Times:500
+Render Time:12.011927 s
+Sample per Second:41.6253
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 2.4303942 s
+Current TimeStamps:Wed Nov 12 15:48:08 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:2.4303942 s
+Sample per Second:41.1456
+Test Finished.
+----------------------------------------
+剔除GetNodeFromFlatStorageTex冗余后的GPU BVH Intersect_O1 Test Results----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 2.7364142 s
+Current TimeStamps:Wed Nov 12 15:52:18 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:2.7364142 s
+Sample per Second:36.5442
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 2.5183415 s
+Current TimeStamps:Wed Nov 12 15:52:36 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:2.5183415 s
+Sample per Second:39.7087
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 2.5474327 s
+Current TimeStamps:Wed Nov 12 15:52:43 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:2.5474327 s
+Sample per Second:39.2552
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 2.4174364 s
+Current TimeStamps:Wed Nov 12 15:56:53 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:2.4174364 s
+Sample per Second:41.3661
+Test Finished.
+----------------------------------------
+
+///去掉冗余if (!IntersectBoundingBox(node.box, ray, 1e-6f, closestT))
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 2.057747 s
+Current TimeStamps:Wed Nov 12 15:57:16 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:2.057747 s
+Sample per Second:48.5968
+Test Finished.
+----------------------------------------
+//直接获取box 而不是获取node
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 2.1023622 s
+Current TimeStamps:Wed Nov 12 15:59:41 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:2.1023622 s
+Sample per Second:47.5655
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 1.9297765 s
+Current TimeStamps:Wed Nov 12 16:00:00 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:1.9297765 s
+Sample per Second:51.8195
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 1.9206804 s
+Current TimeStamps:Wed Nov 12 16:00:06 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:1.9206804 s
+Sample per Second:52.0649
+Test Finished.
+----------------------------------------
+----------------------------------------
+Test Working Directory: "D:\\Codes\\vscode\\openGL\\RayTracing"
+Using Render Mode: GPU_SdScene
+Scene Initialized, start rendering...
+Total Raytracing Time Duration: 1.9027151 s
+Current TimeStamps:Wed Nov 12 16:05:05 2025
+
+Resolution: 800x600
+Sample Times:100
+Render Time:1.9027151 s
+Sample per Second:52.5565
+Test Finished.
+----------------------------------------
