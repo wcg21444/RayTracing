@@ -64,6 +64,30 @@ Node GetNodeFromFlatStorageTex(uint index, in sampler2D src)
     return node;
 }
 
+BoundingBox GetBoxFromFlatStorageTex(uint index, in sampler2D src)
+{
+    int texWidth = textureSize(src, 0).x;
+    const uint stride = kFloatsPerNode; // 假设 kFloatsPerNode = 9
+    uint base = index * stride;
+
+    BoundingBox box;
+
+    box.pMin = vec3(
+        texelFetch(src, IndexToTexCoord(base + 2u,texWidth), 0).r,
+        texelFetch(src, IndexToTexCoord(base + 3u,texWidth), 0).r,
+        texelFetch(src, IndexToTexCoord(base + 4u,texWidth), 0).r
+    );
+    
+    // 4. node.box.pMax (base + 5u, 6u, 7u,texWidth)
+    box.pMax = vec3(
+        texelFetch(src, IndexToTexCoord(base + 5u,texWidth), 0).r,
+        texelFetch(src, IndexToTexCoord(base + 6u,texWidth), 0).r,
+        texelFetch(src, IndexToTexCoord(base + 7u,texWidth), 0).r
+    );
+
+    return box;
+}
+
 Triangle GetTriangleFromFlatStorageTex(uint index, in sampler2D src)
 {
     int texWidth = textureSize(src, 0).x;

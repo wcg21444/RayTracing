@@ -403,8 +403,7 @@ vec4 castRay(in Ray ray, int traceDepth,uint rootIndex)
         hitScene(tracingRay, closestHit);
         
         HitInfos closestHitBVH = invalidHit;
-        // closestHitBVH = BVHIntersectLoopTex(nodeStorageTex,triangleStorageTex,rootIndex, tracingRay);
-        closestHitBVH = BVHIntersectLoopTex_O1(nodeStorageTex,triangleStorageTex,rootIndex, tracingRay);
+        closestHitBVH = BVHIntersectLoopTex(nodeStorageTex,triangleStorageTex,rootIndex, tracingRay);
 
         if(closestHitBVH.t!=invalidT&&closestHitBVH.t<closestHit.t){
             closestHit = closestHitBVH;
@@ -437,8 +436,7 @@ vec4 castRay(in Ray ray, int traceDepth,uint rootIndex)
                 HitInfos shadowHit = invalidHit;
                 hitScene(shadowRay, shadowHit);
                 
-                // HitInfos shadowHitBVH = BVHIntersectLoopTex(nodeStorageTex, triangleStorageTex, rootIndex, shadowRay);
-                HitInfos shadowHitBVH = BVHIntersectLoopTex_O1(nodeStorageTex, triangleStorageTex, rootIndex, shadowRay);
+                HitInfos shadowHitBVH = BVHIntersectLoopTex(nodeStorageTex, triangleStorageTex, rootIndex, shadowRay);
                 if (shadowHitBVH.t != invalidT && shadowHitBVH.t < shadowHit.t) {
                     shadowHit = shadowHitBVH;
                 }
@@ -469,8 +467,7 @@ vec4 castRay(in Ray ray, int traceDepth,uint rootIndex)
                     HitInfos shadowHit2 = invalidHit;
                     hitScene(shadowRay2, shadowHit2);
                     
-                    // HitInfos shadowHitBVH2 = BVHIntersectLoopTex(nodeStorageTex, triangleStorageTex, rootIndex, shadowRay2);
-                    HitInfos shadowHitBVH2 = BVHIntersectLoopTex_O1(nodeStorageTex, triangleStorageTex, rootIndex, shadowRay2);
+                    HitInfos shadowHitBVH2 = BVHIntersectLoopTex(nodeStorageTex, triangleStorageTex, rootIndex, shadowRay2);
                     if (shadowHitBVH2.t != invalidT && shadowHitBVH2.t < shadowHit2.t) {
                         shadowHit2 = shadowHitBVH2;
                     }
